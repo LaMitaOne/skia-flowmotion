@@ -24,8 +24,9 @@ Many bugs and incomplete features
    
 This is purely a proof-of-concept to show that a full modern replacement for my VCL-only Flowmotion component is possible – cross-platform (Windows, macOS, Android, iOS) and with much better graphics performance.  
 Inspiration    
-Based on my original Flowmotion component:   
-[https://sourceforge.net/projects/flowmotion/](https://github.com/LaMitaOne/Flowmotion)  
+Based on my original Flowmotion component:     
+github.com/LaMitaOne/Flowmotion   
+
 This project aims to bring similar (and more) features to FMX using the power of Skia4Delphi.   
    
 Requirements    
