@@ -1,6 +1,7 @@
 # skia-flowmotion
 Delphi RAD Studio Skia Flowmotion Alpha first running prototype, not everything implemented so far, but basic animation core things working already 
    
+  <img width="1139" height="786" alt="Unbenannt" src="https://github.com/user-attachments/assets/ae1d472c-7c95-41e0-a8da-1acfd3dcc8b4" />
    
 This is a very early alpha prototype – the first quick attempt to see if a performant, animated image flow gallery can be built using Delphi's cross-platform FireMonkey framework powered by Skia4Delphi (Google's Skia graphics library).   
     
