@@ -4038,7 +4038,7 @@ object frmMain: TfrmMain
     Size.Width = 984.000000000000000000
     Size.Height = 752.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 2
+    TabOrder = 3
   end
   object lytcontrols: TLayout
     Align = Left

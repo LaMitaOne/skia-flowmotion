@@ -125,7 +125,6 @@ begin
     skfmFlowGallery := TSkFlowmotion.Create(Self);
     skfmFlowGallery.Parent := lytContent;
     skfmFlowGallery.Align := TAlignLayout.Client;
-    skfmFlowGallery.HitTest := False;
   end;
   skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;

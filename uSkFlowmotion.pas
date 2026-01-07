@@ -441,13 +441,11 @@ procedure Register;
 begin
   RegisterComponents('LaMita Components', [TSkFlowmotion]);
 end;
-
 // Helper to get Ticks cross-platform
 function GetTickCount: Cardinal;
 begin
   Result := TThread.GetTickCount;
 end;
-
 { ============================================================================= }
 {                  TAnimationThread IMPLEMENTATION                     }
 { ============================================================================= }
@@ -505,7 +503,6 @@ begin
       Sleep(SleepTime);
   end;
 end;
-
 { ============================================================================= }
 {                  TImageItem IMPLEMENTATION                         }
 { ============================================================================= }
@@ -536,7 +533,6 @@ begin
   FSkImage := nil;
   inherited;
 end;
-
 { ============================================================================= }
 {                  TImageLoadThread IMPLEMENTATION                    }
 { ============================================================================= }
@@ -634,7 +630,6 @@ begin
       TSkFlowmotion(FOwner).ThreadSafeInvalidate;
   end;
 end;
-
 { ============================================================================= }
 {                  TSkFlowmotion IMPLEMENTATION                       }
 { ============================================================================= }
@@ -774,7 +769,6 @@ begin
   end;
   inherited Destroy;
 end;
-
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: THREADING & SYNCHRONIZATION
 // -----------------------------------------------------------------------------
@@ -827,7 +821,6 @@ begin
   FLoadingThreads.Remove(Thread);
   Dec(FLoadingCount);
 end;
-
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: PROPERTY SETTERS
 // -----------------------------------------------------------------------------
@@ -1110,7 +1103,6 @@ begin
     Repaint;
   end;
 end;
-
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: UTILITIES
 // -----------------------------------------------------------------------------
@@ -1131,7 +1123,6 @@ function TSkFlowmotion.GetLoadingCount: Integer;
 begin
   Result := FLoadingCount;
 end;
-
 // --- Activation Zones ---
 procedure TSkFlowmotion.AddActivationZone(const AName: string; const ARect: TRect);
 begin
@@ -1158,7 +1149,6 @@ begin
   CaptionH := 20; // Approximate height
   Result := Rect(DrawRect.Left, DrawRect.Bottom - CaptionH - FCaptionOffsetY, DrawRect.Right, DrawRect.Bottom - FCaptionOffsetY);
 end;
-
 // -----------------------------------------------------------------------------
 // PAGING METHODS
 // -----------------------------------------------------------------------------
@@ -1300,7 +1290,6 @@ begin
   if FCurrentPage > 0 then
     ShowPage(FCurrentPage - 1);
 end;
-
 // -----------------------------------------------------------------------------
 // ANIMATION LOGIC
 // -----------------------------------------------------------------------------
@@ -1498,7 +1487,6 @@ begin
     CalculateLayout;
   end;
 end;
-
 // -----------------------------------------------------------------------------
 // VISUAL PAINT METHOD (SKIA RENDERING)
 // -----------------------------------------------------------------------------
@@ -1641,7 +1629,6 @@ begin
 
   // Clean up
 end;
-
 // -----------------------------------------------------------------------------
 // RESIZE HANDLER
 // -----------------------------------------------------------------------------
@@ -1666,7 +1653,6 @@ begin
   CalculateLayout;
   Repaint;
 end;
-
 // -----------------------------------------------------------------------------
 // 1. HELPER CONVERSION FUNCTIONS (FMX TBitmap <-> Skia ISkImage)
 // -----------------------------------------------------------------------------
@@ -1713,7 +1699,6 @@ begin
     Result.cy := Round(MaxHeight);
   end;
 end;
-
 // --- Finders ---
 function TSkFlowmotion.FindImageByPath(const Path: string): TImageItem;
 var
@@ -1771,7 +1756,6 @@ begin
   end;
   MS.Free;
 end;
-
 
 // =============================================================================
 // IMAGE MANAGEMENT (ADD, REMOVE, CLEAR)
@@ -2183,7 +2167,6 @@ begin
     Sleep(10);
   end;
 end;
-
 // -----------------------------------------------------------------------------
 // 2. EVENT HANDLERS (MOUSE, KEYBOARD)
 // -----------------------------------------------------------------------------
@@ -2335,7 +2318,6 @@ begin
 
   inherited MouseUp(Button, Shift, X, Y);
 end;
-
 // --- Keyboard Events ---
 procedure TSkFlowmotion.KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState);
 begin
@@ -2360,7 +2342,6 @@ begin
   end;
   inherited KeyDown(Key, KeyChar, Shift);
 end;
-
 // -----------------------------------------------------------------------------
 // NAVIGATION HELPERS
 // -----------------------------------------------------------------------------
@@ -2536,7 +2517,6 @@ begin
   if Assigned(FOnItemSelected) then
     FOnItemSelected(Self, FSelectedImage, Index);
 end;
-
 // -----------------------------------------------------------------------------
 // INSERTION & PERSISTENCE
 // -----------------------------------------------------------------------------
@@ -2735,7 +2715,6 @@ begin
   CalculateLayout;
   Repaint;
 end;
-
 // -----------------------------------------------------------------------------
 // STREAM I/O SUPPORT (Save/Load Positions)
 // -----------------------------------------------------------------------------
@@ -3061,7 +3040,6 @@ begin
   if NeedRepaint or AnyAnimating then
     ThreadSafeRepaint;
 end;
-
 // -----------------------------------------------------------------------------
 // LAYOUT ALGORITHMS (SORTED & FREE FLOAT)
 // -----------------------------------------------------------------------------
@@ -3396,7 +3374,6 @@ begin
   MarkAreaOccupied(Grid, Row, Col, SpanRows, SpanCols);
   Result := True;
 end;
-
 // -----------------------------------------------------------------------------
 // MISSING METHODS IMPLEMENTATION (THREAD, MOUSE, NAVIGATION)
 // -----------------------------------------------------------------------------
