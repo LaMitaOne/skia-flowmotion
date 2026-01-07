@@ -13,7 +13,7 @@ Hotzoom, Breathing, Hottrack
 Animated "fly-in" effects when adding images     
 Background image support    
     
-You can already see that the core animation engine and smooth rendering work beautifully thanks to Skia – images fly in nicely, and the foundation feels solid.
+You can already see that the core animation engine and smooth rendering work beautifully thanks to Skia – images fly in nicely, and the foundation feels solid.   
 Performance not exactly like vcl version, but with 200 pics still fine, but on 1000s we get slow...but thats cool since we have paging       
     
 What's not working yet   
