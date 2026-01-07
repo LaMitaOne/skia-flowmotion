@@ -2028,7 +2028,7 @@ var
 begin
   if Bitmap = nil then
     Exit;
-  // Dummy Eintrag fÃ¼r Paging
+  // Dummy Eintrag für Paging
   DummyName := 'MemoryBitmap_' + IntToStr(GetTickCount) + '_' + IntToStr(Random(10000));
   FAllFiles.Add(DummyName);
   FAllCaptions.Add('');
@@ -3443,3 +3443,4 @@ begin
 end;
 
 end.
+
