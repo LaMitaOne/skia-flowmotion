@@ -8,16 +8,17 @@ This is a very early alpha prototype – the first quick attempt to see if a per
 What's already working?   
     
 Loading single images or lists of images    
-Basic sorted flow layout (automatic grid arrangement)   
+Layout, dragging selected or all 
+Hotzoom, Breathing, Hottrack
 Animated "fly-in" effects when adding images   
 Background image support  
     
 You can already see that the core animation engine and smooth rendering work beautifully thanks to Skia – images fly in nicely, and the foundation feels solid.
     
-What's not working yet (most things! 😅)   
+What's not working yet   
    
 Captions, hints   
-Free-float layout, drag & drop, activation zones   
+activation zones   
 Save/load positions   
 Many bugs and incomplete features   
    
