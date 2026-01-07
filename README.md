@@ -7,11 +7,11 @@ This is a very early alpha prototype – the first quick attempt to see if a per
     
 What's already working?   
     
-Loading single images or lists of images    
-Layout, dragging selected or all 
-Hotzoom, Breathing, Hottrack
-Animated "fly-in" effects when adding images   
-Background image support  
+Loading single images or lists of images      
+Layout, dragging selected or all   
+Hotzoom, Breathing, Hottrack  
+Animated "fly-in" effects when adding images     
+Background image support    
     
 You can already see that the core animation engine and smooth rendering work beautifully thanks to Skia – images fly in nicely, and the foundation feels solid.
     
