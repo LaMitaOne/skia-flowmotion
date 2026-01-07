@@ -9,7 +9,7 @@ uses
   FMX.Layouts, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Effects,
   uSkFlowmotion,
   { Skia }
-  System.Skia, FMX.Skia;
+  System.Skia, FMX.Skia, System.ImageList, FMX.ImgList;
 
 type
   { TfrmMain }
@@ -27,6 +27,7 @@ type
     Button6: TButton;
     Button7: TButton;
     OpenDialog1: TOpenDialog;
+    ImageList1: TImageList;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -130,6 +131,10 @@ begin
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
   skfmFlowGallery.AnimationSpeed := 3;
   skfmFlowGallery.Spacing := 4;
+  skfmFlowGallery.ShowCaptions := True;
+  skfmFlowGallery.ShowHint := True;
+  skfmFlowGallery.SmallPicVisible := True;
+  skfmFlowGallery.SmallPicImageList := Imagelist1;
   IMList:= TStringList.create;
   Pathlist:= TStringList.create;
   Captionlist:= TStringList.create;
