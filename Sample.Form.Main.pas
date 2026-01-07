@@ -9,7 +9,7 @@ uses
   FMX.Layouts, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Effects,
   uSkFlowmotion,
   { Skia }
-  System.Skia, FMX.Skia, System.ImageList, FMX.ImgList;
+  System.Skia, FMX.Skia, System.ImageList, FMX.ImgList, FMX.ListBox;
 
 type
   { TfrmMain }
@@ -28,6 +28,9 @@ type
     Button7: TButton;
     OpenDialog1: TOpenDialog;
     ImageList1: TImageList;
+    Button8: TButton;
+    Label1: TLabel;
+    ComboBox1: TComboBox;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -35,6 +38,8 @@ type
     procedure Button5Click(Sender: TObject);
     procedure Button6Click(Sender: TObject);
     procedure Button7Click(Sender: TObject);
+    procedure Button8Click(Sender: TObject);
+    procedure ComboBox1Change(Sender: TObject);
     procedure fanFadeOutTransitionFinish(Sender: TObject);
     procedure saiAnimatedLogoAnimationFinished(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -110,6 +115,21 @@ end;
 procedure TfrmMain.Button7Click(Sender: TObject);
 begin
   if Opendialog1.Execute then skfmFlowGallery.SetBackgroundpicture(Opendialog1.FileName);
+end;
+
+procedure TfrmMain.Button8Click(Sender: TObject);
+begin
+  skfmFlowGallery.SelectedMovable := not skfmFlowGallery.SelectedMovable;
+  if skfmFlowGallery.SelectedMovable then Button8.Text := 'Drag selected on'
+   else Button8.Text := 'Drag selected off';
+end;
+
+procedure TfrmMain.ComboBox1Change(Sender: TObject);
+begin
+   case Combobox1.ItemIndex of
+     0: skfmFlowGallery.SetFlowLayout(flSorted);
+     1: skfmFlowGallery.SetFlowLayout(flFreeFloat);
+   end;
 end;
 
 procedure TfrmMain.InitGallery;
