@@ -17,7 +17,6 @@ You can already see that the core animation engine and smooth rendering work bea
     
 What's not working yet (most things! 😅)   
    
-Mouse events / hit testing   
 Image selection, zoom, breathing animation   
 Hottrack glow, captions, hints   
 Free-float layout, drag & drop, activation zones   
