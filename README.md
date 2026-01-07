@@ -26,7 +26,7 @@ Save/load positions
 Many bugs and incomplete features   
    
     
-This project aims to bring similar (and probably way more and better) features to Flowmotion using the power of Skia4Delphi.   
+This project aims to bring way more and better features to Flowmotion using the power of Skia4Delphi.   
    
 Requirements    
     
