@@ -1444,17 +1444,27 @@ var
 begin
   if ImageItem = nil then
     Exit;
+
   ImageItem.ZoomProgress := 0;
   ImageItem.Animating := True;
-  ImageItem.StartRect := ImageItem.CurrentRect;
+  ImageItem.StartRect := ImageItem.CurrentRect; // Capture current visual position
 
   case FZoomAnimationType of
     zatSlide:
-      ImageItem.StartRect := ImageItem.CurrentRect;
+      ImageItem.StartRect := ImageItem.CurrentRect; // Explicitly capture current
     zatFade:
       begin
-        ImageItem.Alpha := 255;
-        ImageItem.TargetAlpha := 255;
+        if ZoomIn then
+        begin
+          ImageItem.StartRect := ImageItem.CurrentRect;
+          ImageItem.Alpha := 255;
+          ImageItem.TargetAlpha := 255;
+        end
+        else
+        begin
+          ImageItem.Alpha := 255;
+          ImageItem.TargetAlpha := 255;
+        end;
       end;
     zatZoom:
       begin
@@ -1462,6 +1472,7 @@ begin
         begin
           CenterX := ImageItem.CurrentRect.Left + (ImageItem.CurrentRect.Right - ImageItem.CurrentRect.Left) div 2;
           CenterY := ImageItem.CurrentRect.Top + (ImageItem.CurrentRect.Bottom - ImageItem.CurrentRect.Top) div 2;
+          // Start as a point in the center
           ImageItem.StartRect := Rect(CenterX, CenterY, CenterX, CenterY);
           ImageItem.Alpha := 255;
         end
@@ -1470,6 +1481,7 @@ begin
       end;
     zatBounce:
       begin
+        ImageItem.StartRect := ImageItem.CurrentRect;
         ImageItem.Alpha := 255;
         ImageItem.TargetAlpha := 255;
       end;
@@ -1477,16 +1489,31 @@ begin
 
   if ZoomIn then
   begin
+    // ZOOMING IN: Target is CENTER
     if Assigned(ImageItem.SkImage) then
     begin
-      ImageSize := GetOptimalSize(ImageItem.SkImage.Width, ImageItem.SkImage.Height, Min(FMaxZoomSize, trunc(Width) div 2), Min(FMaxZoomSize, trunc(Height) div 2));
+      ImageSize := GetOptimalSize(ImageItem.SkImage.Width, ImageItem.SkImage.Height,
+                                Min(FMaxZoomSize, trunc(Width) div 2),
+                                Min(FMaxZoomSize, trunc(Height) div 2));
       CenterX := (trunc(Width) - ImageSize.cx) div 2;
       CenterY := (trunc(Height) - ImageSize.cy) div 2;
       ImageItem.TargetRect := Rect(CenterX, CenterY, CenterX + ImageSize.cx, CenterY + ImageSize.cy);
     end;
+    // Recalculate layout so other images move out of the center way
     CalculateLayout;
+  end
+  else
+  begin
+    // ZOOMING OUT: Target is DETERMINED BY LAYOUT (Grid)
+    // We do NOT set TargetRect here.
+    // SetSelectedImage calls CalculateLayout BEFORE calling StartZoomAnimation(, False),
+    // so TargetRect should already be set to the grid position by CalculateLayout.
+    // If for some reason it wasn't, ensure we are animating.
+    if IsRectEmpty(ImageItem.TargetRect) then
+       ImageItem.TargetRect := ImageItem.CurrentRect; // Fallback
   end;
 end;
+
 // -----------------------------------------------------------------------------
 // VISUAL PAINT METHOD (SKIA RENDERING)
 // -----------------------------------------------------------------------------
@@ -2012,7 +2039,7 @@ var
 begin
   if Bitmap = nil then
     Exit;
-  // Dummy Eintrag für Paging
+  // Dummy Eintrag fÃ¼r Paging
   DummyName := 'MemoryBitmap_' + IntToStr(GetTickCount) + '_' + IntToStr(Random(10000));
   FAllFiles.Add(DummyName);
   FAllCaptions.Add('');
@@ -2486,37 +2513,88 @@ procedure TSkFlowmotion.SetSelectedImage(ImageItem: TImageItem; Index: Integer);
 var
   OldSelected: TImageItem;
 begin
+  if ImageItem = nil then
+    FHotItem := nil;
+
+  // Prevent flickering: Don't interrupt a mid-zoom selection immediately
+  if (ImageItem = nil) and (FSelectedImage <> nil) and
+     (FSelectedImage.ZoomProgress > 0.1) and (FSelectedImage.ZoomProgress < 1) then
+    Exit;
+
   if FSelectedImage = ImageItem then
     Exit;
 
   OldSelected := FSelectedImage;
+
+  // --- 1. Handle the OLD selection (Zoom Out animation) ---
+  if OldSelected <> nil then
+  begin
+    OldSelected.IsSelected := False;
+    // It is no longer selected, so CalculateLayout will find a grid spot for it
+    if OldSelected.FHotZoom >= 1 then
+      OldSelected.FHotZoom := 1.1; // Small tactile bump down
+  end;
+
+  FWasSelectedItem := FSelectedImage;
+  if FWasSelectedItem <> nil then
+  begin
+    FWasSelectedItem.FAnimating := True;
+    if FWasSelectedItem = FHotItem then
+      FWasSelectedItem.FHotZoomTarget := 1.0;
+
+    // CRITICAL: Start the Zoom Out animation for the old image
+    // This makes it slide back to the grid instead of snapping
+    StartZoomAnimation(FWasSelectedItem, False);
+  end;
+
+  // --- 2. Handle the NEW selection ---
   FSelectedImage := ImageItem;
   FCurrentSelectedIndex := Index;
 
-  // Reset old selection
-  if Assigned(OldSelected) then
+  if ImageItem <> nil then
   begin
-    OldSelected.IsSelected := False;
-    OldSelected.FHotZoomTarget := 1.0;
-    FWasSelectedItem := OldSelected;
-  end;
+    ImageItem.IsSelected := True;
+    ImageItem.ZoomProgress := 0; // Start zoom at 0%
 
-  // Set new selection
-  if Assigned(FSelectedImage) then
-  begin
-    FSelectedImage.IsSelected := True;
-    FSelectedImage.FHotZoomTarget := HOT_ZOOM_MAX_FACTOR;
-    StartZoomAnimation(FSelectedImage, True);
+    // Ensure it's visible and ready
+    if ImageItem.FHotZoom < 1 then
+      ImageItem.FHotZoom := 1.0;
+
+    // Breathing sync
+    if FBreathingEnabled then
+      FHotItem := ImageItem
+    else
+      ImageItem.FHotZoomTarget := 1.0;
+
+    FCurrentSelectedIndex := Index;
+    ImageItem.AnimationProgress := 0; // Reset entry progress just in case
+    ImageItem.Animating := True;
   end
   else
   begin
-    // Deselecting: Recalculate layout to fill space
-    CalculateLayout;
+    FCurrentSelectedIndex := -1;
+    FHotItem := nil;
   end;
 
-  if Assigned(FOnItemSelected) then
-    FOnItemSelected(Self, FSelectedImage, Index);
+  // --- 3. Recalculate Layout ---
+  // This determines where the OLD image goes (Grid) and moves others away for the NEW image
+  // We call this here so StartZoomAnimation knows the correct TargetRects
+  if (FFlowLayout <> flFreeFloat) then
+    CalculateLayout;
+
+  // --- 4. Start Zoom In animation for NEW image ---
+  if (FZoomSelectedtoCenter and (FFlowLayout <> flFreeFloat)) then
+  begin
+    // We already started zooming out the old one above.
+    // Now zoom in the new one.
+    if ImageItem <> nil then
+      StartZoomAnimation(ImageItem, True);
+  end;
+
+  StartAnimationThread;
+  // Repaint; // Not strictly needed if AnimationThread is running and calls Invalidate
 end;
+
 // -----------------------------------------------------------------------------
 // INSERTION & PERSISTENCE
 // -----------------------------------------------------------------------------
@@ -3420,4 +3498,3 @@ begin
 end;
 
 end.
-
