@@ -17,8 +17,7 @@ You can already see that the core animation engine and smooth rendering work bea
     
 What's not working yet (most things! 😅)   
    
-Image selection, zoom, breathing animation   
-Hottrack glow, captions, hints   
+Captions, hints   
 Free-float layout, drag & drop, activation zones   
 Save/load positions   
 Many bugs and incomplete features   
