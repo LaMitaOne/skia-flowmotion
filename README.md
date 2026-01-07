@@ -25,8 +25,7 @@ activation zones
 Save/load positions   
 Many bugs and incomplete features   
    
-This is purely a proof-of-concept to show that a full modern replacement for my VCL-only Flowmotion component is possible – cross-platform (Windows, macOS, Android, iOS) and with much better graphics performance.  
-   
+    
 This project aims to bring similar (and probably way more and better) features to Flowmotion using the power of Skia4Delphi.   
    
 Requirements    
