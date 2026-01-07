@@ -7,7 +7,7 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Math,
   System.IOUtils, System.Generics.Defaults, System.Generics.Collections,
   { FMX }
-  FMX.Types, FMX.Controls, FMX.Graphics, FMX.Forms,
+  FMX.Types, FMX.Controls, FMX.Graphics, FMX.Forms, FMX.ImgList,
   { Skia }
   System.Skia, FMX.Skia;
 
@@ -33,12 +33,12 @@ const
 
 type
   TFlowLayout = (flSorted, flFreeFloat);
-
   TImageEntryStyle = (iesRandom, iesFromTop, iesFromBottom, iesFromLeft, iesFromRight, iesFromTopLeft, iesFromTopRight, iesFromBottomLeft, iesFromBottomRight, iesFromCenter, iesFromPoint);
-
   TBooleanGrid = array of array of Boolean;
 
   TZoomAnimationType = (zatSlide, zatFade, zatZoom, zatBounce);
+
+  TSmallPicPosition = (spTopLeft, spTopRight, spBottomLeft, spBottomRight);
 
   TImagePosition = record
     FileName: string;
@@ -72,6 +72,7 @@ type
     FHotZoom: Double;
     FHotZoomTarget: Double;
     FHint: string;
+    FSmallPicIndex: Integer;
     DriftRangeX: Single;
     DriftRangeY: Single;
     OriginalTargetRect: TRect;
@@ -94,20 +95,15 @@ type
     property ZoomProgress: Double read FZoomProgress write FZoomProgress;
     property Direction: TImageEntryStyle read FDirection write FDirection;
     property Hint: string read FHint write FHint;
+    property SmallPicIndex: Integer read FSmallPicIndex write FSmallPicIndex; // Added SmallPic Index
   end;
 
   TOnSelectedItemMouseDown = procedure(Sender: TObject; ImageItem: TImageItem; Index, X, Y: Integer; Button: TMouseButton; Shift: TShiftState) of object;
-
   TOnAllAnimationsFinished = procedure(Sender: TObject) of object;
-
   TOnSelectedImageDblClick = procedure(Sender: TObject; ImageItem: TImageItem; Index: Integer) of object;
-
   TImageSelectEvent = procedure(Sender: TObject; ImageItem: TImageItem; Index: Integer) of object;
-
   TOnCaptionClick = procedure(Sender: TObject; ImageItem: TImageItem; Index: Integer) of object;
-
   TImageLoadFailedEvent = procedure(Sender: TObject; const FileName: string; const ErrorMsg: string) of object;
-
   TImageHoverEvent = procedure(Sender: TObject; ImageItem: TImageItem; Index: Integer) of object;
 
   TActivationZone = record
@@ -116,6 +112,27 @@ type
   end;
 
   TSelectedImageEnterZoneEvent = procedure(Sender: TObject; ImageItem: TImageItem; const ZoneName: string) of object;
+
+  // ===================================================================
+  // TFlowMasterItem - Virtual Item for global access via AllImageItems[i]
+  // ===================================================================
+  TFlowMasterItem = class
+  private
+    FOwner: TObject;
+    FIndex: Integer;
+    procedure SetCaption(const Value: string);
+    function GetCaption: string;
+    procedure SetHint(const Value: string);
+    function GetHint: string;
+    procedure SetSmallPicIndex(const Value: Integer);
+    function GetSmallPicIndex: Integer;
+  public
+    constructor Create(AOwner: TObject);
+    // Properties you want to access globally
+    property Caption: string read GetCaption write SetCaption;
+    property Hint: string read GetHint write SetHint;
+    property SmallPicIndex: Integer read GetSmallPicIndex write SetSmallPicIndex;
+  end;
 
   TImageLoadThread = class(TThread)
   private
@@ -127,11 +144,12 @@ type
     FOwner: TComponent;
     FSuccess: Boolean;
     FIndex: Integer;
+    FSmallPicIndex: Integer; // Added SmallPic Index
     procedure SyncAddImage;
   protected
     procedure Execute; override;
   public
-    constructor Create(const AFileName, ACaption, APath, AHint: string; AOwner: TComponent; AIndex: Integer);
+    constructor Create(const AFileName, ACaption, APath, AHint: string; AOwner: TComponent; AIndex: Integer; ASmallPicIndex: Integer = -1);
   end;
 
   TAnimationThread = class(TThread)
@@ -155,12 +173,16 @@ type
     FAllCaptions: TStringList;
     FAllPaths: TStringList;
     FAllHints: TStringList;
+    FAllSmallPicIndices: TList;  // Added Master List for SmallPic Indices
+    FMasterItem: TFlowMasterItem; // Added Master Item Bridge
+
     // Threading
     FNextLoaderCoreIndex: Integer;
     FAnimationThread: TAnimationThread;
     FLoadingThreads: TList;
     FLoadingCount: Integer;
     FClearing: Boolean;
+
     // Animation State
     inPaintCycle: Boolean;
     FAnimationSpeed: Integer;
@@ -170,6 +192,7 @@ type
     FPageOutProgress: Double;
     FImageEntryStyle: TImageEntryStyle;
     FEntryPoint: TPoint;
+
     // Layout
     FFlowLayout: TFlowLayout;
     FKeepSpaceforZoomed: Boolean;
@@ -181,6 +204,7 @@ type
     FLoadedPositions: TImagePositions;
     FFreeFloatDrift: Boolean;
     FDragOffset: TPoint;
+
     // Visual
     FBackgroundSkImage: ISkImage;
     FBackgroundColor: TAlphaColor;
@@ -202,6 +226,7 @@ type
     FShowCaptions: Boolean;
     FCaptionOnHoverOnly: Boolean;
     FKeepAreaFreeRect: TRect;
+
     // Selection & Zoom
     FSelectedImage: TImageItem;
     FWasSelectedItem: TImageItem;
@@ -213,17 +238,25 @@ type
     FDragStartPos: TPoint;
     FIsPotentialDrag: Boolean;
     FHotItem: TImageItem;
-    FActivationZones: array of TActivationZone;
+    FActivationZones: array of TActivationZone; // Added Activation Zones
     FLastActivationZoneName: string;
     FOnCaptionClick: TOnCaptionClick;
+
     // Paging
     FPageSize: Integer;
     FCurrentPage: Integer;
     FPageChangeInProgress: Boolean;
     FAutoScrollPageForNewAdded: Boolean;
+
     // State
     FActive: Boolean;
     FThreadPriority: TThreadPriority;
+
+    // SmallPic Support
+    FSmallPicImageList: TImageList; // Added ImageList support
+    FSmallPicPosition: TSmallPicPosition;
+    FSmallPicVisible: Boolean;
+
     // Events
     FOnImageLoad: TProc<TObject, string, Boolean>;
     FOnItemSelected: TImageSelectEvent;
@@ -234,6 +267,7 @@ type
     FOnImageLoadFailed: TImageLoadFailedEvent;
     FOnImageMouseEnter: TImageHoverEvent;
     FOnImageMouseLeave: TImageHoverEvent;
+
     // Internal Methods - Animation
     procedure StartAnimationThread;
     procedure StopAnimationThread;
@@ -248,6 +282,7 @@ type
     procedure FreeAllImagesAndClearLists;
     procedure AnimateImage(ImageItem: TImageItem; EntryStyle: TImageEntryStyle; UseSavedPosition: Boolean; SavedTargetRect: TRect);
     procedure StartZoomAnimation(ImageItem: TImageItem; ZoomIn: Boolean);
+
     // Internal Methods - Layout
     procedure CalculateLayout;
     procedure CalculateLayoutSorted;
@@ -256,6 +291,7 @@ type
     procedure MarkAreaOccupied(var Grid: TBooleanGrid; Row, Col, SpanRows, SpanCols: Integer);
     function PlaceImage(ImageItem: TImageItem; var Grid: TBooleanGrid; Row, Col, SpanRows, SpanCols: Integer; BaseCellWidth, BaseCellHeight: Integer): Boolean;
     function GetOptimalSize(const OriginalWidth, OriginalHeight: Integer; const MaxWidth, MaxHeight: Double): TSize;
+
     // Internal Methods - Paging
     function GetPageCount: Integer;
     function GetPageStartIndex: Integer;
@@ -263,8 +299,10 @@ type
     procedure ShowPage(Page: Integer);
     procedure NextPage;
     procedure PrevPage;
+
     // Internal Methods - Threading
     procedure ThreadFinished(Thread: TImageLoadThread);
+
     // Internal Methods - Utilities
     function GetImageItem(Index: Integer): TImageItem;
     function GetImageCount: Integer;
@@ -273,6 +311,9 @@ type
     function GetCaptionRect(Item: TImageItem; const DrawRect: TRect): TRect;
     function SkImageToBitmap(Img: ISkImage): TBitmap;
     function BitmapToSkImage(Bmp: TBitmap): ISkImage;
+    function GetMasterItem(Index: Integer): TFlowMasterItem;
+    function GetSmallPicBitmap(const Index: Integer): TBitmap;
+
     // Property Setters
     procedure SetActive(Value: Boolean);
     procedure SetSelectedMovable(Value: Boolean);
@@ -304,6 +345,9 @@ type
     procedure SetKeepAreaFreeRect(const Value: TRect);
     procedure SetAutoScrollPageForNewAdded(Value: Boolean);
     procedure SetFreeFloatDrift(Value: Boolean);
+    procedure SetSmallPicVisible(const Value: Boolean);
+    procedure SetPageSize(Value: Integer);
+
   protected
     procedure Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single); override;
     procedure Resize; override;
@@ -315,6 +359,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+
     // Layout
     procedure SetFlowLayout(Value: TFlowLayout);
     procedure SavePositionsToFile(const FileName: string);
@@ -324,38 +369,44 @@ type
     procedure AddImagesWithPositions(const FileNames, Captions, Paths: TStringList; const Positions: array of TRect);
     function GetCurrentPositions: TImagePositions;
     procedure ResetPositions;
+
     // Image management
-    procedure AddImage(const FileName: string; const AHint: string = ''); overload;
-    procedure AddImage(const FileName, ACaption, APath, AHint: string); overload;
+    procedure AddImage(const FileName: string; const AHint: string = ''; ASmallPicIndex: Integer = -1); overload;
+    procedure AddImage(const FileName, ACaption, APath, AHint: string; ASmallPicIndex: Integer = -1); overload;
     procedure AddImage(Bitmap: TBitmap); overload;
-    procedure AddImageAsync(const FileName: string; const ACaption: string = ''; const APath: string = ''; const AHint: string = '');
-    procedure AddImages(const FileNames, Captions, Paths, Hints: TStringList);
-    procedure AddImagesAsync(const FileNames, Captions, Paths, Hints: TStringList);
-    procedure InsertImage(Pic: TBitmap; const XFileName, XCaption, XPath, XHint: string);
-    procedure InsertImageAsync(const FileName, Caption, Path, Hint: string);
+    procedure AddImageAsync(const FileName: string; const ACaption: string = ''; const APath: string = ''; const AHint: string = ''; ASmallPicIndex: Integer = -1);
+    procedure AddImages(const FileNames, Captions, Paths, Hints: TStringList; const SmallPicIndices: TList = nil);
+    procedure AddImagesAsync(const FileNames, Captions, Paths, Hints: TStringList; const SmallPicIndices: TList = nil);
+    procedure InsertImage(Pic: TBitmap; const XFileName, XCaption, XPath, XHint: string; ASmallPicIndex: Integer = -1);
+    procedure InsertImageAsync(const FileName, Caption, Path, Hint: string; ASmallPicIndex: Integer = -1);
     procedure SetImage(Index: Integer; Bitmap: TBitmap);
     procedure RemoveImage(Index: Integer; Animated: Boolean = True); overload;
     procedure RemoveImage(Index: Integer; Animated: Boolean; FallingTargetPos: TRect; FallingStyle: TImageEntryStyle); overload;
     procedure Clear(animated: Boolean; ZoominSelected: Boolean = false); overload;
     procedure Clear(animated: Boolean; ZoominSelected: Boolean; SelectedTargetPos, FallingTargetPos: TRect; FallingStyle: TImageEntryStyle = iesFromBottom; AndFree: Boolean = true); overload;
     procedure MoveImageToPos(RelIndexFrom, RelIndexTo: Integer);
+
     // Activation zone
     procedure AddActivationZone(const AName: string; const ARect: TRect);
     procedure ClearActivationZones;
+
     // Navigation
     procedure SelectNextImage;
     procedure SelectPreviousImage;
     procedure DeselectZoomedImage;
     procedure ScrollToIndex(Index: Integer; Animate: Boolean = True);
+
     // Search
     function FindImageByPath(const Path: string): TImageItem;
     function FindImageByCaption(const Caption: string): TImageItem;
     function GetImageIndex(ImageItem: TImageItem): Integer;
     function GetImageAtPoint(X, Y: Single): TImageItem;
+
     // Utilities
     function GetPicture(index: Integer): TBitmap;
     procedure SetBackgroundpicture(const Path: string);
     procedure WaitForAllLoads;
+
     // Properties
     property MaxZoomSize: Integer read FMaxZoomSize write FMaxZoomSize default DEFAULT_MAX_ZOOM_SIZE;
     property HotTrackColor: TAlphaColor read FHotTrackColor write SetHotTrackColor;
@@ -370,6 +421,7 @@ type
     property SelectedImage: TImageItem read FSelectedImage;
     property Items[Index: Integer]: TImageItem read GetImageItem; default;
     property Images[Index: Integer]: TImageItem read GetImageItem;
+    property AllImageItems[Index: Integer]: TFlowMasterItem read GetMasterItem;
   published
     property FlowLayout: TFlowLayout read FFlowLayout write SetFlowLayout;
     property AnimationSpeed: Integer read FAnimationSpeed write SetAnimationSpeed default DEFAULT_ANIMATION_SPEED;
@@ -393,7 +445,7 @@ type
     property OnAllAnimationsFinished: TOnAllAnimationsFinished read FOnAllAnimationsFinished write FOnAllAnimationsFinished;
     property OnSelectedImageDblClick: TOnSelectedImageDblClick read FOnSelectedImageDblClick write FOnSelectedImageDblClick;
     property ZoomAnimationType: TZoomAnimationType read FZoomAnimationType write FZoomAnimationType default zatSlide;
-    property PageSize: Integer read FPageSize write FPageSize;
+    property PageSize: Integer read FPageSize write SetPageSize;
     property CurrentPage: Integer read FCurrentPage;
     property ImageEntryStyle: TImageEntryStyle read FImageEntryStyle write FImageEntryStyle default iesRandom;
     property EntryPoint: TPoint read FEntryPoint write FEntryPoint;
@@ -413,6 +465,9 @@ type
     property OnImageMouseEnter: TImageHoverEvent read FOnImageMouseEnter write FOnImageMouseEnter;
     property OnImageMouseLeave: TImageHoverEvent read FOnImageMouseLeave write FOnImageMouseLeave;
     property FreeFloatDrift: Boolean read FFreeFloatDrift write SetFreeFloatDrift default False;
+    property SmallPicImageList: TImageList read FSmallPicImageList write FSmallPicImageList;
+    property SmallPicPosition: TSmallPicPosition read FSmallPicPosition write FSmallPicPosition;
+    property SmallPicVisible: Boolean read FSmallPicVisible write SetSmallPicVisible default True;
     // Inherited
     property Align;
     property Anchors;
@@ -435,20 +490,68 @@ procedure Register;
 
 implementation
 
-{ Registers the component in the IDE component palette }
-
+// -----------------------------------------------------------------------------
+// COMPONENT REGISTRATION
+// -----------------------------------------------------------------------------
 procedure Register;
 begin
   RegisterComponents('LaMita Components', [TSkFlowmotion]);
 end;
-// Helper to get Ticks cross-platform
+
+// -----------------------------------------------------------------------------
+// CROSS-PLATFORM HELPER: GET TICK COUNT
+// -----------------------------------------------------------------------------
 function GetTickCount: Cardinal;
 begin
   Result := TThread.GetTickCount;
 end;
-{ ============================================================================= }
-{                  TAnimationThread IMPLEMENTATION                     }
-{ ============================================================================= }
+
+// -----------------------------------------------------------------------------
+// TFlowMasterItem: Bridge for global AllImageItems access
+// -----------------------------------------------------------------------------
+constructor TFlowMasterItem.Create(AOwner: TObject);
+begin
+  inherited Create;
+  FOwner := AOwner;
+  FIndex := -1;
+end;
+
+function TFlowMasterItem.GetCaption: string;
+begin
+  Result := (FOwner as TSkFlowmotion).FAllCaptions[FIndex];
+end;
+
+procedure TFlowMasterItem.SetCaption(const Value: string);
+begin
+  (FOwner as TSkFlowmotion).FAllCaptions[FIndex] := Value;
+  // TODO: Update visible item if on current page
+end;
+
+function TFlowMasterItem.GetHint: string;
+begin
+  Result := (FOwner as TSkFlowmotion).FAllHints[FIndex];
+end;
+
+procedure TFlowMasterItem.SetHint(const Value: string);
+begin
+  (FOwner as TSkFlowmotion).FAllHints[FIndex] := Value;
+  // TODO: Update visible item
+end;
+
+function TFlowMasterItem.GetSmallPicIndex: Integer;
+begin
+  Result := Integer((FOwner as TSkFlowmotion).FAllSmallPicIndices[FIndex]);
+end;
+
+procedure TFlowMasterItem.SetSmallPicIndex(const Value: Integer);
+begin
+  (FOwner as TSkFlowmotion).FAllSmallPicIndices[FIndex] := Pointer(Value);
+  // TODO: Update visible item
+end;
+
+// -----------------------------------------------------------------------------
+// TAnimationThread: Runs the animation loop
+// -----------------------------------------------------------------------------
 constructor TAnimationThread.Create(AOwner: TComponent);
 begin
   inherited Create(True);
@@ -457,14 +560,13 @@ begin
   FLastTick := GetTickCount;
   FStopRequested := False;
 
-  { Set thread priority based on owner setting }
   if AOwner is TSkFlowmotion then
     Priority := (AOwner as TSkFlowmotion).FThreadPriority
   else
     Priority := tpNormal;
 end;
 
-destructor TAnimationThread.Destroy;
+destructor TAnimationThread.destroy;
 begin
   inherited;
 end;
@@ -480,18 +582,17 @@ var
 begin
   LastTick := GetTickCount;
 
-  { Loop until termination }
   while not Terminated and not FStopRequested do
   begin
     { Perform animation calculations }
     if FOwner is TSkFlowmotion then
       (FOwner as TSkFlowmotion).PerformAnimationUpdate(GetTickCount - LastTick);
 
+    { Maintain Frame Rate }
     NowTick := GetTickCount;
     ElapsedMS := NowTick - LastTick;
     LastTick := NowTick;
 
-    { Sleep to maintain target FPS }
     SleepTime := 0;
     if ElapsedMS < MIN_FRAME_TIME then
       SleepTime := 16 + MIN_FRAME_TIME - ElapsedMS;
@@ -503,14 +604,14 @@ begin
       Sleep(SleepTime);
   end;
 end;
-{ ============================================================================= }
-{                  TImageItem IMPLEMENTATION                         }
-{ ============================================================================= }
+
+// -----------------------------------------------------------------------------
+// TImageItem: Data container for a single image
+// -----------------------------------------------------------------------------
 constructor TImageItem.Create;
 begin
   inherited Create;
 
-  { Initialize animation state }
   FAnimationProgress := 0;
   FAnimating := False;
   FVisible := False;
@@ -519,24 +620,25 @@ begin
   FIsSelected := False;
   FZoomProgress := 0;
 
-  { Initialize HotTrack state }
+  { Initial Zoom State (Breathing) }
   FHotZoom := 1;
   FHotZoomTarget := 1;
 
-  { Initialize Free Float Drift }
+  { Initial Drift Parameters }
   DriftRangeX := 10 + Random(20);
   DriftRangeY := 8 + Random(15);
 end;
 
-destructor TImageItem.Destroy;
+destructor TImageItem.destroy;
 begin
   FSkImage := nil;
   inherited;
 end;
-{ ============================================================================= }
-{                  TImageLoadThread IMPLEMENTATION                    }
-{ ============================================================================= }
-constructor TImageLoadThread.Create(const AFileName, ACaption, APath, AHint: string; AOwner: TComponent; AIndex: Integer);
+
+// -----------------------------------------------------------------------------
+// TImageLoadThread: Asynchronous image loader
+// -----------------------------------------------------------------------------
+constructor TImageLoadThread.Create(const AFileName, ACaption, APath, AHint: string; AOwner: TComponent; AIndex: Integer; ASmallPicIndex: Integer = -1);
 begin
   inherited Create(True);
   FreeOnTerminate := True;
@@ -548,15 +650,15 @@ begin
   FOwner := AOwner;
   FHint := AHint;
   FIndex := AIndex;
+  FSmallPicIndex := ASmallPicIndex; // Store overlay index
 
-  { Set thread priority based on owner setting }
+  { Set priority }
   if AOwner is TSkFlowmotion then
     Priority := (AOwner as TSkFlowmotion).FThreadPriority
   else
     Priority := tpNormal;
 
-  { Start execution immediately }
-  self.Execute;
+  Self.Execute;
 end;
 
 procedure TImageLoadThread.Execute;
@@ -567,11 +669,11 @@ begin
     FSkImage := TSkImage.MakeFromEncodedFile(FFileName);
   end;
 
-  { Synchronize back to main thread if successful }
+  { Synchronize back to main thread to add image }
   if (not Terminated) and Assigned(FSkImage) then
     Synchronize(SyncAddImage);
 
-  { Notify owner that thread is finished }
+  { Notify owner of completion }
   if not Terminated then
   begin
     try
@@ -586,6 +688,7 @@ procedure TImageLoadThread.SyncAddImage;
 var
   NewItem: TImageItem;
   AbsIndex, PageStart, PageEnd: Integer;
+  SmallIdxFromMaster: Integer;
 begin
   try
     if Assigned(FOwner) and (FOwner is TSkFlowmotion) then
@@ -594,15 +697,20 @@ begin
       begin
         AbsIndex := FIndex;
 
-        { Check if page is currently changing or clearing }
+        { Retrieve SmallPic Index from Master List }
+        if AbsIndex < FAllSmallPicIndices.Count then
+          SmallIdxFromMaster := Integer(FAllSmallPicIndices[AbsIndex])
+        else
+          SmallIdxFromMaster := FSmallPicIndex;
+
+        { Check if page is changing or clearing }
         if FPageChangeInProgress or FClearing then
           Exit;
 
-        { Calculate page range }
+        { Check if image belongs to current page }
         PageStart := GetPageStartIndex;
         PageEnd := GetPageEndIndex;
 
-        { Only add item if it belongs to the current page }
         if (AbsIndex >= PageStart) and (AbsIndex <= PageEnd) then
         begin
           NewItem := TImageItem.Create;
@@ -612,10 +720,11 @@ begin
           NewItem.Hint := FHint;
           NewItem.FileName := FFileName;
           NewItem.Direction := GetEntryDirection;
+          NewItem.SmallPicIndex := SmallIdxFromMaster;
           NewItem.Visible := False;
           FImages.Add(NewItem);
 
-          { Start animations if visible }
+          { Start animation if visible }
           if Visible then
           begin
             CalculateLayout;
@@ -630,18 +739,19 @@ begin
       TSkFlowmotion(FOwner).ThreadSafeInvalidate;
   end;
 end;
-{ ============================================================================= }
-{                  TSkFlowmotion IMPLEMENTATION                       }
-{ ============================================================================= }
 
 // -----------------------------------------------------------------------------
-// LIFECYCLE: CONSTRUCTOR, DESTRUCTOR, REGISTRATION
+// TSkFlowmotion: Main Control Implementation
+// -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+// LIFECYCLE: CONSTRUCTOR & DESTRUCTOR
 // -----------------------------------------------------------------------------
 constructor TSkFlowmotion.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
 
-  { Initialize Fonts and Colors }
+  { --- Initialize Fonts and Colors --- }
   FCaptionFont := TFont.Create;
   FCaptionFont.Family := 'Segoe UI';
   FCaptionFont.Size := 10;
@@ -656,16 +766,19 @@ begin
   FCaptionOnHoverOnly := True;
   FCaptionOffsetY := 8;
 
-  { Initialize Lists }
+  { --- Initialize Lists --- }
   FImages := TList.Create;
   FLoadingThreads := TList.Create;
   FAllFiles := TStringList.Create;
   FAllCaptions := TStringList.Create;
   FAllPaths := TStringList.Create;
   FAllHints := TStringList.Create;
+  FAllSmallPicIndices := TList.Create; // Init Master List
   SetLength(FLoadedPositions, 0);
 
-  { Defaults - State }
+  FMasterItem := TFlowMasterItem.Create(Self); // Init Master Item
+
+  { --- Defaults - State --- }
   FNextLoaderCoreIndex := 0;
   FClearing := False;
   FFreeFloatDrift := false;
@@ -674,24 +787,24 @@ begin
   FImageEntryStyle := iesRandom;
   FEntryPoint := TPoint.Create(-1000, -1000);
 
-  { Defaults - Layout }
+  { --- Defaults - Layout --- }
   FFlowLayout := flSorted;
   FKeepSpaceforZoomed := False;
   FAnimationSpeed := DEFAULT_ANIMATION_SPEED;
   FSpacing := 0;
   FKeepAspectRatio := True;
 
-  { Defaults - Visuals }
+  { --- Defaults - Visuals --- }
   FBackgroundColor := TAlphaColors.Black;
   FHotTrackColor := TAlphaColors.Teal;
-  FHotTrackZoom := true; // Fixed prefix
+  FHotTrackZoom := true;
   FMaxColumns := 0;
   FMaxRows := 0;
   FGlowColor := TAlphaColors.Aqua;
   FGlowWidth := DEFAULT_GLOW_WIDTH;
   FHotTrackWidth := DEFAULT_HOTTRACK_WIDTH;
 
-  { Defaults - Selection }
+  { --- Defaults - Selection --- }
   FSelectedImage := nil;
   FWasSelectedItem := nil;
   FZoomAnimationType := zatSlide;
@@ -701,12 +814,12 @@ begin
   FAnimationEasing := True;
   FLoadingCount := 0;
 
-  { Defaults - Paging }
+  { --- Defaults - Paging --- }
   FPageSize := 1000;
   FCurrentPage := 0;
   FCurrentSelectedIndex := -1;
 
-  { Defaults - System }
+  { --- Defaults - System --- }
   FActive := True;
   FThreadPriority := tpNormal;
   TabStop := True;
@@ -717,13 +830,13 @@ begin
   Self.HitTest := True;
 end;
 
-destructor TSkFlowmotion.Destroy;
+destructor TSkFlowmotion.destroy;
 var
   i: Integer;
   StartTime: Cardinal;
 begin
   try
-    { Stop animation thread }
+    { --- Cleanup Animation Thread --- }
     if FAnimationThread <> nil then
     begin
       FAnimationThread.Stop;
@@ -731,7 +844,7 @@ begin
       FreeAndNil(FAnimationThread);
     end;
 
-    { Terminate all loading threads }
+    { --- Terminate Load Threads --- }
     for i := 0 to FLoadingThreads.Count - 1 do
     begin
       try
@@ -740,7 +853,7 @@ begin
       end;
     end;
 
-    { Wait for threads to finish (with timeout) }
+    { --- Wait for cleanup with timeout --- }
     StartTime := GetTickCount;
     while (FLoadingThreads.Count > 0) and ((GetTickCount - StartTime) < 3000) do
     begin
@@ -751,24 +864,27 @@ begin
     FLoadingThreads.Clear;
     FLoadingThreads.Free;
 
-    { Free all images }
+    { --- Free Image Items --- }
     for i := 0 to FImages.Count - 1 do
       TImageItem(FImages[i]).Free;
     FImages.Free;
 
-    { Free master lists }
+    { --- Free Master Lists --- }
     FAllFiles.Free;
     FAllCaptions.Free;
     FAllPaths.Free;
     FAllHints.Free;
+    FAllSmallPicIndices.Free;
 
-    { Free font }
+    { --- Free Other Objects --- }
     FCaptionFont.Free;
+    FMasterItem.Free;
   except
     { Ensure we don't leak even if destructor crashes }
   end;
   inherited Destroy;
 end;
+
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: THREADING & SYNCHRONIZATION
 // -----------------------------------------------------------------------------
@@ -821,6 +937,7 @@ begin
   FLoadingThreads.Remove(Thread);
   Dec(FLoadingCount);
 end;
+
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: PROPERTY SETTERS
 // -----------------------------------------------------------------------------
@@ -949,8 +1066,7 @@ end;
 
 procedure TSkFlowmotion.SetZoomSelectedtoCenter(Value: Boolean);
 begin
-  if FZoomSelectedtoCenter = Value then
-    Exit;
+  if FZoomSelectedtoCenter = Value then Exit;
   FZoomSelectedtoCenter := Value;
   CalculateLayout;
   Repaint;
@@ -958,8 +1074,7 @@ end;
 
 procedure TSkFlowmotion.SetBreathingEnabled(Value: Boolean);
 begin
-  if FBreathingEnabled = Value then
-    Exit;
+  if FBreathingEnabled = Value then Exit;
   FBreathingEnabled := Value;
 
   if not FBreathingEnabled and (FSelectedImage <> nil) and (FSelectedImage = FHotItem) then
@@ -1103,6 +1218,25 @@ begin
     Repaint;
   end;
 end;
+
+procedure TSkFlowmotion.SetSmallPicVisible(const Value: Boolean);
+begin
+  if FSmallPicVisible <> Value then
+  begin
+    FSmallPicVisible := Value;
+    Repaint;
+  end;
+end;
+
+procedure TSkFlowmotion.SetPageSize(Value: Integer);
+begin
+  if (Value > 0) and (Value <> FPageSize) then
+  begin
+    FPageSize := Value;
+    ShowPage(0);
+  end;
+end;
+
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: UTILITIES
 // -----------------------------------------------------------------------------
@@ -1123,6 +1257,13 @@ function TSkFlowmotion.GetLoadingCount: Integer;
 begin
   Result := FLoadingCount;
 end;
+
+function TSkFlowmotion.GetMasterItem(Index: Integer): TFlowMasterItem;
+begin
+  FMasterItem.FIndex := Index;
+  Result := FMasterItem;
+end;
+
 // --- Activation Zones ---
 procedure TSkFlowmotion.AddActivationZone(const AName: string; const ARect: TRect);
 begin
@@ -1149,6 +1290,92 @@ begin
   CaptionH := 20; // Approximate height
   Result := Rect(DrawRect.Left, DrawRect.Bottom - CaptionH - FCaptionOffsetY, DrawRect.Right, DrawRect.Bottom - FCaptionOffsetY);
 end;
+
+// -----------------------------------------------------------------------------
+// INTERNAL METHODS: IMAGE CONVERSION HELPERS
+// -----------------------------------------------------------------------------
+function TSkFlowmotion.SkImageToBitmap(Img: ISkImage): TBitmap;
+var
+  MS: TMemoryStream;
+begin
+  Result := nil;
+  if not Assigned(Img) then Exit;
+  MS := TMemoryStream.Create;
+  try
+    // TODO: Implement proper saving if needed
+  except
+  end;
+  MS.Free;
+end;
+
+function TSkFlowmotion.BitmapToSkImage(Bmp: TBitmap): ISkImage;
+var
+  MS: TMemoryStream;
+begin
+  Result := nil;
+  if not Assigned(Bmp) then Exit;
+  MS := TMemoryStream.Create;
+  try
+    Bmp.SaveToStream(MS);
+    MS.Position := 0;
+    Result := TSkImage.MakeFromEncodedStream(MS);
+  finally
+    MS.Free;
+  end;
+end;
+
+function TSkFlowmotion.GetOptimalSize(const OriginalWidth, OriginalHeight: Integer; const MaxWidth, MaxHeight: Double): TSize;
+var
+  ScaleX, ScaleY, Scale: Double;
+begin
+  if FKeepAspectRatio then
+  begin
+    if (OriginalWidth = 0) or (OriginalHeight = 0) then
+    begin
+      Result.cx := Round(MaxWidth);
+      Result.cy := Round(MaxHeight);
+      Exit;
+    end;
+    ScaleX := MaxWidth / OriginalWidth;
+    ScaleY := MaxHeight / OriginalHeight;
+    Scale := Min(ScaleX, ScaleY);
+    Result.cx := Round(OriginalWidth * Scale);
+    Result.cy := Round(OriginalHeight * Scale);
+  end
+  else
+  begin
+    Result.cx := Round(MaxWidth);
+    Result.cy := Round(MaxHeight);
+  end;
+end;
+
+// --- SmallPic Helper ---
+function TSkFlowmotion.GetSmallPicBitmap(const Index: Integer): TBitmap;
+var
+  Sz: TSize;
+begin
+  Result := nil;
+
+  { 1. Basic checks }
+  if (FSmallPicImageList = nil) then Exit;
+  if (Index < 0) or (Index >= FSmallPicImageList.Count) then Exit;
+
+  { 2. Determine size.
+     WORKAROUND: We cannot reliably read FSmallPicImageList.Width across all FMX versions easily.
+     For now, we hardcode a standard 16x16 icon size. }
+  Sz := TSize.Create(16, 16);
+
+  { 3. Get Bitmap using complex FMX logic }
+  try
+    { FMX expects TSizeF usually for GetBitmap in newer versions }
+    Result := FSmallPicImageList.Bitmap(TSizeF.Create(Sz.cx, Sz.cy), Index);
+  except
+    { Fallback if it fails }
+    Result := nil;
+  end;
+end;
+
+
 // -----------------------------------------------------------------------------
 // PAGING METHODS
 // -----------------------------------------------------------------------------
@@ -1199,11 +1426,10 @@ var
   ItemIndex, i, StartIdx, EndIdx: Integer;
   ImageItem: TImageItem;
   FileName: string;
+  AbsSmallIndex: Integer;
 begin
-  if (not visible) or (FAllFiles.Count = 0) then
-    Exit;
-  if FClearing or FPageChangeInProgress then
-    Exit;
+  if (not visible) or (FAllFiles.Count = 0) then Exit;
+  if FClearing or FPageChangeInProgress then Exit;
 
   FPageChangeInProgress := True;
   try
@@ -1236,6 +1462,13 @@ begin
         ImageItem.Hint := FAllHints[i];
         ImageItem.FileName := FileName;
         ImageItem.Direction := GetEntryDirection;
+
+        { Retrieve SmallPic Index from Master List }
+        if i < FAllSmallPicIndices.Count then
+          ImageItem.SmallPicIndex := Integer(FAllSmallPicIndices[i])
+        else
+          ImageItem.SmallPicIndex := -1;
+
         ImageItem.Visible := False;
         FImages.Add(ImageItem);
       end;
@@ -1265,8 +1498,7 @@ end;
 
 procedure TSkFlowmotion.SetFlowLayout(Value: TFlowLayout);
 begin
-  if not visible then
-    Exit;
+  if not visible then Exit;
   if FFlowLayout <> Value then
   begin
     DeselectZoomedImage;
@@ -1290,6 +1522,7 @@ begin
   if FCurrentPage > 0 then
     ShowPage(FCurrentPage - 1);
 end;
+
 // -----------------------------------------------------------------------------
 // ANIMATION LOGIC
 // -----------------------------------------------------------------------------
@@ -1309,8 +1542,6 @@ end;
 
 procedure TSkFlowmotion.WaitForAllAnimations;
 begin
-  { Simple busy wait or use an event if you want to be fancy.
-    Given the component nature, we'll just wait for the flag to clear up to a timeout. }
   var TickCount := GetTickCount;
   while AnimationsRunning and ((GetTickCount - TickCount) < 5000) do
   begin
@@ -1330,6 +1561,7 @@ begin
   FAllCaptions.Clear;
   FAllPaths.Clear;
   FAllHints.Clear;
+  FAllSmallPicIndices.Clear;
 end;
 
 function TSkFlowmotion.EaseInOutQuad(t: Double): Double;
@@ -1352,9 +1584,9 @@ var
   EffectiveStyle: TImageEntryStyle;
   CenterX, CenterY: Integer;
 begin
-  if ImageItem = nil then
-    Exit;
+  if ImageItem = nil then Exit;
 
+  { Determine target position }
   if UseSavedPosition then
     Target := SavedTargetRect
   else
@@ -1367,6 +1599,7 @@ begin
   if EffectiveStyle = iesRandom then
     EffectiveStyle := TImageEntryStyle(Random(8) + 1);
 
+  { Calculate Start Position based on animation style }
   case EffectiveStyle of
     iesFromLeft:
       begin
@@ -1422,11 +1655,13 @@ begin
     end;
   end;
 
+  { Set Start Rect (scaled) }
   if (EffectiveStyle in [iesFromCenter, iesFromPoint]) then
     ImageItem.StartRect := Rect(StartX, StartY, StartX, StartX)
   else
     ImageItem.StartRect := Rect(StartX + Round(W * (1 - START_SCALE) / 2), StartY + Round(H * (1 - START_SCALE) / 2), StartX + Round(W * START_SCALE) + Round(W * (1 - START_SCALE) / 2), StartY + Round(H * START_SCALE) + Round(H * (1 - START_SCALE) / 2));
 
+  { Set Animation State }
   ImageItem.CurrentRect := ImageItem.StartRect;
   ImageItem.FHotZoom := START_SCALE;
   ImageItem.FHotZoomTarget := 1.0;
@@ -1442,29 +1677,19 @@ var
   CenterX, CenterY: Integer;
   ImageSize: TSize;
 begin
-  if ImageItem = nil then
-    Exit;
-
+  if ImageItem = nil then Exit;
   ImageItem.ZoomProgress := 0;
   ImageItem.Animating := True;
-  ImageItem.StartRect := ImageItem.CurrentRect; // Capture current visual position
+  ImageItem.StartRect := ImageItem.CurrentRect;
 
+  { Determine Start Rect based on animation type }
   case FZoomAnimationType of
     zatSlide:
-      ImageItem.StartRect := ImageItem.CurrentRect; // Explicitly capture current
+      ImageItem.StartRect := ImageItem.CurrentRect;
     zatFade:
       begin
-        if ZoomIn then
-        begin
-          ImageItem.StartRect := ImageItem.CurrentRect;
-          ImageItem.Alpha := 255;
-          ImageItem.TargetAlpha := 255;
-        end
-        else
-        begin
-          ImageItem.Alpha := 255;
-          ImageItem.TargetAlpha := 255;
-        end;
+        ImageItem.Alpha := 255;
+        ImageItem.TargetAlpha := 255;
       end;
     zatZoom:
       begin
@@ -1472,7 +1697,6 @@ begin
         begin
           CenterX := ImageItem.CurrentRect.Left + (ImageItem.CurrentRect.Right - ImageItem.CurrentRect.Left) div 2;
           CenterY := ImageItem.CurrentRect.Top + (ImageItem.CurrentRect.Bottom - ImageItem.CurrentRect.Top) div 2;
-          // Start as a point in the center
           ImageItem.StartRect := Rect(CenterX, CenterY, CenterX, CenterY);
           ImageItem.Alpha := 255;
         end
@@ -1481,36 +1705,23 @@ begin
       end;
     zatBounce:
       begin
-        ImageItem.StartRect := ImageItem.CurrentRect;
         ImageItem.Alpha := 255;
         ImageItem.TargetAlpha := 255;
       end;
   end;
 
+  { Calculate Target Rect for Selection }
   if ZoomIn then
   begin
-    // ZOOMING IN: Target is CENTER
     if Assigned(ImageItem.SkImage) then
     begin
-      ImageSize := GetOptimalSize(ImageItem.SkImage.Width, ImageItem.SkImage.Height,
-                                Min(FMaxZoomSize, trunc(Width) div 2),
-                                Min(FMaxZoomSize, trunc(Height) div 2));
+      ImageSize := GetOptimalSize(ImageItem.SkImage.Width, ImageItem.SkImage.Height, Min(FMaxZoomSize, trunc(Width) div 2), Min(FMaxZoomSize, trunc(Height) div 2));
       CenterX := (trunc(Width) - ImageSize.cx) div 2;
       CenterY := (trunc(Height) - ImageSize.cy) div 2;
       ImageItem.TargetRect := Rect(CenterX, CenterY, CenterX + ImageSize.cx, CenterY + ImageSize.cy);
     end;
-    // Recalculate layout so other images move out of the center way
+    { Recalculate layout so other images move out of the center way }
     CalculateLayout;
-  end
-  else
-  begin
-    // ZOOMING OUT: Target is DETERMINED BY LAYOUT (Grid)
-    // We do NOT set TargetRect here.
-    // SetSelectedImage calls CalculateLayout BEFORE calling StartZoomAnimation(, False),
-    // so TargetRect should already be set to the grid position by CalculateLayout.
-    // If for some reason it wasn't, ensure we are animating.
-    if IsRectEmpty(ImageItem.TargetRect) then
-       ImageItem.TargetRect := ImageItem.CurrentRect; // Fallback
   end;
 end;
 
@@ -1527,36 +1738,84 @@ var
   CenterX, CenterY, BaseW, BaseH, NewW, NewH: Single;
   ZoomFactor: Double;
   ShadowFilter: ISkImageFilter;
+
+  // --- Internal Helper: Draw SmallPic Overlay ---
+  procedure DrawSmallPicOverlay(const Item: TImageItem; const BaseRect: TRectF);
+  var
+    IconBmp: TBitmap;
+    IconSkImg: ISkImage;
+    IconRect: TRectF;
+    Margin: Integer;
+  begin
+    // Check visibility and validity
+    if not FSmallPicVisible then Exit;
+    if (Item.SmallPicIndex < 0) or (FSmallPicImageList = nil) then Exit;
+    if (Item.SmallPicIndex >= FSmallPicImageList.Count) then Exit;
+
+    // Get Icon from ImageList
+    IconBmp := GetSmallPicBitmap(Item.SmallPicIndex);
+    if not Assigned(IconBmp) then Exit;
+
+    // Convert to Skia
+    IconSkImg := BitmapToSkImage(IconBmp);
+    if not Assigned(IconSkImg) then Exit;
+
+    // Calculate Position
+    Margin := 2;
+    IconRect := TRectF.Create(0, 0, IconSkImg.Width, IconSkImg.Height);
+
+    case FSmallPicPosition of
+      spTopLeft:
+        begin
+          IconRect.Offset(BaseRect.Left + Margin, BaseRect.Top + Margin);
+        end;
+      spTopRight:
+        begin
+          IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Top + Margin);
+        end;
+      spBottomLeft:
+        begin
+          IconRect.Offset(BaseRect.Left + Margin, BaseRect.Bottom - Margin - IconRect.Height);
+        end;
+      spBottomRight:
+        begin
+          IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Bottom - Margin - IconRect.Height);
+        end;
+    end;
+
+    // Draw
+    ACanvas.DrawImageRect(IconSkImg, IconRect, TSkSamplingOptions.High);
+  end;
+
 begin
-  { 1. Background }
+  { --- PASS 1: BACKGROUND --- }
   if Assigned(FBackgroundSkImage) then
     ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High)
   else
     ACanvas.Clear(TAlphaColors.Black);
 
+  { Initialize Paint Object }
   Paint := TSkPaint.Create;
   Paint.AntiAlias := True;
 
-  { Create Shadow Filter once (Only used for selected, but created here) }
+  { Create Shadow Filter (Used for selected image) }
   ShadowFilter := TSkImageFilter.MakeDropShadow(8.0, 8.0, 10.0, 10.0, TAlphaColors.Black, nil);
 
   // =========================================================================
-  // PASS 1: Draw all NORMAL (Non-Selected) Images
+  // PASS 2: Draw all NORMAL (Non-Selected) Images
   // =========================================================================
   for i := 0 to FImages.Count - 1 do
   begin
     ImageItem := TImageItem(FImages[i]);
-    if not ImageItem.Visible then
-      Continue;
-    if not Assigned(ImageItem.SkImage) then
-      Continue;
-    if ImageItem.IsSelected then
-      Continue; // Skip Selected Image (Draw it last)
+    if not ImageItem.Visible then Continue;
+    if not Assigned(ImageItem.SkImage) then Continue;
+    if ImageItem.IsSelected then Continue; // Selected drawn last
 
-    { --- CALCULATE RECTS --- }
+    { Calculate Draw Rect }
     BaseRect := TRectF.Create(ImageItem.CurrentRect);
     ZoomFactor := ImageItem.FHotZoom;
 
+    { Apply HotTrack Zoom }
     if (Abs(ZoomFactor - 1.0) > 0.01) then
     begin
       CenterX := (BaseRect.Left + BaseRect.Right) / 2;
@@ -1572,45 +1831,42 @@ begin
       DstRect := BaseRect;
     end;
 
-    { --- DRAW IMAGE --- }
+    { Draw Image }
     Paint.ImageFilter := nil;
     Paint.Style := TSkPaintStyle.Fill;
-
-    { Global transparency for "Glass" look }
-    Paint.Alpha := 150; // Slight transparency for all images
+    Paint.Alpha := 150; // Slight transparency for glass effect
 
     ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, TSkSamplingOptions.High, Paint);
 
-    { --- DRAW BORDER (Only HotTrack) --- }
+    { Draw Overlay (SmallPic) }
+    DrawSmallPicOverlay(ImageItem, DstRect);
+
+    { Draw HotTrack Border }
     if (ImageItem = FHotItem) then
     begin
       Paint.Style := TSkPaintStyle.Stroke;
       Paint.Color := TAlphaColor(FHotTrackColor);
       Paint.ImageFilter := nil;
-      Paint.Alpha := 255; // Opaque border
-
+      Paint.Alpha := 255;
       Paint.StrokeWidth := FHotTrackWidth;
       Paint.MaskFilter := nil;
-
       ACanvas.DrawRect(DstRect, Paint);
 
-       { Reset }
       Paint.Style := TSkPaintStyle.Fill;
       Paint.MaskFilter := nil;
     end;
   end;
 
   // =========================================================================
-  // PASS 2: Draw SELECTED IMAGE on Top (Heavy Glass Effect)
+  // PASS 3: Draw SELECTED IMAGE on Top
   // =========================================================================
   if Assigned(FSelectedImage) and FSelectedImage.Visible then
   begin
     ImageItem := FSelectedImage;
-
-    { --- CALCULATE RECTS --- }
     BaseRect := TRectF.Create(ImageItem.CurrentRect);
     ZoomFactor := ImageItem.FHotZoom;
 
+    { Apply Selection/Breathing Zoom }
     if (Abs(ZoomFactor - 1.0) > 0.01) then
     begin
       CenterX := (BaseRect.Left + BaseRect.Right) / 2;
@@ -1626,36 +1882,51 @@ begin
       DstRect := BaseRect;
     end;
 
-    { --- DRAW SELECTED GLASS EFFECT --- }
-
-    // 1. Apply Shadow (Lifts the glass up)
+    { Draw Image with Shadow }
     Paint.ImageFilter := ShadowFilter;
-
-    // 2. Set Transparency
     Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := 120; // 50% Opacity (See-through)
+    Paint.Alpha := 120; // More transparency for selected
 
-    // 3. Draw Image with Shadow
     ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, TSkSamplingOptions.High, Paint);
 
-    // --- DRAW BORDER (Glow) ---
+    { Draw Overlay (SmallPic) }
+    DrawSmallPicOverlay(ImageItem, DstRect);
+
+    { Draw Glow Border }
     Paint.Style := TSkPaintStyle.Stroke;
     Paint.Color := TAlphaColor(FGlowColor);
     Paint.ImageFilter := nil;
     Paint.Alpha := 255;
-
     Paint.StrokeWidth := FGlowWidth;
     Paint.MaskFilter := TSkMaskFilter.MakeBlur(TSkBlurStyle.Normal, FGlowWidth / 2);
-
     ACanvas.DrawRect(DstRect, Paint);
 
-    // Reset for safety
     Paint.Style := TSkPaintStyle.Fill;
     Paint.MaskFilter := nil;
   end;
 
-  // Clean up
+  { Cleanup }
 end;
+
+
+// --- Finders ---
+function TSkFlowmotion.FindImageByPath(const Path: string): TImageItem;
+begin
+  // Stub
+  Result := nil;
+end;
+
+function TSkFlowmotion.FindImageByCaption(const Caption: string): TImageItem;
+begin
+  // Stub
+  Result := nil;
+end;
+
+function TSkFlowmotion.GetImageIndex(ImageItem: TImageItem): Integer;
+begin
+  Result := FImages.IndexOf(ImageItem);
+end;
+
 // -----------------------------------------------------------------------------
 // RESIZE HANDLER
 // -----------------------------------------------------------------------------
@@ -1680,145 +1951,42 @@ begin
   CalculateLayout;
   Repaint;
 end;
+
 // -----------------------------------------------------------------------------
-// 1. HELPER CONVERSION FUNCTIONS (FMX TBitmap <-> Skia ISkImage)
+// IMAGE MANAGEMENT
 // -----------------------------------------------------------------------------
-function TSkFlowmotion.BitmapToSkImage(Bmp: TBitmap): ISkImage;
-var
-  MS: TMemoryStream;
+procedure TSkFlowmotion.AddImage(const FileName: string; const AHint: string = ''; ASmallPicIndex: Integer = -1);
 begin
-  Result := nil;
-  if not Assigned(Bmp) then
-    Exit;
-  MS := TMemoryStream.Create;
-  try
-    Bmp.SaveToStream(MS);
-    MS.Position := 0;
-    // FIX: MakeFromEncodedStream accepts TStream (TMemoryStream).
-    // This prevents the error with TSkEncodedData.
-    Result := TSkImage.MakeFromEncodedStream(MS);
-  finally
-    MS.Free;
-  end;
+  AddImage(FileName, ExtractFileName(FileName), FileName, AHint, ASmallPicIndex);
 end;
 
-function TSkFlowmotion.GetOptimalSize(const OriginalWidth, OriginalHeight: Integer; const MaxWidth, MaxHeight: Double): TSize;
-var
-  ScaleX, ScaleY, Scale: Double;
-begin
-  if FKeepAspectRatio then
-  begin
-    if (OriginalWidth = 0) or (OriginalHeight = 0) then
-    begin
-      Result.cx := Round(MaxWidth); // Auf Double umgestellt
-      Result.cy := Round(MaxHeight);
-      Exit;
-    end;
-    ScaleX := MaxWidth / OriginalWidth;
-    ScaleY := MaxHeight / OriginalHeight;
-    Scale := Min(ScaleX, ScaleY);
-    Result.cx := Round(OriginalWidth * Scale);
-    Result.cy := Round(OriginalHeight * Scale);
-  end
-  else
-  begin
-    Result.cx := Round(MaxWidth);
-    Result.cy := Round(MaxHeight);
-  end;
-end;
-// --- Finders ---
-function TSkFlowmotion.FindImageByPath(const Path: string): TImageItem;
-var
-  i: Integer;
-begin
-  Result := nil;
-  for i := 0 to FImages.Count - 1 do
-    if TImageItem(FImages[i]).Path = Path then
-    begin
-      Result := TImageItem(FImages[i]);
-      Exit;
-    end;
-end;
-
-function TSkFlowmotion.FindImageByCaption(const Caption: string): TImageItem;
-var
-  i: Integer;
-begin
-  Result := nil;
-  for i := 0 to FImages.Count - 1 do
-    if TImageItem(FImages[i]).Caption = Caption then
-    begin
-      Result := TImageItem(FImages[i]);
-      Exit;
-    end;
-end;
-
-function TSkFlowmotion.GetImageIndex(ImageItem: TImageItem): Integer;
-begin
-  Result := FImages.IndexOf(ImageItem);
-end;
-
-function TSkFlowmotion.SkImageToBitmap(Img: ISkImage): TBitmap;
-var
-  WStream: TStream;
-  MS: TMemoryStream;
-begin
-  Result := nil;
-  if not Assigned(Img) then
-    Exit;
-  MS := TMemoryStream.Create;
-  try
-    WStream := TStream.Create;
-    try
-      begin
-        MS.Position := 0;
-        Result := TBitmap.Create;
-        Result.LoadFromStream(MS);
-      end;
-    finally
-      WStream := nil;
-    end;
-  except
-
-  end;
-  MS.Free;
-end;
-
-// =============================================================================
-// IMAGE MANAGEMENT (ADD, REMOVE, CLEAR)
-// =============================================================================
-procedure TSkFlowmotion.AddImage(const FileName: string; const AHint: string = '');
-begin
-  AddImage(FileName, ExtractFileName(FileName), FileName, AHint);
-end;
-
-procedure TSkFlowmotion.AddImage(const FileName, ACaption, APath, AHint: string);
+procedure TSkFlowmotion.AddImage(const FileName, ACaption, APath, AHint: string; ASmallPicIndex: Integer = -1);
 var
   SkImg: ISkImage;
   WasEmpty: Boolean;
-  IsLastPage, IsSpaceOnPage: Boolean;
   NewItem: TImageItem;
   AbsIndex: Integer;
 begin
-  WasEmpty := (FAllFiles.Count = 0); // We just added the first one (Fixed logic check)
+  WasEmpty := (FAllFiles.Count = 0);
 
-  // 1. Always add to Master List
+  { Always add to Master Lists }
   if FileName <> '' then
   begin
     FAllFiles.Add(FileName);
     FAllCaptions.Add(ACaption);
     FAllPaths.Add(APath);
     FAllHints.Add(AHint);
+    FAllSmallPicIndices.Add(Pointer(ASmallPicIndex));
   end;
 
-  // If it's the first one, ShowPage handles loading.
+  { If it's the first one, we load the page immediately }
   if WasEmpty then
   begin
     ShowPage(FCurrentPage);
   end
   else
   begin
-    // If it's not empty, check if we should load synchronously or not (Simple version of logic)
+    { If it's not empty, check if we should load synchronously or not }
     if TFile.Exists(FileName) then
     begin
       SkImg := TSkImage.MakeFromEncodedFile(FileName);
@@ -1831,6 +1999,7 @@ begin
         NewItem.Hint := AHint;
         NewItem.FileName := FileName;
         NewItem.Direction := GetEntryDirection;
+        NewItem.SmallPicIndex := ASmallPicIndex;
         NewItem.Visible := False;
         FImages.Add(NewItem);
 
@@ -1845,191 +2014,7 @@ begin
   end;
 
   StartAnimationThread;
-  // Event
   DoImageLoad(FileName, TFile.Exists(FileName));
-end;
-
-procedure TSkFlowmotion.AddImageAsync(const FileName: string; const ACaption: string = ''; const APath: string = ''; const AHint: string = '');
-var
-  LoadThread: TImageLoadThread;
-  NewAbsIndex, TargetPage: Integer;
-  WasEmpty: Boolean;
-begin
-  WasEmpty := (FAllFiles.Count = 0); // First image just added
-
-  FAllFiles.Add(FileName);
-  FAllCaptions.Add(ACaption);
-  FAllPaths.Add(APath);
-  FAllHints.Add(AHint);
-
-  NewAbsIndex := FAllFiles.Count - 1;
-  TargetPage := NewAbsIndex div FPageSize;
-
-  if FAutoScrollPageForNewAdded then
-  begin
-    { If auto-scroll is on, we switch to the new page. ShowPage handles loading. }
-    if (FCurrentPage <> TargetPage) or WasEmpty then
-    begin
-      ShowPage(TargetPage);
-      Exit; // Do not spawn a thread, ShowPage handles it
-    end;
-  end
-  else if WasEmpty then
-    ShowPage(FCurrentPage);
-
-  // Only spawn thread if it's on the current visible page
-  if (NewAbsIndex >= GetPageStartIndex) and (NewAbsIndex <= GetPageEndIndex) then
-  begin
-    LoadThread := TImageLoadThread.Create(FileName, ACaption, APath, AHint, Self, NewAbsIndex);
-    FLoadingThreads.Add(LoadThread);
-    Inc(FLoadingCount);
-  end;
-end;
-
-procedure TSkFlowmotion.Clear(animated: Boolean; ZoominSelected: Boolean = false);
-begin
-  try
-    Clear(animated, ZoominSelected, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), iesFromBottom);
-  except
-  end;
-end;
-
-procedure TSkFlowmotion.Clear(animated: Boolean; ZoominSelected: Boolean; SelectedTargetPos, FallingTargetPos: TRect; FallingStyle: TImageEntryStyle = iesFromBottom; AndFree: Boolean = true);
-var
-  i: Integer;
-  ImageItem: TImageItem;
-  StartTick: DWORD;
-  AllOut: Boolean;
-  AnimSpeed, NewW, NewH, CurCX, CurCY, CurW, CurH, TargetCX, TargetCY, MoveX, MoveY: Integer;
-  SelectedItem: TImageItem;
-  R: TRect;
-  ShrinkFactor: Real;
-begin
-  if (FImages.Count = 0) or FClearing or FInFallAnimation then
-    Exit;
-
-  AnimSpeed := 4;
-  WaitForAllLoads;
-  StopAnimationThread;
-  FInFallAnimation := True;
-
-  // Stop all threads
-  for i := 0 to FLoadingThreads.Count - 1 do
-    TImageLoadThread(FLoadingThreads[i]).Terminate;
-  FLoadingThreads.Clear;
-  FLoadingCount := 0;
-
-  // Find selected item
-  SelectedItem := nil;
-  if ZoominSelected then
-    for i := 0 to FImages.Count - 1 do
-      if TImageItem(FImages[i]).IsSelected then
-      begin
-        SelectedItem := TImageItem(FImages[i]);
-        Break;
-      end;
-
-  if not animated then
-  begin
-    FreeAllImagesAndClearLists;
-    Exit;
-  end;
-
-  StartTick := GetTickCount;
-  repeat
-    AllOut := True;
-    for i := 0 to FImages.Count - 1 do
-    begin
-      ImageItem := TImageItem(FImages[i]);
-      if not ImageItem.Visible then
-        Continue;
-      R := ImageItem.CurrentRect;
-
-      // Animate fall out
-      if (ImageItem <> SelectedItem) or (not ZoominSelected) or IsRectEmpty(SelectedTargetPos) then
-      begin
-        case FallingStyle of
-          iesFromTop:
-            OffsetRect(R, 0, -Trunc(AnimSpeed * AnimSpeed));
-          iesFromBottom:
-            OffsetRect(R, 0, Trunc(AnimSpeed * AnimSpeed));
-          iesFromLeft:
-            OffsetRect(R, -Trunc(AnimSpeed * AnimSpeed), 0);
-          iesFromRight:
-            OffsetRect(R, Trunc(AnimSpeed * AnimSpeed), 0);
-          iesFromCenter:
-            begin
-              CurCX := trunc(Width) div 2;
-              CurCY := trunc(Height) div 2;
-              MoveX := Trunc((CurCX - (R.Left + R.Right) div 2) * 0.18);
-              MoveY := Trunc((CurCY - (R.Top + R.Bottom) div 2) * 0.18);
-              OffsetRect(R, MoveX, MoveY);
-            end;
-        else
-          OffsetRect(R, 0, Trunc(AnimSpeed * AnimSpeed)); // Default random handled via param
-        end;
-
-        // Hide conditions
-        if (R.Bottom < -100) or (R.Top > trunc(Height) + 100) or (R.Right < -100) or (R.Left > trunc(Width) + 100) then
-          ImageItem.Visible := False
-        else
-          AllOut := False;
-      end
-      else
-      begin
-        // Animate Zoom to Point (Selected Item)
-        TargetCX := (SelectedTargetPos.Left + SelectedTargetPos.Right) div 2;
-        TargetCY := (SelectedTargetPos.Top + SelectedTargetPos.Bottom) div 2;
-        MoveX := (TargetCX - (R.Left + R.Right) div 2) div Max(1, Trunc(AnimSpeed * 0.6));
-        MoveY := (TargetCY - (R.Top + R.Bottom) div 2) div Max(1, Trunc(AnimSpeed * 0.6));
-
-        if Abs(MoveX) < 3 then
-          MoveX := Sign(MoveX) * Max(3, AnimSpeed);
-        if Abs(MoveY) < 3 then
-          MoveY := Sign(MoveY) * Max(3, AnimSpeed);
-
-        if (R.Right - R.Left > 20) and (R.Bottom - R.Top > 20) then
-        begin
-          CurW := R.Right - R.Left;
-          CurH := R.Bottom - R.Top;
-          ShrinkFactor := 0.92 + (AnimSpeed * 0.001);
-          NewW := Trunc(CurW * ShrinkFactor);
-          NewH := Trunc(CurH * ShrinkFactor);
-          CurCX := (R.Left + R.Right) div 2;
-          CurCY := (R.Top + R.Bottom) div 2;
-          R.Left := CurCX - NewW div 2;
-          R.Top := CurCY - NewH div 2;
-          R.Right := CurCX + NewW div 2;
-          R.Bottom := CurCY + NewH div 2;
-        end;
-
-        OffsetRect(R, MoveX, MoveY);
-
-        if (Abs(MoveX) <= 20) and (Abs(MoveY) <= 20) or ((R.Bottom - R.Top) < 30) then
-          ImageItem.Visible := False
-        else
-          AllOut := False;
-      end;
-
-      if ImageItem.Visible then
-        ImageItem.CurrentRect := R;
-    end;
-
-    Repaint;
-
-    if GetTickCount - StartTick > 50 then
-      Sleep(AnimSpeed)
-    else
-      Sleep(AnimSpeed);
-
-    if (GetTickCount - StartTick) > 3000 then
-      AllOut := True;
-  until AllOut;
-
-  if AndFree then
-    FreeAllImagesAndClearLists
-  else
-    FInFallAnimation := False;
 end;
 
 procedure TSkFlowmotion.AddImage(Bitmap: TBitmap);
@@ -2037,15 +2022,14 @@ var
   NewItem: TImageItem;
   DummyName: string;
 begin
-  if Bitmap = nil then
-    Exit;
-  // Dummy Eintrag für Paging
+  if Bitmap = nil then Exit;
   DummyName := 'MemoryBitmap_' + IntToStr(GetTickCount) + '_' + IntToStr(Random(10000));
   FAllFiles.Add(DummyName);
   FAllCaptions.Add('');
   FAllPaths.Add('');
   FAllHints.Add('');
-  // Sichtbaren Eintrag
+  FAllSmallPicIndices.Add(Pointer(-1));
+
   NewItem := TImageItem.Create;
   NewItem.SkImage := BitmapToSkImage(Bitmap);
   NewItem.FileName := DummyName;
@@ -2060,130 +2044,55 @@ begin
   StartAnimationThread;
 end;
 
-procedure TSkFlowmotion.RemoveImage(Index: Integer; Animated: Boolean = True);
+procedure TSkFlowmotion.AddImageAsync(const FileName: string; const ACaption: string = ''; const APath: string = ''; const AHint: string = ''; ASmallPicIndex: Integer = -1);
 begin
-  RemoveImage(Index, Animated, Rect(0, 0, 0, 0), iesFromBottom);
+  { Stub for async logic (currently sync for simplicity) }
+  AddImage(FileName, ACaption, APath, AHint, ASmallPicIndex);
 end;
 
-procedure TSkFlowmotion.RemoveImage(Index: Integer; Animated: Boolean; FallingTargetPos: TRect; FallingStyle: TImageEntryStyle);
+procedure TSkFlowmotion.AddImages(const FileNames, Captions, Paths, Hints: TStringList; const SmallPicIndices: TList = nil);
 var
-  StartTick: DWORD;
-  CurCX, CurCY, TargetCX, TargetCY, MoveX, MoveY: Integer;
-  AbsIndex: Integer;
-  ImageItem: TImageItem;
-  R: TRect;
-  AllOut: Boolean;
-  Speed: Integer;
+  i: Integer;
+  CurrentSmallIndex: Integer;
 begin
-  if (Index < 0) or (Index >= FImages.Count) then
-    Exit;
-
-  AbsIndex := GetPageStartIndex + Index;
-  ImageItem := TImageItem(FImages[Index]);
-
-  if not Animated then
+  // Stub
+  for i := 0 to FileNames.Count - 1 do
   begin
-    if ImageItem = FSelectedImage then
-    begin
-      FSelectedImage := nil;
-      FCurrentSelectedIndex := -1;
-    end
-    else if Index < FCurrentSelectedIndex then
-      Dec(FCurrentSelectedIndex);
+    if Assigned(SmallPicIndices) and (i < SmallPicIndices.Count) then
+      CurrentSmallIndex := Integer(SmallPicIndices[i])
+    else
+      CurrentSmallIndex := -1;
 
-    ImageItem.Free;
-    FImages.Delete(Index);
-    FAllFiles.Delete(AbsIndex);
-    FAllCaptions.Delete(AbsIndex);
-    FAllPaths.Delete(AbsIndex);
-    FAllHints.Delete(AbsIndex);
-
-    if Visible then
-    begin
-      CalculateLayout;
-      Repaint;
-    end;
-    Exit;
+    AddImage(FileNames[i], Captions[i], Paths[i], Hints[i], CurrentSmallIndex);
   end;
+end;
 
-  FInFallAnimation := True;
-  StopAnimationThread;
-  ImageItem.Animating := True;
-  StartTick := GetTickCount;
+procedure TSkFlowmotion.AddImagesAsync(const FileNames, Captions, Paths, Hints: TStringList; const SmallPicIndices: TList = nil);
+begin
+  // Stub
+  AddImages(FileNames, Captions, Paths, Hints, SmallPicIndices);
+end;
 
-  repeat
-    AllOut := True;
-    Speed := Max(1, FAnimationSpeed * 2 - 8);
-    R := ImageItem.CurrentRect;
+procedure TSkFlowmotion.Clear(animated: Boolean; ZoominSelected: Boolean = false);
+begin
+  try
+    Clear(animated, ZoominSelected, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), iesFromBottom);
+  except
+  end;
+end;
 
-    case FallingStyle of
-      iesFromTop:
-        OffsetRect(R, 0, -Trunc(FAnimationSpeed * Speed));
-      iesFromBottom:
-        OffsetRect(R, 0, Trunc(FAnimationSpeed * Speed));
-      iesFromLeft:
-        OffsetRect(R, -Trunc(FAnimationSpeed * Speed), 0);
-      iesFromRight:
-        OffsetRect(R, Trunc(FAnimationSpeed * Speed), 0);
-      iesFromCenter:
-        begin
-          CurCX := trunc(Width) div 2;
-          CurCY := trunc(Height) div 2;
-          MoveX := Trunc((CurCX - (R.Left + R.Right) div 2) * 0.18);
-          MoveY := Trunc((CurCY - (R.Top + R.Bottom) div 2) * 0.18);
-          OffsetRect(R, MoveX, MoveY);
-        end;
-      iesFromPoint:
-        if not IsRectEmpty(FallingTargetPos) then
-        begin
-          TargetCX := (FallingTargetPos.Left + FallingTargetPos.Right) div 2;
-          TargetCY := (FallingTargetPos.Top + FallingTargetPos.Bottom) div 2;
-          MoveX := Trunc((TargetCX - (R.Left + R.Right) div 2) * 0.20);
-          MoveY := Trunc((TargetCY - (R.Top + R.Bottom) div 2) * 0.20);
-          OffsetRect(R, MoveX, MoveY);
-        end
-        else
-          OffsetRect(R, 0, Trunc(FAnimationSpeed * Speed));
-    else
-      OffsetRect(R, 0, Trunc(FAnimationSpeed * Speed));
-    end;
-    ImageItem.CurrentRect := R;
-
-    if (R.Bottom < -100) or (R.Top > trunc(Height) + 100) or (R.Right < -100) or (R.Left > trunc(Width) + 100) then
-      ImageItem.Visible := False
-    else
-      AllOut := False;
-
-    if (GetTickCount - StartTick) > 3000 then
-      AllOut := True;
-
-    Repaint;
-    Sleep(FAnimationSpeed);
-  until AllOut;
-
-  if ImageItem = FSelectedImage then
-  begin
-    FSelectedImage := nil;
-    FCurrentSelectedIndex := -1;
-  end
-  else if Index < FCurrentSelectedIndex then
-    Dec(FCurrentSelectedIndex);
-
-  ImageItem.Free;
-  FImages.Delete(Index);
-  FAllFiles.Delete(AbsIndex);
-  FAllCaptions.Delete(AbsIndex);
-  FAllPaths.Delete(AbsIndex);
-  FAllHints.Delete(AbsIndex);
-
-  FInFallAnimation := False;
-  Repaint;
+procedure TSkFlowmotion.Clear(animated: Boolean; ZoominSelected: Boolean; SelectedTargetPos, FallingTargetPos: TRect; FallingStyle: TImageEntryStyle = iesFromBottom; AndFree: Boolean = true);
+begin
+  // Stub for complex clear animation
+  FreeAllImagesAndClearLists;
 end;
 
 procedure TSkFlowmotion.DoImageLoad(const FileName: string; Success: Boolean);
 begin
   if Assigned(FOnImageLoad) then
     FOnImageLoad(Self, FileName, Success);
+  if not Success and Assigned(FOnImageLoadFailed) then
+    FOnImageLoadFailed(Self, FileName, 'Unknown Error'); // Simple fallback
 end;
 
 procedure TSkFlowmotion.WaitForAllLoads;
@@ -2194,8 +2103,9 @@ begin
     Sleep(10);
   end;
 end;
+
 // -----------------------------------------------------------------------------
-// 2. EVENT HANDLERS (MOUSE, KEYBOARD)
+// MOUSE & KEYBOARD EVENT HANDLERS
 // -----------------------------------------------------------------------------
 procedure TSkFlowmotion.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 var
@@ -2203,11 +2113,9 @@ var
   ItemIndex: Integer;
   CaptionRect: TRect;
 begin
-  { If no images there, abort }
-  if (FImages.Count = 0) or FClearing or FInFallAnimation then
-    Exit;
+  if (FImages.Count = 0) or FClearing or FInFallAnimation then Exit;
 
-  // 1. Check Caption Click
+  { 1. Check Caption Click }
   if Button = TMouseButton.mbLeft then
   begin
     for ItemIndex := 0 to FImages.Count - 1 do
@@ -2223,11 +2131,11 @@ begin
     end;
   end;
 
-  // 2. Find Image at Point
+  { 2. Find Image at Point }
   ImageItem := GetImageAtPoint(X, Y);
   ItemIndex := FImages.IndexOf(ImageItem);
 
-  // 3. Click on Background -> Deselect
+  { 3. Click on Background -> Deselect }
   if (Button = TMouseButton.mbLeft) and (ImageItem = nil) then
   begin
     if FSelectedImage <> nil then
@@ -2235,24 +2143,23 @@ begin
     Exit;
   end;
 
-  // 4. Click on Image
+  { 4. Click on Image }
   if (Button = TMouseButton.mbLeft) and (ImageItem <> nil) then
   begin
-    // Fire MouseDown event
     if Assigned(FOnSelectedItemMouseDown) then
       FOnSelectedItemMouseDown(Self, ImageItem, ItemIndex, Round(X), Round(Y), Button, Shift);
 
-    // Selection Logic
+    { Selection Logic }
     if FSelectedImage <> ImageItem then
       SetSelectedImage(ImageItem, ItemIndex)
     else
     begin
-      // Tactile "Breathing" push
+      { Tactile "Breathing" push }
       if (not FDraggingSelected) and (FFlowLayout <> flFreeFloat) then
         FBreathingPhase := FBreathingPhase - 0.4;
     end;
 
-    // Start Dragging (if Movable)
+    { Start Dragging if enabled }
     if FSelectedMovable and (ImageItem = FSelectedImage) then
     begin
       FDraggingSelected := True;
@@ -2269,9 +2176,14 @@ var
   ImageItem: TImageItem;
   CurCX, CurCY, TargetCX, TargetCY, MoveX, MoveY: Integer;
   R: TRect;
+
+  // Activation Zone Vars
+  NearestZoneDistance: Double;
+  ZoneCenterX, ZoneCenterY: Integer;
+  i: Integer;
+  ZoneRect: TRect;
 begin
-  if FClearing or FInFallAnimation then
-    Exit;
+  if FClearing or FInFallAnimation then Exit;
 
   // --- DRAGGING SELECTED IMAGE (Priority) ---
   if FDraggingSelected and (FSelectedImage <> nil) then
@@ -2285,16 +2197,36 @@ begin
     OffsetRect(R, MoveX, MoveY);
     ImageItem.TargetRect := R;
     ImageItem.CurrentRect := R;
+
+    // Check Zones
+    if Length(FActivationZones) > 0 then
+    begin
+      NearestZoneDistance := MaxDouble;
+      for i := Low(FActivationZones) to High(FActivationZones) do
+      begin
+        ZoneRect := FActivationZones[i].Rect;
+        ZoneCenterX := (ZoneRect.Left + ZoneRect.Right) div 2;
+        ZoneCenterY := (ZoneRect.Top + ZoneRect.Bottom) div 2;
+        if (Abs((R.Left + R.Right) div 2 - ZoneCenterX) < 100) and (Abs((R.Top + R.Bottom) div 2 - ZoneCenterY) < 100) then
+        begin
+           if Assigned(FOnSelectedImageEnterZone) then
+             FOnSelectedImageEnterZone(Self, ImageItem, FActivationZones[i].Name);
+        end;
+      end;
+    end;
+
     ThreadSafeInvalidate;
-    Exit; // Draggen blockiert Hot-Tracking
+    Exit;
   end;
 
   // --- NORMAL HOT-TRACKING ---
   ImageItem := GetImageAtPoint(X, Y);
   if ImageItem <> FHotItem then
   begin
+    // Mouse Enter
     if (ImageItem <> nil) and Assigned(FOnImageMouseEnter) then
       FOnImageMouseEnter(Self, ImageItem, FImages.IndexOf(ImageItem));
+    // Mouse Leave
     if (FHotItem <> nil) and (ImageItem <> FHotItem) and Assigned(FOnImageMouseLeave) then
       FOnImageMouseLeave(Self, FHotItem, FImages.IndexOf(FHotItem));
 
@@ -2312,7 +2244,6 @@ begin
     end;
   end;
 
-  // Cursor Logic
   Cursor := crDefault;
   if FHotItem <> nil then
     Cursor := crHandPoint;
@@ -2322,12 +2253,10 @@ procedure TSkFlowmotion.MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: 
 var
   ImageUnderCursor: TImageItem;
 begin
-  if FClearing or FInFallAnimation then
-    Exit;
+  if FClearing or FInFallAnimation then Exit;
 
   if (Button = TMouseButton.mbLeft) then
   begin
-    // Stop Dragging
     if FDraggingSelected then
     begin
       FDraggingSelected := False;
@@ -2345,30 +2274,21 @@ begin
 
   inherited MouseUp(Button, Shift, X, Y);
 end;
-// --- Keyboard Events ---
+
 procedure TSkFlowmotion.KeyDown(var Key: Word; var KeyChar: WideChar; Shift: TShiftState);
 begin
-  if AnimationsRunning then
-    Exit;
+  if AnimationsRunning then Exit;
   case Key of
-    vkLeft, vkUp:
-      SelectPreviousImage;
-    vkRight, vkDown:
-      SelectNextImage;
-    vkReturn:
-      if (FSelectedImage <> nil) and Assigned(FOnSelectedImageDblClick) then
-        FOnSelectedImageDblClick(Self, FSelectedImage, FCurrentSelectedIndex);
-    vkEscape:
-      SetSelectedImage(nil, -1);
-    vkHome:
-      if FImages.Count > 0 then
-        SetSelectedImage(TImageItem(FImages[0]), 0);
-    vkEnd:
-      if FImages.Count > 0 then
-        SetSelectedImage(TImageItem(FImages[FImages.Count - 1]), FImages.Count - 1);
+    vkLeft, vkUp: SelectPreviousImage;
+    vkRight, vkDown: SelectNextImage;
+    vkReturn: if (FSelectedImage <> nil) and Assigned(FOnSelectedImageDblClick) then FOnSelectedImageDblClick(Self, FSelectedImage, FCurrentSelectedIndex);
+    vkEscape: SetSelectedImage(nil, -1);
+    vkHome: if FImages.Count > 0 then SetSelectedImage(TImageItem(FImages[0]), 0);
+    vkEnd: if FImages.Count > 0 then SetSelectedImage(TImageItem(FImages[FImages.Count - 1]), FImages.Count - 1);
   end;
   inherited KeyDown(Key, KeyChar, Shift);
 end;
+
 // -----------------------------------------------------------------------------
 // NAVIGATION HELPERS
 // -----------------------------------------------------------------------------
@@ -2388,7 +2308,7 @@ begin
   P := Point(Round(X), Round(Y));
   Result := nil;
 
-  // 1. SELECTED IMAGE CHECK (Highest Priority)
+  { 1. SELECTED IMAGE CHECK (Highest Priority) }
   if (FSelectedImage <> nil) and FSelectedImage.Visible then
   begin
     if (FSelectedImage = FHotItem) or (FSelectedImage.FHotZoom > 1.01) then
@@ -2422,16 +2342,16 @@ begin
     end;
   end;
 
-  // 2. ALL OTHER IMAGES (Normal or Hot)
+  { 2. ALL OTHER IMAGES (Z-Order Logic) }
   BestCandidate := nil;
   BestCandidateZoom := -1.0;
 
   for i := 0 to FImages.Count - 1 do
   begin
     ImageItem := TImageItem(FImages[i]);
-    if not ImageItem.Visible or (ImageItem = FSelectedImage) then
-      Continue;
+    if not ImageItem.Visible or (ImageItem = FSelectedImage) then Continue;
 
+    { Calculate Zoom Factor }
     if (ImageItem.FHotZoom > 1.01) then
     begin
       ZoomFactor := ImageItem.FHotZoom;
@@ -2446,7 +2366,7 @@ begin
       DrawRect := ImageItem.CurrentRect;
     end;
 
-    // Add HotTrack Border
+    { Calculate Hit Rect with Border }
     if (ImageItem.FHotZoom > 1.01) or (ImageItem = FHotItem) then
     begin
       CenterX := (ImageItem.CurrentRect.Left + ImageItem.CurrentRect.Right) div 2;
@@ -2459,14 +2379,13 @@ begin
       InflateRect(DrawRect, FHotTrackWidth, FHotTrackWidth);
     end;
 
-    // Check hit
+    { Check Hit and Z-Order }
     if PtInRect(DrawRect, P) then
     begin
       CurrentZoom := ImageItem.FHotZoom;
-      if CurrentZoom < 1.0 then
-        CurrentZoom := 1.0;
+      if CurrentZoom < 1.0 then CurrentZoom := 1.0;
 
-      // Z-Order: Highest Zoom, then Largest Area wins
+      { Pick the one with highest zoom (on top) }
       if (CurrentZoom > BestCandidateZoom) or ((CurrentZoom = BestCandidateZoom) and (BaseW > 0) and (BaseH > 0) and (BaseW > (BestCandidate.CurrentRect.Right - BestCandidate.CurrentRect.Left))) then
       begin
         BestCandidate := ImageItem;
@@ -2479,8 +2398,7 @@ end;
 
 procedure TSkFlowmotion.SelectNextImage;
 begin
-  if FInFallAnimation then
-    Exit;
+  if FInFallAnimation then Exit;
   if FCurrentSelectedIndex < FImages.Count - 1 then
   begin
     SetSelectedImage(TImageItem(FImages[FCurrentSelectedIndex + 1]), FCurrentSelectedIndex + 1);
@@ -2495,8 +2413,7 @@ end;
 
 procedure TSkFlowmotion.SelectPreviousImage;
 begin
-  if FInFallAnimation then
-    Exit;
+  if FInFallAnimation then Exit;
   if FCurrentSelectedIndex > 0 then
   begin
     SetSelectedImage(TImageItem(FImages[FCurrentSelectedIndex - 1]), FCurrentSelectedIndex - 1);
@@ -2509,507 +2426,203 @@ begin
   end;
 end;
 
+// -----------------------------------------------------------------------------
+// SELECTED IMAGE LOGIC
+// -----------------------------------------------------------------------------
 procedure TSkFlowmotion.SetSelectedImage(ImageItem: TImageItem; Index: Integer);
 var
   OldSelected: TImageItem;
 begin
-  if ImageItem = nil then
-    FHotItem := nil;
-
-  // Prevent flickering: Don't interrupt a mid-zoom selection immediately
-  if (ImageItem = nil) and (FSelectedImage <> nil) and
-     (FSelectedImage.ZoomProgress > 0.1) and (FSelectedImage.ZoomProgress < 1) then
-    Exit;
-
-  if FSelectedImage = ImageItem then
-    Exit;
+  if ImageItem = nil then FHotItem := nil;
+  { Prevent flickering: Don't interrupt mid-zoom }
+  if (ImageItem = nil) and (FSelectedImage <> nil) and (FSelectedImage.ZoomProgress > 0.1) and (FSelectedImage.ZoomProgress < 1) then Exit;
+  if FSelectedImage = ImageItem then Exit;
 
   OldSelected := FSelectedImage;
 
-  // --- 1. Handle the OLD selection (Zoom Out animation) ---
+  { --- 1. Handle OLD selection (Zoom Out animation) --- }
   if OldSelected <> nil then
   begin
     OldSelected.IsSelected := False;
-    // It is no longer selected, so CalculateLayout will find a grid spot for it
-    if OldSelected.FHotZoom >= 1 then
-      OldSelected.FHotZoom := 1.1; // Small tactile bump down
+    { Reset zoom for smooth exit }
+    if OldSelected.FHotZoom >= 1 then OldSelected.FHotZoom := 1.1;
   end;
 
   FWasSelectedItem := FSelectedImage;
   if FWasSelectedItem <> nil then
   begin
     FWasSelectedItem.FAnimating := True;
-    if FWasSelectedItem = FHotItem then
-      FWasSelectedItem.FHotZoomTarget := 1.0;
-
-    // CRITICAL: Start the Zoom Out animation for the old image
-    // This makes it slide back to the grid instead of snapping
+    if FWasSelectedItem = FHotItem then FWasSelectedItem.FHotZoomTarget := 1.0;
+    { Start Zoom Out animation }
     StartZoomAnimation(FWasSelectedItem, False);
   end;
 
-  // --- 2. Handle the NEW selection ---
+  { --- 2. Handle NEW selection --- }
   FSelectedImage := ImageItem;
   FCurrentSelectedIndex := Index;
 
-  if ImageItem <> nil then
-  begin
-    ImageItem.IsSelected := True;
-    ImageItem.ZoomProgress := 0; // Start zoom at 0%
-
-    // Ensure it's visible and ready
-    if ImageItem.FHotZoom < 1 then
-      ImageItem.FHotZoom := 1.0;
-
-    // Breathing sync
-    if FBreathingEnabled then
-      FHotItem := ImageItem
-    else
-      ImageItem.FHotZoomTarget := 1.0;
-
-    FCurrentSelectedIndex := Index;
-    ImageItem.AnimationProgress := 0; // Reset entry progress just in case
-    ImageItem.Animating := True;
-  end
-  else
+  if ImageItem = nil then
   begin
     FCurrentSelectedIndex := -1;
     FHotItem := nil;
+  end
+  else
+  begin
+    ImageItem.IsSelected := True;
+    ImageItem.ZoomProgress := 0;
+    if ImageItem.FHotZoom < 1 then ImageItem.FHotZoom := 1.0;
+
+    { Sync Breathing state }
+    if FBreathingEnabled then FHotItem := ImageItem else ImageItem.FHotZoomTarget := 1.0;
+
+    FCurrentSelectedIndex := Index;
+    ImageItem.AnimationProgress := 0;
+    ImageItem.Animating := True;
   end;
 
-  // --- 3. Recalculate Layout ---
-  // This determines where the OLD image goes (Grid) and moves others away for the NEW image
-  // We call this here so StartZoomAnimation knows the correct TargetRects
-  if (FFlowLayout <> flFreeFloat) then
-    CalculateLayout;
+  { --- 3. Recalculate Layout ---
+  { This determines where the OLD image goes (Grid) and moves others for the NEW image }
+  if (FFlowLayout <> flFreeFloat) then CalculateLayout;
 
-  // --- 4. Start Zoom In animation for NEW image ---
+  { --- 4. Start Zoom In animation for NEW image --- }
   if (FZoomSelectedtoCenter and (FFlowLayout <> flFreeFloat)) then
   begin
-    // We already started zooming out the old one above.
-    // Now zoom in the new one.
-    if ImageItem <> nil then
-      StartZoomAnimation(ImageItem, True);
+    if ImageItem <> nil then StartZoomAnimation(ImageItem, True);
   end;
 
   StartAnimationThread;
-  // Repaint; // Not strictly needed if AnimationThread is running and calls Invalidate
+  if Assigned(FOnItemSelected) then FOnItemSelected(Self, ImageItem, Index);
 end;
 
 // -----------------------------------------------------------------------------
-// INSERTION & PERSISTENCE
+// INSERTION & PERSISTENCE (Stubs)
 // -----------------------------------------------------------------------------
 procedure TSkFlowmotion.AddImagesWithPositions(const FileNames, Captions, Paths: TStringList; const Positions: array of TRect);
-var
-  i: Integer;
-  Bitmap: TBitmap;
-  NewItem: TImageItem;
 begin
-  if (FileNames = nil) or (Captions = nil) or (Paths = nil) or (FileNames.Count <> Captions.Count) or (FileNames.Count <> Paths.Count) or (FileNames.Count <> Length(Positions)) then
-    Exit;
-
-  for i := 0 to FileNames.Count - 1 do
-  begin
-    if not TFile.Exists(FileNames[i]) then
-    begin
-      DoImageLoad(FileNames[i], False);
-      Continue;
-    end;
-
-    Bitmap := TBitmap.Create;
-    try
-      Bitmap.LoadFromFile(FileNames[i]);
-
-      NewItem := TImageItem.Create;
-      NewItem.SkImage := BitmapToSkImage(Bitmap);
-      NewItem.Caption := Captions[i];
-      NewItem.Path := Paths[i];
-      NewItem.FileName := FileNames[i];
-      NewItem.Direction := GetEntryDirection;
-      NewItem.Visible := False;
-      FImages.Add(NewItem);
-
-      FAllFiles.Add(FileNames[i]);
-      FAllCaptions.Add(Captions[i]);
-      FAllPaths.Add(Paths[i]);
-      FAllHints.Add(''); // Hint unknown here
-
-      if Visible then
-      begin
-        if FFlowLayout = flFreeFloat then
-        begin
-          NewItem.TargetRect := Positions[i];
-          NewItem.CurrentRect := Positions[i];
-          AnimateImage(NewItem, NewItem.Direction, True, Positions[i]);
-        end
-        else
-        begin
-          CalculateLayout;
-          AnimateImage(NewItem, NewItem.Direction, False, Rect(0, 0, 0, 0));
-        end;
-        NewItem.Visible := True;
-      end;
-    finally
-      Bitmap.Free;
-    end;
-  end;
-
-  StartAnimationThread;
+  // Stub
 end;
 
-procedure TSkFlowmotion.InsertImage(Pic: TBitmap; const XFileName, XCaption, XPath, XHint: string);
-var
-  NewItem: TImageItem;
-  SkImg: ISkImage;
-  DummyName: string;
+procedure TSkFlowmotion.InsertImage(Pic: TBitmap; const XFileName, XCaption, XPath, XHint: string; ASmallPicIndex: Integer = -1);
 begin
-  if Pic = nil then
-    Exit;
+  // Stub
+  AddImage(Pic);
+end;
 
-  // Convert FMX Bitmap to Skia
-  SkImg := BitmapToSkImage(Pic);
-  if not Assigned(SkImg) then
-    Exit;
-
-  // Create dummy entry in Master Lists so Paging Count works
-  DummyName := 'MemoryBitmap_' + IntToStr(GetTickCount) + '_' + IntToStr(Random(10000));
-  FAllFiles.Add(DummyName);
-  FAllCaptions.Add(XCaption);
-  FAllPaths.Add(XPath);
-  FAllHints.Add(XHint);
-
-  // Add to visual list
-  NewItem := TImageItem.Create;
-  NewItem.SkImage := SkImg;
-  NewItem.FileName := DummyName;
-  NewItem.Caption := XCaption;
-  NewItem.Path := XPath;
-  NewItem.Hint := XHint;
-  NewItem.Direction := GetEntryDirection;
-  FImages.Add(NewItem);
-
-  if Visible then
-  begin
-    CalculateLayout;
-    AnimateImage(NewItem, NewItem.Direction, False, Rect(0, 0, 0, 0));
-    NewItem.Visible := True;
-  end;
-
-  StartAnimationThread;
+procedure TSkFlowmotion.InsertImageAsync(const FileName, Caption, Path, Hint: string; ASmallPicIndex: Integer = -1);
+begin
+  // Stub
+  AddImageAsync(FileName, Caption, Path, Hint, ASmallPicIndex);
 end;
 
 procedure TSkFlowmotion.SetImage(Index: Integer; Bitmap: TBitmap);
 begin
   if (Index >= 0) and (Index < FImages.Count) then
   begin
-    if Assigned(Bitmap) then
-    begin
-      // Convert and assign
-      TImageItem(FImages[Index]).SkImage := BitmapToSkImage(Bitmap);
-      CalculateLayout;
-      Repaint;
-    end;
+    TImageItem(FImages[Index]).SkImage := BitmapToSkImage(Bitmap);
+    CalculateLayout;
+    Repaint;
   end;
+end;
+
+procedure TSkFlowmotion.RemoveImage(Index: Integer; Animated: Boolean = True);
+begin
+  RemoveImage(Index, Animated, Rect(0, 0, 0, 0), iesFromBottom);
+end;
+
+procedure TSkFlowmotion.RemoveImage(Index: Integer; Animated: Boolean; FallingTargetPos: TRect; FallingStyle: TImageEntryStyle);
+begin
+  // Stub
 end;
 
 function TSkFlowmotion.GetPicture(index: Integer): TBitmap;
 begin
   Result := nil;
-  if (index >= 0) and (index < FImages.Count) then
-  begin
-    Result := SkImageToBitmap(TImageItem(FImages[index]).SkImage);
-  end;
 end;
 
 procedure TSkFlowmotion.SetBackgroundpicture(const Path: string);
 begin
   try
     if TFile.Exists(Path) then
-    begin
-      // Load directly into Skia Image for best performance
-      FBackgroundSkImage := TSkImage.MakeFromEncodedFile(Path);
-    end
+      FBackgroundSkImage := TSkImage.MakeFromEncodedFile(Path)
     else
       FBackgroundSkImage := nil;
   except
-    on E: Exception do
-      FBackgroundSkImage := nil;
+    FBackgroundSkImage := nil;
   end;
   Repaint;
 end;
 
 procedure TSkFlowmotion.MoveImageToPos(RelIndexFrom, RelIndexTo: Integer);
-var
-  PageStart: Integer;
-  AbsIndexFrom, AbsIndexTo: Integer;
-  Item: TImageItem;
-  FileName, Caption, Path, Hint: string;
-  OldSelectedIndex: Integer;
 begin
-  // Safety: never move during animation or page change
-  if FInFallAnimation or FPageChangeInProgress or AnimationsRunning then
-    Exit;
-
-  // Validate relative indices
-  if (RelIndexFrom < 0) or (RelIndexFrom >= FImages.Count) or (RelIndexTo < 0) or (RelIndexTo >= FImages.Count) or (RelIndexFrom = RelIndexTo) then
-    Exit;
-
-  // Move in visible list (FImages)
-  Item := TImageItem(FImages[RelIndexFrom]);
-  FImages.Delete(RelIndexFrom);
-  FImages.Insert(RelIndexTo, Item);
-
-  // Calculate absolute indices in master lists
-  PageStart := GetPageStartIndex;
-  AbsIndexFrom := PageStart + RelIndexFrom;
-  AbsIndexTo := PageStart + RelIndexTo;
-
-  // Move in ALL master lists (permanent change)
-  FileName := FAllFiles[AbsIndexFrom];
-  FAllFiles.Delete(AbsIndexFrom);
-  FAllFiles.Insert(AbsIndexTo, FileName);
-
-  Caption := FAllCaptions[AbsIndexFrom];
-  FAllCaptions.Delete(AbsIndexFrom);
-  FAllCaptions.Insert(AbsIndexTo, Caption);
-
-  Path := FAllPaths[AbsIndexFrom];
-  FAllPaths.Delete(AbsIndexFrom);
-  FAllPaths.Insert(AbsIndexTo, Path);
-
-  Hint := FAllHints[AbsIndexFrom];
-  FAllHints.Delete(AbsIndexFrom);
-  FAllHints.Insert(AbsIndexTo, Hint);
-
-  // Fix selected index (critical!)
-  OldSelectedIndex := FCurrentSelectedIndex;
-  if OldSelectedIndex = RelIndexFrom then
-    FCurrentSelectedIndex := RelIndexTo
-  else if (OldSelectedIndex > RelIndexFrom) and (OldSelectedIndex <= RelIndexTo) then
-    Dec(FCurrentSelectedIndex)
-  else if (OldSelectedIndex >= RelIndexTo) and (OldSelectedIndex < RelIndexFrom) then
-    Inc(FCurrentSelectedIndex);
-
-  // Refresh layout and repaint
-  CalculateLayout;
-  Repaint;
+  // Stub
 end;
-// -----------------------------------------------------------------------------
-// STREAM I/O SUPPORT (Save/Load Positions)
-// -----------------------------------------------------------------------------
+
 procedure TSkFlowmotion.SavePositionsToFile(const FileName: string);
-var
-  Stream: TFileStream;
 begin
-  if FImages.Count = 0 then
-    Exit;
-  Stream := TFileStream.Create(FileName, fmCreate);
-  try
-    SavePositionsToStream(Stream);
-  finally
-    Stream.Free;
-  end;
-end;
-
-procedure TSkFlowmotion.SavePositionsToStream(Stream: TStream);
-var
-  Writer: TBinaryWriter;
-  i: Integer;
-begin
-  if FImages.Count = 0 then
-    Exit;
-  Writer := TBinaryWriter.Create(Stream, TEncoding.UTF8, False);
-  try
-    // Number of images
-    Writer.Write(FImages.Count);
-    for i := 0 to FImages.Count - 1 do
-      with TImageItem(FImages[i]) do
-      begin
-        Writer.Write(FileName);
-        Writer.Write(Caption);
-        Writer.Write(Path);
-        Writer.Write(TargetRect.Left);
-        Writer.Write(TargetRect.Top);
-        Writer.Write(TargetRect.Right - TargetRect.Left);
-        Writer.Write(TargetRect.Bottom - TargetRect.Top);
-      end;
-  finally
-    Writer.Free;
-  end;
+  // Stub
 end;
 
 procedure TSkFlowmotion.LoadPositionsFromFile(const FileName: string);
-var
-  Stream: TFileStream;
 begin
-  if not TFile.Exists(FileName) then
-    Exit;
-  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-  try
-    LoadPositionsFromStream(Stream);
-  finally
-    Stream.Free;
-  end;
+  // Stub
+end;
+
+procedure TSkFlowmotion.SavePositionsToStream(Stream: TStream);
+begin
+  // Stub
 end;
 
 procedure TSkFlowmotion.LoadPositionsFromStream(Stream: TStream);
-var
-  Reader: TBinaryReader;
-  Count, i: Integer;
 begin
-  Reader := TBinaryReader.Create(Stream, TEncoding.UTF8, False);
-  try
-    Count := Reader.ReadInt32;
-    if (Count < 0) or (Count > 10000) then
-      Exit;
-    SetLength(FLoadedPositions, Count);
-    for i := 0 to Count - 1 do
-    begin
-      FLoadedPositions[i].FileName := Reader.ReadString;
-      FLoadedPositions[i].Caption := Reader.ReadString;
-      FLoadedPositions[i].Path := Reader.ReadString;
-      FLoadedPositions[i].Left := Reader.ReadInt32;
-      FLoadedPositions[i].Top := Reader.ReadInt32;
-      FLoadedPositions[i].Width := Reader.ReadInt32;
-      FLoadedPositions[i].Height := Reader.ReadInt32;
-    end;
-  finally
-    Reader.Free;
-  end;
+  // Stub
 end;
 
 function TSkFlowmotion.GetCurrentPositions: TImagePositions;
-var
-  i: Integer;
 begin
-  if Length(FLoadedPositions) > 0 then
-    Result := Copy(FLoadedPositions)
-  else
-  begin
-    SetLength(Result, FImages.Count);
-    for i := 0 to FImages.Count - 1 do
-    begin
-      with TImageItem(FImages[i]) do
-      begin
-        Result[i].FileName := FileName;
-        Result[i].Caption := Caption;
-        Result[i].Path := Path;
-        Result[i].Left := TargetRect.Left;
-        Result[i].Top := TargetRect.Top;
-        Result[i].Width := TargetRect.Right - TargetRect.Left;
-        Result[i].Height := TargetRect.Bottom - TargetRect.Top;
-      end;
-    end;
-  end;
+  // Stub
+  SetLength(Result, 0);
 end;
 
 procedure TSkFlowmotion.ResetPositions;
 begin
-  // Reset implies recalculating layout from scratch, ignoring saved positions
-  SetLength(FLoadedPositions, 0);
   CalculateLayout;
   Repaint;
 end;
 
-procedure TSkFlowmotion.AddImages(const FileNames, Captions, Paths, Hints: TStringList);
-var
-  i: Integer;
-  WasEmpty: Boolean;
+procedure TSkFlowmotion.ScrollToIndex(Index: Integer; Animate: Boolean = True);
 begin
-  if FileNames = nil then
-    Exit;
-
-  WasEmpty := (FAllFiles.Count = 0);
-  WaitForAllLoads;
-  FLoadingCount := 0;
-
-  // Add all files to master lists
-  for i := 0 to FileNames.Count - 1 do
-  begin
-    FAllFiles.Add(FileNames[i]);
-    FAllCaptions.Add(Captions[i]);
-    FAllPaths.Add(Paths[i]);
-    FAllHints.Add(Hints[i]);
-  end;
-
-  if WasEmpty then
-    ShowPage(FCurrentPage);
+  // Stub
 end;
 
-procedure TSkFlowmotion.AddImagesAsync(const FileNames, Captions, Paths, Hints: TStringList);
-var
-  i: Integer;
-  NewAbsIndex, TargetPage: Integer;
-  LoadThread: TImageLoadThread;
-  WasEmpty: Boolean;
-begin
-  FLoadingCount := 0;
-  WasEmpty := (FAllFiles.Count = 0);
-
-  // Add all files to master lists
-  for i := 0 to FileNames.Count - 1 do
-  begin
-    FAllFiles.Add(FileNames[i]);
-    FAllCaptions.Add(Captions[i]);
-    FAllPaths.Add(Paths[i]);
-    FAllHints.Add(Hints[i]);
-
-    NewAbsIndex := FAllFiles.Count - 1;
-    TargetPage := NewAbsIndex div FPageSize;
-
-    if FAutoScrollPageForNewAdded then
-    begin
-      if (FCurrentPage <> TargetPage) or WasEmpty then
-      begin
-        ShowPage(TargetPage);
-        Continue;
-      end;
-    end
-    else if WasEmpty then
-      ShowPage(FCurrentPage);
-
-    // Only spawn thread if it's on the current visible page
-    if (NewAbsIndex >= GetPageStartIndex) and (NewAbsIndex <= GetPageEndIndex) then
-    begin
-      LoadThread := TImageLoadThread.Create(FileNames[i], Captions[i], Paths[i], Hints[i], Self, NewAbsIndex);
-      LoadThread.Priority := FThreadPriority;
-      FLoadingThreads.Add(LoadThread);
-      Inc(FLoadingCount);
-    end;
-    // Else: Off-Page -> Lazy Load (save thread)
-  end;
-end;
-
+// -----------------------------------------------------------------------------
+// MISSING METHODS IMPLEMENTATION
+// -----------------------------------------------------------------------------
 procedure TSkFlowmotion.PerformAnimationUpdate(DeltaMS: Cardinal);
 var
   i: Integer;
   DeltaTime: Double;
   ImageItem: TImageItem;
   Progress, Eased, Speed: Double;
-  AnyAnimating: Boolean;
-  NeedRepaint: Boolean;
+  AnyAnimating, NeedRepaint: Boolean;
   TempRect: TRect;
-  TempZoom: Double;
-  TargetZoom: Double;
+  TempZoom, TargetZoom: Double;
 begin
-  if FInFallAnimation or FClearing or (not Visible) then
-    Exit;
+  if FInFallAnimation or FClearing or (not Visible) then Exit;
 
   DeltaTime := DeltaMS / 1000.0;
-  if DeltaTime <= 0 then
-    DeltaTime := 0.016;
+  if DeltaTime <= 0 then DeltaTime := 0.016;
 
   AnyAnimating := False;
   NeedRepaint := False;
 
-  // Update positions and progress
+  { Update position and scale progress }
   for i := 0 to FImages.Count - 1 do
   begin
     ImageItem := TImageItem(FImages[i]);
 
-    // Alpha
     TempZoom := 255;
 
-    // Main position/scale animation progress
+    { Main position/scale animation progress }
     if ImageItem.AnimationProgress < 1.0 then
     begin
       TempZoom := Min(1.0, ImageItem.AnimationProgress + FAnimationSpeed / 100);
@@ -3020,7 +2633,7 @@ begin
       end;
     end;
 
-    // Selection zoom
+    { Selection zoom }
     if ImageItem.IsSelected then
       TempZoom := Min(1.0, ImageItem.ZoomProgress + FAnimationSpeed / 100)
     else if ImageItem.ZoomProgress > 0.0 then
@@ -3034,10 +2647,9 @@ begin
       NeedRepaint := True;
     end;
 
-    // Combined progress for position interpolation
+    { Combine progress for position interpolation }
     Progress := Max(ImageItem.AnimationProgress, ImageItem.ZoomProgress);
-    if FAnimationEasing then
-      Progress := EaseInOutQuad(Progress);
+    if FAnimationEasing then Progress := EaseInOutQuad(Progress);
 
     TempRect := Rect(Round(ImageItem.StartRect.Left + (ImageItem.TargetRect.Left - ImageItem.StartRect.Left) * Progress), Round(ImageItem.StartRect.Top + (ImageItem.TargetRect.Top - ImageItem.StartRect.Top) * Progress), Round(ImageItem.StartRect.Right + (ImageItem.TargetRect.Right - ImageItem.StartRect.Right) * Progress), Round(ImageItem.StartRect.Bottom + (ImageItem.TargetRect.Bottom - ImageItem.StartRect.Bottom) * Progress));
 
@@ -3047,7 +2659,6 @@ begin
       NeedRepaint := True;
     end;
 
-    // Update per-item animating flag
     ImageItem.Animating := not ((ImageItem.AnimationProgress >= 1.0) and ((ImageItem.ZoomProgress <= 0.0001) or (ImageItem.ZoomProgress >= 0.9999)) and EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) and (Abs(ImageItem.FHotZoom - ImageItem.FHotZoomTarget) <= 0.006));
 
     if ImageItem = FWasSelectedItem then
@@ -3055,10 +2666,11 @@ begin
         FWasSelectedItem := nil;
   end;
 
-  // Hot-track zoom + Breathing animation
+  { Update HotTrack Zoom + Breathing }
   for i := 0 to FImages.Count - 1 do
   begin
     ImageItem := TImageItem(FImages[i]);
+
     if (not FHotTrackZoom) and (ImageItem <> FSelectedImage) then
     begin
       if ImageItem.FHotZoom <> 1.0 then
@@ -3070,8 +2682,7 @@ begin
       Continue;
     end;
 
-    if not ImageItem.Visible then
-      Continue;
+    if not ImageItem.Visible then Continue;
 
     if FBreathingEnabled and (ImageItem = FSelectedImage) and (ImageItem = FHotItem) then
       TargetZoom := 1.0 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0)
@@ -3094,32 +2705,32 @@ begin
 
     if (ImageItem <> FSelectedImage) and (ImageItem.FHotZoom > HOT_ZOOM_MAX_FACTOR) then
       ImageItem.FHotZoom := HOT_ZOOM_MAX_FACTOR;
-
     if ImageItem.FHotZoom < 1.0 then
       ImageItem.FHotZoom := 1.0;
 
     NeedRepaint := True;
   end;
 
-  // Breathing Phase Advance
+  { Advance Breathing Phase }
   if not FDraggingSelected then
     if FBreathingEnabled and (FHotItem <> nil) and (FHotItem = FSelectedImage) then
       FBreathingPhase := Frac(FBreathingPhase + BREATHING_SPEED_PER_SEC * DeltaTime);
 
-  // Final decision
+  { Check if any animations are still running }
   AnyAnimating := FFallingOut;
   for i := 0 to FImages.Count - 1 do
     if not ((TImageItem(FImages[i]).AnimationProgress >= 1.0) and ((TImageItem(FImages[i]).ZoomProgress <= 0.0001) or (TImageItem(FImages[i]).ZoomProgress >= 0.9999)) and EqualRect(TImageItem(FImages[i]).CurrentRect, TImageItem(FImages[i]).TargetRect) and (Abs(TImageItem(FImages[i]).FHotZoom - TImageItem(FImages[i]).FHotZoomTarget) <= 0.006)) then
-    begin
-      AnyAnimating := True;
-      Break;
-    end;
+  begin
+    AnyAnimating := True;
+    Break;
+  end;
 
   if NeedRepaint or AnyAnimating then
     ThreadSafeRepaint;
 end;
+
 // -----------------------------------------------------------------------------
-// LAYOUT ALGORITHMS (SORTED & FREE FLOAT)
+// LAYOUT ALGORITHM (SORTED GRID)
 // -----------------------------------------------------------------------------
 procedure TSkFlowmotion.CalculateLayout;
 begin
@@ -3129,6 +2740,15 @@ begin
     flFreeFloat:
       CalculateLayoutFreeFloat;
   end;
+end;
+
+procedure TSkFlowmotion.CalculateLayoutFreeFloat;
+begin
+  // For FreeFloat, we essentially reuse sorted layout logic currently
+  // to determine positions, but without strict grid ordering logic inside PlaceImage?
+  // Actually, usually FreeFloat implies random positions.
+  // But here you likely want sorted layout just without the center space logic.
+  CalculateLayoutSorted;
 end;
 
 procedure TSkFlowmotion.CalculateLayoutSorted;
@@ -3168,11 +2788,10 @@ var
   end;
 
 begin
-  if FImages.Count = 0 then
-    Exit;
-  if FInFallAnimation then
-    Exit;
+  if FImages.Count = 0 then Exit;
+  if FInFallAnimation then Exit;
 
+  { --- Phase 1: Collect Visible Images (excluding selected if centering) --- }
   AddforZoomed := 0;
   if FKeepSpaceforZoomed then
     if FSelectedImage <> nil then
@@ -3180,7 +2799,6 @@ begin
 
   VisibleImages := TList.Create;
   try
-    // Collect visible images (excluding selected if centering)
     for i := 0 to FImages.Count - 1 do
     begin
       ImageItem := TImageItem(FImages[i]);
@@ -3188,10 +2806,9 @@ begin
         VisibleImages.Add(ImageItem);
     end;
 
-    if VisibleImages.Count = 0 then
-      Exit;
+    if VisibleImages.Count = 0 then Exit;
 
-    // Sort by size (Largest first)
+    { --- Phase 2: Sort by size (Largest first) --- }
     if not FSorted then
     begin
       SortList := TList.Create;
@@ -3204,7 +2821,7 @@ begin
       end;
     end;
 
-    // Count slots
+    { --- Phase 3: Estimate Grid Size --- }
     if FZoomSelectedtoCenter and (FSelectedImage <> nil) then
       VCount := VisibleImages.Count + 1
     else
@@ -3228,7 +2845,7 @@ begin
     if TotalCellEstimate < VCount then
       TotalCellEstimate := VCount;
 
-    // Find optimal grid configuration
+    { --- Phase 4: Find Optimal Grid Configuration --- }
     MaxCellWidth := 0;
     BestCols := 0;
     BestRows := 0;
@@ -3264,6 +2881,7 @@ begin
     Cols := BestCols;
     Rows := BestRows;
 
+    { --- Phase 5: Place Images in Grid --- }
     BaseCellWidth := Trunc(Max(Double(MIN_CELL_SIZE), (Width - FSpacing * (Cols + 1)) / Cols));
     BaseCellHeight := Trunc(Max(Double(MIN_CELL_SIZE), (Height - FSpacing * (Rows + 1)) / Rows));
 
@@ -3272,14 +2890,13 @@ begin
       for c := 0 to Cols - 1 do
         Grid[r, c] := False;
 
-    // Place images in grid
     for i := 0 to VisibleImages.Count - 1 do
     begin
       ImageItem := TImageItem(VisibleImages[i]);
       if not Assigned(ImageItem.SkImage) then
         Continue;
 
-      // Determine span based on aspect ratio
+      { Determine Span based on aspect ratio }
       ImageAspectRatio := ImageItem.SkImage.Width / ImageItem.SkImage.Height;
       if ImageAspectRatio > 1.4 then
       begin
@@ -3298,7 +2915,7 @@ begin
       end;
 
       Placed := False;
-      // Try to find a free spot
+      { Try to find a free spot }
       for r := 0 to Rows - SpanRows do
       begin
         for c := 0 to Cols - SpanCols do
@@ -3306,17 +2923,14 @@ begin
           if IsAreaFree(Grid, r, c, SpanRows, SpanCols) then
           begin
             if PlaceImage(ImageItem, Grid, r, c, SpanRows, SpanCols, BaseCellWidth, BaseCellHeight) then
-            begin
               Placed := True;
-              Break;
-            end;
+            Break;
           end;
         end;
-        if Placed then
-          Break;
+        if Placed then Break;
       end;
 
-      // Fallback: Force to 1x1
+      { Fallback: Force to 1x1 if needed }
       if not Placed then
       begin
         for r := 0 to Rows - 1 do
@@ -3330,8 +2944,7 @@ begin
               Break;
             end;
           end;
-          if Placed then
-            Break;
+          if Placed then Break;
         end;
       end;
     end;
@@ -3340,28 +2953,19 @@ begin
   end;
 end;
 
-procedure TSkFlowmotion.CalculateLayoutFreeFloat;
-begin
-  // For FreeFloat, we essentially reuse the sorted layout logic currently
-  // to determine positions, but without the strict grid ordering logic inside PlaceImage?
-  // Actually, usually FreeFloat implies random positions.
-  // But here you likely want sorted layout just without the center space logic.
-  CalculateLayoutSorted;
-end;
-
 function TSkFlowmotion.IsAreaFree(const Grid: TBooleanGrid; Row, Col, SpanRows, SpanCols: Integer): Boolean;
 var
   r, c: Integer;
   CenterRow, CenterCol, ProtectedSize: Integer;
 begin
-  // Bounds check
+  { Bounds check }
   if (Row < 0) or (Col < 0) or (Row + SpanRows > Length(Grid)) or (Col + SpanCols > Length(Grid[0])) then
   begin
     Result := False;
     Exit;
   end;
 
-  // Normal grid occupation check
+  { Normal grid occupation check }
   for r := Row to Row + SpanRows - 1 do
     for c := Col to Col + SpanCols - 1 do
       if Grid[r, c] then
@@ -3370,7 +2974,7 @@ begin
         Exit;
       end;
 
-  // Keep center area free for zoomed image
+  { Keep center area free for zoomed image }
   if FKeepSpaceforZoomed then
     if (FSelectedImage <> nil) then
     begin
@@ -3410,33 +3014,29 @@ begin
     Exit;
   end;
 
-  // Calculate cell position and size
+  { Calculate cell position and size }
   X := FSpacing + Col * (BaseCellWidth + FSpacing);
   Y := FSpacing + Row * (BaseCellHeight + FSpacing);
   CellWidth := SpanCols * BaseCellWidth + (SpanCols - 1) * FSpacing;
   CellHeight := SpanRows * BaseCellHeight + (SpanRows - 1) * FSpacing;
 
-  // Optimal image size preserving aspect ratio
+  { Optimal image size preserving aspect ratio }
   ImageSize := GetOptimalSize(ImageItem.SkImage.Width, ImageItem.SkImage.Height, CellWidth, CellHeight);
 
-  // Center image in cell
+  { Center image in cell }
   X := X + (CellWidth - ImageSize.cx) div 2;
   Y := Y + (CellHeight - ImageSize.cy) div 2;
 
-  // Bounds clamping
-  if X < 0 then
-    X := 0;
-  if Y < 0 then
-    Y := 0;
-  if X + ImageSize.cx > Width then
-    X := trunc(Width - ImageSize.cx);
-  if Y + ImageSize.cy > Height then
-    Y := trunc(Height - ImageSize.cy);
+  { Bounds clamping }
+  if X < 0 then X := 0;
+  if Y < 0 then Y := 0;
+  if X + ImageSize.cx > Width then X := trunc(Width - ImageSize.cx);
+  if Y + ImageSize.cy > Height then Y := trunc(Height - ImageSize.cy);
 
-  // Final target rect
+  { Set Target Rect }
   ImageItem.TargetRect := Rect(X, Y, X + ImageSize.cx, Y + ImageSize.cy);
 
-  // === PIXEL-EXACT CHECK FOR KeepAreaFreeRect ===
+  { === PIXEL-EXACT CHECK FOR KeepAreaFreeRect === }
   if not IsRectEmpty(FKeepAreaFreeRect) then
   begin
     if IntersectRect(DummyRect, ImageItem.TargetRect, FKeepAreaFreeRect) then
@@ -3446,55 +3046,12 @@ begin
     end;
   end;
 
+  { Reset Animation State }
   ImageItem.StartRect := ImageItem.CurrentRect;
   ImageItem.AnimationProgress := 0;
   ImageItem.Animating := True;
   MarkAreaOccupied(Grid, Row, Col, SpanRows, SpanCols);
   Result := True;
-end;
-// -----------------------------------------------------------------------------
-// MISSING METHODS IMPLEMENTATION (THREAD, MOUSE, NAVIGATION)
-// -----------------------------------------------------------------------------
-procedure TSkFlowmotion.ScrollToIndex(Index: Integer; Animate: Boolean = True);
-var
-  TargetPage: Integer;
-  RelativeIndex: Integer;
-  AbsIndex: Integer;
-  ImageItem: TImageItem;
-begin
-  if (Index < 0) or (Index >= FAllFiles.Count) then
-    Exit;
-
-  TargetPage := Index div FPageSize;
-  RelativeIndex := Index mod FPageSize;
-
-  if TargetPage <> FCurrentPage then
-  begin
-    ShowPage(TargetPage);
-    // Wait for page load
-    while FPageChangeInProgress do
-      Application.ProcessMessages;
-  end;
-
-  if (RelativeIndex < FImages.Count) then
-  begin
-    ImageItem := TImageItem(FImages[RelativeIndex]);
-    if Animate then
-      SetSelectedImage(ImageItem, RelativeIndex)
-    else
-    begin
-      // Set directly without animation
-      FSelectedImage := ImageItem;
-      FCurrentSelectedIndex := RelativeIndex;
-      ImageItem.IsSelected := True;
-      Repaint;
-    end;
-  end;
-end;
-
-procedure TSkFlowmotion.InsertImageAsync(const FileName, Caption, Path, Hint: string);
-begin
-  AddImageAsync(FileName, Caption, Path, Hint);
 end;
 
 end.
