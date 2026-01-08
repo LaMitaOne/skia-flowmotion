@@ -1,3 +1,29 @@
+{------------------------------------------------------------------------------}
+{                                                                              }
+{ Skia-Flowmotion v0.1                                                         }
+{ based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
+{ by Lara Miriam Tamy Reschke                                                  }
+{                                                                              }
+{ larate@gmx.net                                                               }
+{ https://lamita.jimdosite.com                                                 }
+{                                                                              }
+{------------------------------------------------------------------------------}
+
+{
+ ----Latest Changes
+   v 0.1
+   - Ported basic VCL Flowmotion functionality to Skia.
+    - Added basic particle effects on click.
+    - Added corner dot for rotating images.
+    - Added basic glitch effect while rotating.
+    - Added Shadow effect under selected image.
+    - Added HotTrack TechBrackets.
+    - Implemented "Holographic" Background Effect:
+      Replaced static wave lines with a "Tri-Layer Ghost" technique.
+      Draws the background image three times (Normal + 2 Ghost layers).
+      Layers are offset by Sine waves (WaveX, WaveY) to simulate liquid refraction
+      or a heat haze over the entire picture.
+   }
 unit uSkFlowmotion;
 
 interface
@@ -40,6 +66,14 @@ type
 
   TZoomAnimationType = (zatSlide, zatFade, zatZoom, zatBounce);
 
+  TParticle = record
+    X, Y: Single;
+    VX, VY: Single;
+    Life: Single; // 1.0 down to 0
+    Color: TAlphaColor;
+    Size: Single;
+  end;
+
   TSmallPicPosition = (spTopLeft, spTopRight, spBottomLeft, spBottomRight);
 
   TImagePosition = record
@@ -78,6 +112,9 @@ type
     DriftRangeX: Single;
     DriftRangeY: Single;
     OriginalTargetRect: TRect;
+    FActualRotation: Single; // In Degrees
+    FGlitchIntensity: Single; // 0.0 to 1.0
+    FGlitchOffsetX: Integer;  // For glitch animation
   public
     constructor Create;
     destructor Destroy; override;
@@ -98,6 +135,8 @@ type
     property Direction: TImageEntryStyle read FDirection write FDirection;
     property Hint: string read FHint write FHint;
     property SmallPicIndex: Integer read FSmallPicIndex write FSmallPicIndex; // Added SmallPic Index
+    property ActualRotation: Single read FActualRotation write FActualRotation;
+    property GlitchIntensity: Single read FGlitchIntensity write FGlitchIntensity;
   end;
 
   TOnSelectedItemMouseDown = procedure(Sender: TObject; ImageItem: TImageItem; Index, X, Y: Integer; Button: TMouseButton; Shift: TShiftState) of object;
@@ -120,10 +159,10 @@ type
   end;
 
   TSelectedImageEnterZoneEvent = procedure(Sender: TObject; ImageItem: TImageItem; const ZoneName: string) of object;
+
   // ===================================================================
   // TFlowMasterItem - Virtual Item for global access via AllImageItems[i]
   // ===================================================================
-
   TFlowMasterItem = class
   private
     FOwner: TObject;
@@ -136,7 +175,6 @@ type
     function GetSmallPicIndex: Integer;
   public
     constructor Create(AOwner: TObject);
-    // Properties you want to access globally
     property Caption: string read GetCaption write SetCaption;
     property Hint: string read GetHint write SetHint;
     property SmallPicIndex: Integer read GetSmallPicIndex write SetSmallPicIndex;
@@ -152,7 +190,7 @@ type
     FOwner: TComponent;
     FSuccess: Boolean;
     FIndex: Integer;
-    FSmallPicIndex: Integer; // Added SmallPic Index
+    FSmallPicIndex: Integer;
     procedure SyncAddImage;
   protected
     procedure Execute; override;
@@ -181,8 +219,8 @@ type
     FAllCaptions: TStringList;
     FAllPaths: TStringList;
     FAllHints: TStringList;
-    FAllSmallPicIndices: TList;  // Added Master List for SmallPic Indices
-    FMasterItem: TFlowMasterItem; // Added Master Item Bridge
+    FAllSmallPicIndices: TList;
+    FMasterItem: TFlowMasterItem;
     // Threading
     FNextLoaderCoreIndex: Integer;
     FAnimationThread: TAnimationThread;
@@ -230,6 +268,18 @@ type
     FShowCaptions: Boolean;
     FCaptionOnHoverOnly: Boolean;
     FKeepAreaFreeRect: TRect;
+    FCornerRadius: Single;
+    FRotationAllowed: Boolean;
+    FDrawTechBrackets: Boolean;
+    FAnimatedBackground: Boolean;
+    FParticles: TList<TParticle>;
+    FIsRotating: Boolean;
+    FRotatingImage: TImageItem;
+    FLastMouseAngle: Single;
+    FGridOffsetY: Single;
+    FStartingAngle: Single;
+    FParticleColor: TAlphaColor;
+    FRotateHandlePosition: TSmallPicPosition;
     // Selection & Zoom
     FSelectedImage: TImageItem;
     FWasSelectedItem: TImageItem;
@@ -309,6 +359,7 @@ type
     function BitmapToSkImage(Bmp: TBitmap): ISkImage;
     function GetMasterItem(Index: Integer): TFlowMasterItem;
     function GetSmallPicBitmap(const Index: Integer): TBitmap;
+    function GetVisualRect(ImageItem: TImageItem): TRectF;
     // Property Setters
     procedure SetActive(Value: Boolean);
     procedure SetSelectedMovable(Value: Boolean);
@@ -342,6 +393,15 @@ type
     procedure SetFreeFloatDrift(Value: Boolean);
     procedure SetSmallPicVisible(const Value: Boolean);
     procedure SetPageSize(Value: Integer);
+    procedure SetCornerRadius(const Value: Single);
+    procedure SetRotationAllowed(const Value: Boolean);
+    procedure SetDrawTechBrackets(const Value: Boolean);
+    procedure SetAnimatedBackground(const Value: Boolean);
+    procedure SpawnParticles(X, Y: Single; Count: Integer; Color: TAlphaColor);
+    function GetRotateHandleRect(const ItemRect: TRect): TRect;
+    procedure SetParticleColor(const Value: TAlphaColor);
+    procedure SetRotateHandlePosition(const Value: TSmallPicPosition);
+    procedure SetStartingAngle(const Value: Single);
   protected
     procedure Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single); override;
     procedure Resize; override;
@@ -455,6 +515,13 @@ type
     property SmallPicImageList: TImageList read FSmallPicImageList write FSmallPicImageList;
     property SmallPicPosition: TSmallPicPosition read FSmallPicPosition write FSmallPicPosition;
     property SmallPicVisible: Boolean read FSmallPicVisible write SetSmallPicVisible default True;
+    property CornerRadius: Single read FCornerRadius write SetCornerRadius;
+    property RotationAllowed: Boolean read FRotationAllowed write SetRotationAllowed default True;
+    property DrawTechBrackets: Boolean read FDrawTechBrackets write SetDrawTechBrackets default True;
+    property AnimatedBackground: Boolean read FAnimatedBackground write SetAnimatedBackground default False;
+    property ParticleColor: TAlphaColor read FParticleColor write SetParticleColor;
+    property RotateHandlePosition: TSmallPicPosition read FRotateHandlePosition write SetRotateHandlePosition default spTopRight;
+    property StartingAngle: Single read FStartingAngle write SetStartingAngle;
     // Inherited
     property Align;
     property Anchors;
@@ -765,6 +832,15 @@ begin
   FGlowColor := TAlphaColors.Aqua;
   FGlowWidth := DEFAULT_GLOW_WIDTH;
   FHotTrackWidth := DEFAULT_HOTTRACK_WIDTH;
+  FParticles := TList<TParticle>.Create;
+  FCornerRadius := 0.0;
+  FRotationAllowed := True;
+  FDrawTechBrackets := True;
+  FAnimatedBackground := true;
+  FGridOffsetY := 0;
+  FParticleColor := TAlphaColors.Aqua;
+  FRotateHandlePosition := spTopRight;
+  FStartingAngle := 0.0;
   { --- Defaults - Selection --- }
   FSelectedImage := nil;
   FWasSelectedItem := nil;
@@ -832,6 +908,7 @@ begin
     { --- Free Other Objects --- }
     FCaptionFont.Free;
     FMasterItem.Free;
+    FParticles.Free;
   except
     { Ensure we don't leak even if destructor crashes }
   end;
@@ -889,9 +966,36 @@ begin
   FLoadingThreads.Remove(Thread);
   Dec(FLoadingCount);
 end;
+
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: PROPERTY SETTERS
 // -----------------------------------------------------------------------------
+
+procedure TSkFlowmotion.SetParticleColor(const Value: TAlphaColor);
+begin
+  if FParticleColor <> Value then
+  begin
+    FParticleColor := Value;
+    Repaint;
+  end;
+end;
+
+procedure TSkFlowmotion.SetRotateHandlePosition(const Value: TSmallPicPosition);
+begin
+  if FRotateHandlePosition <> Value then
+  begin
+    FRotateHandlePosition := Value;
+    Repaint;
+  end;
+end;
+
+procedure TSkFlowmotion.SetStartingAngle(const Value: Single);
+begin
+  if FStartingAngle <> Value then
+  begin
+    FStartingAngle := Value;
+  end;
+end;
 
 procedure TSkFlowmotion.SetActive(Value: Boolean);
 begin
@@ -1205,6 +1309,29 @@ begin
   Result := FImages.Count;
 end;
 
+function TSkFlowmotion.GetVisualRect(ImageItem: TImageItem): TRectF;
+var
+  BaseRect: TRectF;
+  CenterX, CenterY, BaseW, BaseH, NewW, NewH: Single;
+  ZoomFactor: Double;
+begin
+  BaseRect := TRectF.Create(ImageItem.CurrentRect);
+  ZoomFactor := ImageItem.FHotZoom;
+
+  if Abs(ZoomFactor - 1.0) > 0.01 then
+  begin
+    CenterX := (BaseRect.Left + BaseRect.Right) / 2;
+    CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
+    BaseW := BaseRect.Width;
+    BaseH := BaseRect.Height;
+    NewW := BaseW * ZoomFactor;
+    NewH := BaseH * ZoomFactor;
+    Result := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
+  end
+  else
+    Result := BaseRect;
+end;
+
 function TSkFlowmotion.GetLoadingCount: Integer;
 begin
   Result := FLoadingCount;
@@ -1241,6 +1368,7 @@ begin
   CaptionH := 20; // Approximate height
   Result := Rect(DrawRect.Left, DrawRect.Bottom - CaptionH - FCaptionOffsetY, DrawRect.Right, DrawRect.Bottom - FCaptionOffsetY);
 end;
+
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: IMAGE CONVERSION HELPERS
 // -----------------------------------------------------------------------------
@@ -1301,6 +1429,7 @@ begin
     Result.cy := Round(MaxHeight);
   end;
 end;
+
 // --- SmallPic Helper ---
 
 function TSkFlowmotion.GetSmallPicBitmap(const Index: Integer): TBitmap;
@@ -1550,16 +1679,20 @@ var
 begin
   if ImageItem = nil then
     Exit;
+
   { Determine target position }
   if UseSavedPosition then
     Target := SavedTargetRect
   else
     Target := ImageItem.TargetRect;
+
   W := Target.Right - Target.Left;
   H := Target.Bottom - Target.Top;
+
   EffectiveStyle := EntryStyle;
   if EffectiveStyle = iesRandom then
     EffectiveStyle := TImageEntryStyle(Random(8) + 1);
+
   { Calculate Start Position based on animation style }
   case EffectiveStyle of
     iesFromLeft:
@@ -1615,11 +1748,13 @@ begin
       StartY := Target.Top;
     end;
   end;
+
   { Set Start Rect (scaled) }
   if (EffectiveStyle in [iesFromCenter, iesFromPoint]) then
     ImageItem.StartRect := Rect(StartX, StartY, StartX, StartX)
   else
     ImageItem.StartRect := Rect(StartX + Round(W * (1 - START_SCALE) / 2), StartY + Round(H * (1 - START_SCALE) / 2), StartX + Round(W * START_SCALE) + Round(W * (1 - START_SCALE) / 2), StartY + Round(H * START_SCALE) + Round(H * (1 - START_SCALE) / 2));
+
   { Set Animation State }
   ImageItem.CurrentRect := ImageItem.StartRect;
   ImageItem.FHotZoom := START_SCALE;
@@ -1629,6 +1764,10 @@ begin
   ImageItem.Animating := True;
   ImageItem.Alpha := 255;
   ImageItem.TargetAlpha := 255;
+
+  { === NEW FEATURE: APPLY STARTING ROTATION === }
+  // Add a little randomness (+/- 5 deg) so they don't look too robotic if set to 45deg
+  ImageItem.FActualRotation := FStartingAngle + (Random - 0.5) * 10;
 end;
 
 procedure TSkFlowmotion.StartZoomAnimation(ImageItem: TImageItem; ZoomIn: Boolean);
@@ -1683,20 +1822,24 @@ begin
   end;
 end;
 // -----------------------------------------------------------------------------
-// VISUAL PAINT METHOD (SKIA RENDERING)
+// VISUAL PAINT METHOD (SKIA RENDERING) - NO PROGRAMMATIC PATHS VERSION
 // -----------------------------------------------------------------------------
 
 procedure TSkFlowmotion.Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
 var
-  i: Integer;
+  i, x, l, t, r, b: Integer;
   ImageItem: TImageItem;
   DstRect: TRectF;
   BaseRect: TRectF;
   Paint: ISkPaint;
+  ShadowFilter: ISkImageFilter;
   CenterX, CenterY, BaseW, BaseH, NewW, NewH: Single;
   ZoomFactor: Double;
-  ShadowFilter: ISkImageFilter;
-  // --- Internal Helper: Draw SmallPic Overlay ---
+  RRect: TRectF;
+  HandleRect: TRect;
+  VisualRect: TRectF;
+  P: TParticle;
+  WaveX, WaveY: Single;
 
   procedure DrawSmallPicOverlay(const Item: TImageItem; const BaseRect: TRectF);
   var
@@ -1705,74 +1848,144 @@ var
     IconRect: TRectF;
     Margin: Integer;
   begin
-    // Check visibility and validity
     if not FSmallPicVisible then
       Exit;
     if (Item.SmallPicIndex < 0) or (FSmallPicImageList = nil) then
       Exit;
     if (Item.SmallPicIndex >= FSmallPicImageList.Count) then
       Exit;
-    // Get Icon from ImageList
     IconBmp := GetSmallPicBitmap(Item.SmallPicIndex);
     if not Assigned(IconBmp) then
       Exit;
-    // Convert to Skia
     IconSkImg := BitmapToSkImage(IconBmp);
     if not Assigned(IconSkImg) then
       Exit;
-    // Calculate Position
     Margin := 2;
     IconRect := TRectF.Create(0, 0, IconSkImg.Width, IconSkImg.Height);
     case FSmallPicPosition of
       spTopLeft:
-        begin
-          IconRect.Offset(BaseRect.Left + Margin, BaseRect.Top + Margin);
-        end;
+        IconRect.Offset(BaseRect.Left + Margin, BaseRect.Top + Margin);
       spTopRight:
-        begin
-          IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Top + Margin);
-        end;
+        IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Top + Margin);
       spBottomLeft:
-        begin
-          IconRect.Offset(BaseRect.Left + Margin, BaseRect.Bottom - Margin - IconRect.Height);
-        end;
+        IconRect.Offset(BaseRect.Left + Margin, BaseRect.Bottom - Margin - IconRect.Height);
       spBottomRight:
-        begin
-          IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Bottom - Margin - IconRect.Height);
-        end;
+        IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Bottom - Margin - IconRect.Height);
     end;
-    // Draw
     ACanvas.DrawImageRect(IconSkImg, IconRect, TSkSamplingOptions.High);
   end;
 
+  procedure DrawTechBrackets(const R: TRectF; const P: ISkPaint);
+  var
+    Len: Single;
+    L, T, Rgt, B: Single;
+  begin
+    Len := 15;
+    L := R.Left;
+    T := R.Top;
+    Rgt := R.Right;
+    B := R.Bottom;
+    ACanvas.DrawLine(L, T, L + Len, T, P);
+    ACanvas.DrawLine(L, T, L, T + Len, P);
+    ACanvas.DrawLine(Rgt - Len, T, Rgt, T, P);
+    ACanvas.DrawLine(Rgt, T, Rgt, T + Len, P);
+    ACanvas.DrawLine(L, B - Len, L, B, P);
+    ACanvas.DrawLine(L, B, L + Len, B, P);
+    ACanvas.DrawLine(Rgt - Len, B, Rgt, B, P);
+    ACanvas.DrawLine(Rgt, B - Len, Rgt, B, P);
+  end;
+
+  procedure DrawAndAnimateParticles;
+  var
+    PPaint: ISkPaint;
+    i: Integer;
+  begin
+    if FParticles.Count = 0 then
+      Exit;
+    PPaint := TSkPaint.Create;
+    PPaint.Style := TSkPaintStyle.Fill;
+    for i := FParticles.Count - 1 downto 0 do
+    begin
+      P := FParticles[i];
+      P.X := P.X + P.VX;
+      P.Y := P.Y + P.VY;
+      P.Life := P.Life - 0.05;
+      PPaint.Color := P.Color;
+      PPaint.AlphaF := P.Life;
+      ACanvas.DrawRect(TRectF.Create(P.X, P.Y, P.X + P.Size, P.Y + P.Size), PPaint);
+      if P.Life <= 0 then
+        FParticles.Delete(i)
+      else
+        FParticles[i] := P;
+    end;
+  end;
+
 begin
-  { --- PASS 1: BACKGROUND --- }
+  // =========================================================================
+  // PASS 1: BACKGROUND - HOLOGRAPHIC "TRI-LAYER" EFFECT
+  // =========================================================================
   if Assigned(FBackgroundSkImage) then
-    ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High)
+  begin
+    Paint := TSkPaint.Create;
+    Paint.Style := TSkPaintStyle.Fill;
+    Paint.Alpha := 255;
+
+    if FAnimatedBackground then
+    begin
+      // Animate
+      FGridOffsetY := FGridOffsetY + 1.0;
+      if FGridOffsetY > 1000 then
+        FGridOffsetY := 0;
+
+      // Calculate offsets based on Sine Waves to simulate liquid refraction
+      WaveX := Sin(FGridOffsetY * 0.02) * 10; // Horizontal float
+      WaveY := Sin(FGridOffsetY * 0.03) * 10; // Vertical float
+
+      // LAYER 1: Normal (Solid)
+      Paint.ImageFilter := nil;
+      ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
+
+      // LAYER 2: Ghost Layer 1 (Offset + Semi-Transparent)
+      // This creates the "Underwater" blur effect without using Blur Filters
+      Paint.Alpha := 100;
+      RRect := ADest;
+      OffsetRect(RRect, WaveX, WaveY);
+      ACanvas.DrawImageRect(FBackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
+
+      // LAYER 3: Ghost Layer 2 (Offset Further + Very Transparent)
+      Paint.Alpha := 40;
+      RRect := ADest;
+      OffsetRect(RRect, -WaveX, -WaveY); // Reverse direction for complex interference
+      ACanvas.DrawImageRect(FBackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
+    end
+    else
+    begin
+      // Static Background
+      ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
+    end;
+  end
   else
     ACanvas.Clear(TAlphaColors.Black);
-  { Initialize Paint Object }
+
+  // =========================================================================
+  // PASS 2: NORMAL IMAGES
+  // =========================================================================
   Paint := TSkPaint.Create;
   Paint.AntiAlias := True;
-  { Create Shadow Filter (Used for selected image) }
   ShadowFilter := TSkImageFilter.MakeDropShadow(8.0, 8.0, 10.0, 10.0, TAlphaColors.Black, nil);
-  // =========================================================================
-  // PASS 2: Draw all NORMAL (Non-Selected) Images
-  // =========================================================================
+
   for i := 0 to FImages.Count - 1 do
   begin
     ImageItem := TImageItem(FImages[i]);
-    if not ImageItem.Visible then
+    if not ImageItem.Visible or (ImageItem = FSelectedImage) then
       Continue;
     if not Assigned(ImageItem.SkImage) then
       Continue;
-    if ImageItem.IsSelected then
-      Continue; // Selected drawn last
-    { Calculate Draw Rect }
+
     BaseRect := TRectF.Create(ImageItem.CurrentRect);
     ZoomFactor := ImageItem.FHotZoom;
-    { Apply HotTrack Zoom }
-    if (Abs(ZoomFactor - 1.0) > 0.01) then
+
+    if Abs(ZoomFactor - 1.0) > 0.01 then
     begin
       CenterX := (BaseRect.Left + BaseRect.Right) / 2;
       CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
@@ -1783,40 +1996,75 @@ begin
       DstRect := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
     end
     else
-    begin
       DstRect := BaseRect;
+
+    ACanvas.Save;
+
+    if ImageItem.ActualRotation <> 0 then
+    begin
+      CenterX := (DstRect.Left + DstRect.Right) / 2;
+      CenterY := (DstRect.Top + DstRect.Bottom) / 2;
+      ACanvas.Translate(CenterX, CenterY);
+      ACanvas.Rotate(ImageItem.ActualRotation);
+      ACanvas.Translate(-CenterX, -CenterY);
     end;
-    { Draw Image }
+
     Paint.ImageFilter := nil;
     Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := 150; // Slight transparency for glass effect
+    Paint.Alpha := 150;
     ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, TSkSamplingOptions.High, Paint);
-    { Draw Overlay (SmallPic) }
+
+    if FCornerRadius > 0 then
+    begin
+      Paint.Style := TSkPaintStyle.Stroke;
+      Paint.StrokeWidth := 1;
+      Paint.Color := TAlphaColor(FHotTrackColor);
+      Paint.Alpha := 100;
+      try
+        ACanvas.DrawRoundRect(DstRect, FCornerRadius, FCornerRadius, Paint);
+      except
+      end;
+    end;
+
+    ACanvas.Restore;
+
+    // FIX: RESTORED SmallPic Draw Call
     DrawSmallPicOverlay(ImageItem, DstRect);
-    { Draw HotTrack Border }
-    if (ImageItem = FHotItem) then
+
+    // FIX: RESTORED Tech Brackets Draw Call
+    if FDrawTechBrackets and (ImageItem = FHotItem) or (ImageItem.IsSelected) then
     begin
       Paint.Style := TSkPaintStyle.Stroke;
       Paint.Color := TAlphaColor(FHotTrackColor);
       Paint.ImageFilter := nil;
-      Paint.Alpha := 255;
-      Paint.StrokeWidth := FHotTrackWidth;
-      Paint.MaskFilter := nil;
-      ACanvas.DrawRect(DstRect, Paint);
-      Paint.Style := TSkPaintStyle.Fill;
-      Paint.MaskFilter := nil;
+      Paint.Alpha := 150;
+      Paint.StrokeWidth := 1.5;
+      if ImageItem.ActualRotation <> 0 then
+      begin
+        CenterX := (DstRect.Left + DstRect.Right) / 2;
+        CenterY := (DstRect.Top + DstRect.Bottom) / 2;
+        ACanvas.Save;
+        ACanvas.Translate(CenterX, CenterY);
+        ACanvas.Rotate(ImageItem.ActualRotation);
+        ACanvas.Translate(-CenterX, -CenterY);
+        DrawTechBrackets(DstRect, Paint);
+        ACanvas.Restore;
+      end
+      else
+        DrawTechBrackets(DstRect, Paint);
     end;
   end;
+
   // =========================================================================
-  // PASS 3: Draw SELECTED IMAGE on Top
+  // PASS 3: SELECTED IMAGE (With Full FX + Dot Handle)
   // =========================================================================
   if Assigned(FSelectedImage) and FSelectedImage.Visible then
   begin
     ImageItem := FSelectedImage;
     BaseRect := TRectF.Create(ImageItem.CurrentRect);
     ZoomFactor := ImageItem.FHotZoom;
-    { Apply Selection/Breathing Zoom }
-    if (Abs(ZoomFactor - 1.0) > 0.01) then
+
+    if Abs(ZoomFactor - 1.0) > 0.01 then
     begin
       CenterX := (BaseRect.Left + BaseRect.Right) / 2;
       CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
@@ -1827,29 +2075,88 @@ begin
       DstRect := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
     end
     else
-    begin
       DstRect := BaseRect;
+
+    // Calculate Visual Rect for Handle Placement
+    VisualRect := DstRect;
+
+    ACanvas.Save;
+
+    if ImageItem.ActualRotation <> 0 then
+    begin
+      CenterX := (DstRect.Left + DstRect.Right) / 2;
+      CenterY := (DstRect.Top + DstRect.Bottom) / 2;
+      ACanvas.Translate(CenterX, CenterY);
+      ACanvas.Rotate(ImageItem.ActualRotation);
+      ACanvas.Translate(-CenterX, -CenterY);
     end;
-    { Draw Image with Shadow }
+
     Paint.ImageFilter := ShadowFilter;
     Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := 120; // More transparency for selected
+    Paint.Alpha := 220;
     ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, TSkSamplingOptions.High, Paint);
-    { Draw Overlay (SmallPic) }
-    DrawSmallPicOverlay(ImageItem, DstRect);
-    { Draw Glow Border }
+
+    if ImageItem.GlitchIntensity > 0.01 then
+    begin
+      Paint.ImageFilter := nil;
+      for i := 0 to 4 do
+      begin
+        if Random > 0.5 then
+          Continue;
+        RRect := DstRect;
+        RRect.Top := DstRect.Top + (DstRect.Height * (i / 5));
+        RRect.Bottom := RRect.Top + (DstRect.Height / 10);
+        OffsetRect(RRect, (Random - 0.5) * 20 * ImageItem.GlitchIntensity, 0);
+        ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, RRect, TSkSamplingOptions.Low, Paint);
+      end;
+    end;
+
+    // 4. ROTATION HANDLE (Round Dot)
+    if FRotationAllowed then
+    begin
+      // SYNTAX FIX: Calculate Integers separately
+      l := Round(VisualRect.Left);
+      t := Round(VisualRect.Top);
+      r := Round(VisualRect.Right);
+      b := Round(VisualRect.Bottom);
+
+      HandleRect := GetRotateHandleRect(rect(l, t, r, b));
+
+      Paint.Style := TSkPaintStyle.Fill;
+      Paint.Color := TAlphaColors.Cyan;
+      Paint.ImageFilter := nil;
+
+      // Draw Round Dot (Oval)
+      ACanvas.DrawOval(TRectF.Create(HandleRect.Left, HandleRect.Top, HandleRect.Right, HandleRect.Bottom), Paint);
+    end;
+
+    ACanvas.Restore;
+
+    // FIX: RESTORED Tech Brackets Draw Call for Selected Image
+    Paint.ImageFilter := nil;
     Paint.Style := TSkPaintStyle.Stroke;
     Paint.Color := TAlphaColor(FGlowColor);
-    Paint.ImageFilter := nil;
-    Paint.Alpha := 255;
-    Paint.StrokeWidth := FGlowWidth;
-    Paint.MaskFilter := TSkMaskFilter.MakeBlur(TSkBlurStyle.Normal, FGlowWidth / 2);
-    ACanvas.DrawRect(DstRect, Paint);
-    Paint.Style := TSkPaintStyle.Fill;
-    Paint.MaskFilter := nil;
+    Paint.StrokeWidth := 2.0;
+
+    if ImageItem.ActualRotation <> 0 then
+    begin
+      CenterX := (DstRect.Left + DstRect.Right) / 2;
+      CenterY := (DstRect.Top + DstRect.Bottom) / 2;
+      ACanvas.Save;
+      ACanvas.Translate(CenterX, CenterY);
+      ACanvas.Rotate(ImageItem.ActualRotation);
+      ACanvas.Translate(-CenterX, -CenterY);
+      DrawTechBrackets(DstRect, Paint);
+      ACanvas.Restore;
+    end
+    else
+      DrawTechBrackets(DstRect, Paint);
   end;
-  { Cleanup }
+
+  DrawAndAnimateParticles;
 end;
+
+
 
 // --- Finders ---
 function TSkFlowmotion.FindImageByPath(const Path: string): TImageItem;
@@ -2248,12 +2555,15 @@ procedure TSkFlowmotion.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y
 var
   ImageItem: TImageItem;
   ItemIndex: Integer;
-  CaptionRect: TRect;
+  HandleRect: TRect;
+  VisualRect: TRectF;
+  P, CenterP: TPoint;
+  Radians: Single;
+  LocalX, LocalY, CosA, SinA: Single;
+  L, T, R, B: Integer; // Added these to fix the TRect syntax error
 begin
   if (FImages.Count = 0) or FClearing or FInFallAnimation then
     Exit;
-
-  // ... (Your existing Caption Click check code goes here) ...
 
   ImageItem := GetImageAtPoint(X, Y);
   ItemIndex := FImages.IndexOf(ImageItem);
@@ -2279,23 +2589,63 @@ begin
     Exit;
   end;
 
+  // Check Rotation Handle click
+  if (Button = TMouseButton.mbLeft) and FRotationAllowed and Assigned(FSelectedImage) then
+  begin
+    // Get Visual Rect (Zoomed)
+    VisualRect := GetVisualRect(FSelectedImage);
+
+    // Transform Mouse Point to Image Local Space (Matrix Math)
+    P := Point(Round(X), Round(Y));
+    CenterP := Point(Round((VisualRect.Left + VisualRect.Right) / 2), Round((VisualRect.Top + VisualRect.Bottom) / 2));
+
+    LocalX := P.X - CenterP.X;
+    LocalY := P.Y - CenterP.Y;
+    Radians := -FSelectedImage.FActualRotation * (PI / 180);
+    CosA := Cos(Radians);
+    SinA := Sin(Radians);
+    LocalX := LocalX * CosA - LocalY * SinA;
+    LocalY := LocalX * SinA + LocalY * CosA;
+    LocalX := LocalX + CenterP.X;
+    LocalY := LocalY + CenterP.Y;
+
+    // SYNTAX FIX: Calculate Integers separately before passing to Rect
+    L := Round(VisualRect.Left);
+    T := Round(VisualRect.Top);
+    R := Round(VisualRect.Right);
+    B := Round(VisualRect.Bottom);
+
+    HandleRect := GetRotateHandleRect(Rect(L, T, R, B));
+
+    // FIX: Increase tolerance significantly
+    // This makes the dot much easier to click.
+    InflateRect(HandleRect, 12, 12);
+
+    if PtInRect(HandleRect, Point(Round(LocalX), Round(LocalY))) then
+    begin
+      FIsRotating := True;
+      FRotatingImage := FSelectedImage;
+      FLastMouseAngle := ArcTan2(Y - CenterP.Y, X - CenterP.X) * (180 / Pi);
+      // Spawn particles
+      SpawnParticles(X, Y, 20, FParticleColor);
+      Exit;
+    end;
+  end;
+
   // Left click on an image
   if Button = TMouseButton.mbLeft then
   begin
     if Assigned(FOnSelectedItemMouseDown) then
       FOnSelectedItemMouseDown(Self, ImageItem, ItemIndex, Round(X), Round(Y), Button, Shift);
 
-    // 1. FREEFLOAT MODE — EVERY IMAGE IS DRAGGABLE
+    // 1. FREEFLOAT MODE
     if FFlowLayout = flFreeFloat then
     begin
-      FDraggingImage := True; // Enable "Any Image Drag"
+      FDraggingImage := True;
       FDraggedImage := ImageItem;
-
-      // Set offsets for dragging
       FDragOffset.X := Round(X) - ((ImageItem.CurrentRect.Left + ImageItem.CurrentRect.Right) div 2);
       FDragOffset.Y := Round(Y) - ((ImageItem.CurrentRect.Top + ImageItem.CurrentRect.Bottom) div 2);
 
-      // Selection handling in FreeFloat
       if FSelectedImage <> ImageItem then
       begin
         if FSelectedImage <> nil then
@@ -2311,11 +2661,10 @@ begin
         if Assigned(FOnItemSelected) then
           FOnItemSelected(Self, ImageItem, ItemIndex);
       end;
-      Exit; // Handled
+      Exit;
     end
     else // SORTED LAYOUT MODE
     begin
-      // 2. SELECT IMAGE FIRST, THEN ENABLE DRAGGING (Selected Only)
       if FSelectedImage <> ImageItem then
       begin
         if FSelectedImage <> nil then
@@ -2324,92 +2673,97 @@ begin
           if FSelectedImage = FWasSelectedItem then
             FWasSelectedItem := nil;
         end;
-        // Small tactile "dip" when clicking a hot-tracked (zoomed) image
-        if not FDraggingImage then
-          if ImageItem.FHotZoom >= 1.1 then
-            ImageItem.FHotZoom := ImageItem.FHotZoom - 0.1;
-
+        if ImageItem.FHotZoom >= 1.1 then
+          ImageItem.FHotZoom := ImageItem.FHotZoom - 0.1;
         SetSelectedImage(ImageItem, ItemIndex);
       end
       else if not FDraggingImage then
         FBreathingPhase := FBreathingPhase - 0.4;
     end;
 
-    // 3. ENABLE DRAGGING FOR SELECTED IMAGE (SelectedMovable property)
     if FSelectedMovable and (ImageItem = FSelectedImage) then
     begin
       FDraggingSelected := True;
       FDragOffset.X := Round(X) - ((ImageItem.CurrentRect.Left + ImageItem.CurrentRect.Right) div 2);
       FDragOffset.Y := Round(Y) - ((ImageItem.CurrentRect.Top + ImageItem.CurrentRect.Bottom) div 2);
-      // Note: MouseCapture not used in FMX usually, handled by global capture or ignore
     end
     else if FSelectedImage = ImageItem then
-    begin
-      // Already selected ? small breathing push for tactile feedback
       if (not FDraggingImage) and (FFlowLayout <> flFreeFloat) then
         FBreathingPhase := FBreathingPhase - 0.4;
-    end;
   end;
+
+  // Spawn particles on image click
+  if (Button = TMouseButton.mbLeft) and (ImageItem <> nil) then
+    SpawnParticles(X, Y, 20, FParticleColor);
 
   inherited MouseDown(Button, Shift, X, Y);
 end;
 
 procedure TSkFlowmotion.MouseMove(Shift: TShiftState; X, Y: Single);
 var
+  CurrentAngle: Single;
   ImageItem: TImageItem;
   NewHot: TImageItem;
   NewCenterX, NewCenterY: Integer;
+  P, CenterP: TPoint;
+  HandleRect: TRect;
+  VisualRect: TRectF;
+  Radians, LocalX, LocalY, CosA, SinA: Single;
+  L, T, R, B: Integer; // Added to fix TRect syntax error
 begin
   if FClearing or FInFallAnimation then
     Exit;
 
-  // --- 1. DRAGGING IN FREEFLOAT MODE (Any Image) ---
+  // --- 1. ROTATION (Active) ---
+  if FIsRotating and Assigned(FRotatingImage) then
+  begin
+    CenterP := Point(Round((FRotatingImage.CurrentRect.Left + FRotatingImage.CurrentRect.Right) / 2), Round((FRotatingImage.CurrentRect.Top + FRotatingImage.CurrentRect.Bottom) / 2));
+    CurrentAngle := ArcTan2(Y - CenterP.Y, X - CenterP.X) * (180 / Pi);
+    FRotatingImage.FActualRotation := FRotatingImage.FActualRotation + (CurrentAngle - FLastMouseAngle);
+    FLastMouseAngle := CurrentAngle;
+
+    // Glitch while rotating
+    FRotatingImage.FGlitchIntensity := 1.0;
+
+    Cursor := crSizeNWSE;
+    Repaint;
+    Exit;
+  end;
+
+  // --- 2. DRAGGING FREEFLOAT ---
   if (FFlowLayout = flFreeFloat) and FDraggingImage and (FDraggedImage <> nil) then
   begin
     ImageItem := FDraggedImage;
-
-    // Update target rectangle based on mouse position
     NewCenterX := Round(X) - FDragOffset.X;
     NewCenterY := Round(Y) - FDragOffset.Y;
-
     with ImageItem.TargetRect do
       ImageItem.TargetRect := Rect(NewCenterX - (Right - Left) div 2, NewCenterY - (Bottom - Top) div 2, NewCenterX + (Right - Left) div 2, NewCenterY + (Bottom - Top) div 2);
-
-    // In FreeFloat: Immediate update (no animation lag) for smooth feel
-    ImageItem.CurrentRect := ImageItem.TargetRect;
-
-    StartAnimationThread;
-    Repaint;
-    Exit; // Dragging has priority – skip hot-tracking
-  end;
-
-  // --- 2. DRAGGING SELECTED IMAGE (Sorted Layout) ---
-  if FDraggingSelected and (FSelectedImage <> nil) then
-  begin
-    ImageItem := FSelectedImage;
-
-    // Similar logic to above, but checking zones if implemented
-    // (Zone logic omitted for brevity, assume dragging is priority)
-    NewCenterX := Round(X) - FDragOffset.X;
-    NewCenterY := Round(Y) - FDragOffset.Y;
-
-    with ImageItem.TargetRect do
-      ImageItem.TargetRect := Rect(NewCenterX - (Right - Left) div 2, NewCenterY - (Bottom - Top) div 2, NewCenterX + (Right - Left) div 2, NewCenterY + (Bottom - Top) div 2);
-
     ImageItem.CurrentRect := ImageItem.TargetRect;
     StartAnimationThread;
     Repaint;
     Exit;
   end;
 
-  // --- 3. NORMAL HOT-TRACKING ---
+  // --- 3. DRAGGING SELECTED ---
+  if FDraggingSelected and (FSelectedImage <> nil) then
+  begin
+    ImageItem := FSelectedImage;
+    NewCenterX := Round(X) - FDragOffset.X;
+    NewCenterY := Round(Y) - FDragOffset.Y;
+    with ImageItem.TargetRect do
+      ImageItem.TargetRect := Rect(NewCenterX - (Right - Left) div 2, NewCenterY - (Bottom - Top) div 2, NewCenterX + (Right - Left) div 2, NewCenterY + (Bottom - Top) div 2);
+    ImageItem.CurrentRect := ImageItem.TargetRect;
+    StartAnimationThread;
+    Repaint;
+    Exit;
+  end;
+
+  // --- 4. HOT TRACKING ---
   NewHot := GetImageAtPoint(X, Y);
   if (NewHot <> FHotItem) then
   begin
-    //Mouse Enter
     if (NewHot <> nil) and Assigned(FOnImageMouseEnter) then
       FOnImageMouseEnter(Self, NewHot, FImages.IndexOf(NewHot));
-    //Mouse Leave
     if (FHotItem <> nil) and (NewHot <> FHotItem) and Assigned(FOnImageMouseLeave) then
       FOnImageMouseLeave(Self, FHotItem, FImages.IndexOf(FHotItem));
 
@@ -2434,8 +2788,44 @@ begin
     StartAnimationThread;
   end;
 
-  // Update Cursor
-  Cursor := crDefault;
+  // --- 5. CHECK ROTATION HANDLE HOVER ---
+  if FRotationAllowed and Assigned(FSelectedImage) and (FSelectedImage = NewHot) then
+  begin
+    VisualRect := GetVisualRect(FSelectedImage);
+
+    // FIX: Calculate Integers separately
+    L := Round(VisualRect.Left);
+    T := Round(VisualRect.Top);
+    R := Round(VisualRect.Right);
+    B := Round(VisualRect.Bottom);
+
+    HandleRect := GetRotateHandleRect(Rect(L, T, R, B));
+
+    // Matrix Transform for Mouse
+    P := Point(Round(X), Round(Y));
+    CenterP := Point(Round((VisualRect.Left + VisualRect.Right) / 2), Round((VisualRect.Top + VisualRect.Bottom) / 2));
+    LocalX := P.X - CenterP.X;
+    LocalY := P.Y - CenterP.Y;
+    Radians := -FSelectedImage.FActualRotation * (PI / 180);
+    CosA := Cos(Radians);
+    SinA := Sin(Radians);
+    LocalX := LocalX * CosA - LocalY * SinA;
+    LocalY := LocalX * SinA + LocalY * CosA;
+    LocalX := LocalX + CenterP.X;
+    LocalY := LocalY + CenterP.Y;
+
+    if PtInRect(HandleRect, Point(Round(LocalX), Round(LocalY))) then
+    begin
+      Cursor := crSizeNWSE;
+      //STOP BREATHING ===
+      FSelectedImage.FHotZoomTarget := 1.0;
+    end
+    else
+      Cursor := crDefault;
+  end
+  else
+    Cursor := crDefault;
+
   if FHotItem <> nil then
     Cursor := crHandPoint;
 end;
@@ -2446,6 +2836,18 @@ var
 begin
   if FClearing or FInFallAnimation then
     Exit;
+
+  if FIsRotating then
+  begin
+    FIsRotating := False;
+    FRotatingImage := nil;
+    // Glitch effect on release
+    if Assigned(FSelectedImage) then
+    begin
+      FSelectedImage.FGlitchIntensity := 1.0;
+      SpawnParticles((FSelectedImage.CurrentRect.Left + FSelectedImage.CurrentRect.Right) / 2, (FSelectedImage.CurrentRect.Top + FSelectedImage.CurrentRect.Bottom) / 2, 50, TAlphaColors.Red); // Red sparks on finish
+    end;
+  end;
 
   if (Button = TMouseButton.mbLeft) then
   begin
@@ -2834,6 +3236,13 @@ begin
   begin
     ImageItem := TImageItem(FImages[i]);
     TempZoom := 255;
+    if ImageItem.FGlitchIntensity > 0 then
+    begin
+      ImageItem.FGlitchIntensity := ImageItem.FGlitchIntensity - 0.05; // Fade out speed
+      if ImageItem.FGlitchIntensity < 0 then
+        ImageItem.FGlitchIntensity := 0;
+      NeedRepaint := True;
+    end;
     { Main position/scale animation progress }
     if ImageItem.AnimationProgress < 1.0 then
     begin
@@ -3230,6 +3639,85 @@ begin
   ImageItem.Animating := True;
   MarkAreaOccupied(Grid, Row, Col, SpanRows, SpanCols);
   Result := True;
+end;
+
+procedure TSkFlowmotion.SetCornerRadius(const Value: Single);
+begin
+  if FCornerRadius <> Value then
+  begin
+    FCornerRadius := Value;
+    Repaint;
+  end;
+end;
+
+procedure TSkFlowmotion.SetRotationAllowed(const Value: Boolean);
+begin
+  FRotationAllowed := Value;
+end;
+
+procedure TSkFlowmotion.SetDrawTechBrackets(const Value: Boolean);
+begin
+  if FDrawTechBrackets <> Value then
+  begin
+    FDrawTechBrackets := Value;
+    Repaint;
+  end;
+end;
+
+procedure TSkFlowmotion.SetAnimatedBackground(const Value: Boolean);
+begin
+  if FAnimatedBackground <> Value then
+  begin
+    FAnimatedBackground := Value;
+    Repaint;
+  end;
+end;
+
+function TSkFlowmotion.GetRotateHandleRect(const ItemRect: TRect): TRect;
+var
+  Margin, HandleSize: Integer;
+  W, H: Integer;
+begin
+  HandleSize := 14; // Size of the dot
+  Margin := 8;     // Distance from edge
+
+  W := ItemRect.Right - ItemRect.Left;
+  H := ItemRect.Bottom - ItemRect.Top;
+
+  case FRotateHandlePosition of
+    spTopLeft:
+      Result := Rect(ItemRect.Left + Margin, ItemRect.Top + Margin, ItemRect.Left + Margin + HandleSize, ItemRect.Top + Margin + HandleSize);
+    spTopRight:
+      Result := Rect(ItemRect.Right - Margin - HandleSize, ItemRect.Top + Margin, ItemRect.Right - Margin, ItemRect.Top + Margin + HandleSize);
+    spBottomLeft:
+      Result := Rect(ItemRect.Left + Margin, ItemRect.Bottom - Margin - HandleSize, ItemRect.Left + Margin + HandleSize, ItemRect.Bottom - Margin);
+    spBottomRight:
+      Result := Rect(ItemRect.Right - Margin - HandleSize, ItemRect.Bottom - Margin - HandleSize, ItemRect.Right - Margin, ItemRect.Bottom - Margin);
+  end;
+end;
+
+procedure TSkFlowmotion.SpawnParticles(X, Y: Single; Count: Integer; Color: TAlphaColor);
+var
+  i: Integer;
+  P: TParticle;
+  Angle: Single;
+begin
+  // If no specific color passed, use global property (for clicks)
+  if Color = 0 then
+    Color := FParticleColor;
+
+  for i := 0 to Count - 1 do
+  begin
+    Angle := Random * 2 * Pi;
+    P.X := X;
+    P.Y := Y;
+    P.VX := Cos(Angle) * (2 + Random * 3);
+    P.VY := Sin(Angle) * (2 + Random * 3);
+    P.Life := 1.0;
+    P.Color := Color;
+    P.Size := 0.8 + Random * 1.5;
+    FParticles.Add(P);
+  end;
 end;
 
 end.
