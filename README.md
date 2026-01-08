@@ -40,7 +40,7 @@ Save/load positions
 Many bugs and incomplete features   
        
 This project aims to bring way more and better features to Flowmotion using the power of Skia4Delphi.   
-Some already implemented now, rotating of images, particle effects on click, shadow for selected:   
+Some already implemented now, rotating of images, particle effects on click, shadow for selected, feels a bit like that microsot surface tables long ago, only better:   
 <img width="2560" height="1440" alt="Unbenannt" src="https://github.com/user-attachments/assets/79007956-eb90-487b-8255-f3497653c812" />
 
      
