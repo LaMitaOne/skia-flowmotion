@@ -1,4 +1,4 @@
-unit Sample.Form.Main;
+﻿unit Sample.Form.Main;
 
 interface
 
@@ -32,6 +32,7 @@ type
     Label1: TLabel;
     ComboBox1: TComboBox;
     CheckBox1: TCheckBox;
+    Rectangle1: TRectangle;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -49,6 +50,7 @@ type
   private
     skfmFlowGallery: TSkFlowmotion;
     procedure InitGallery;
+    procedure MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean); override;
   public
     { Public declarations }
   end;
@@ -59,6 +61,20 @@ var
 implementation
 
 {$R *.fmx}
+
+procedure TfrmMain.MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean);
+begin
+  inherited;
+
+  // Rad nach vorne (hoch) → vorheriges Bild
+  if WheelDelta > 0 then
+    skfmFlowGallery.SelectPreviousImage
+  // Rad nach hinten (runter) → nächstes Bild
+  else if WheelDelta < 0 then
+    skfmFlowGallery.SelectNextImage;
+
+  Handled := True; // Wichtig! Damit das Event nicht weiterverarbeitet wird
+end;
 
 procedure TfrmMain.Button1Click(Sender: TObject);
 begin
@@ -146,7 +162,7 @@ var
   FileName: string;
   i: Integer;
   IMList,Pathlist, Captionlist, Hintlist: TStringList;
-
+  smallimgindex: TList;
 begin
   AppDir := ExtractFilePath(ParamStr(0));
   if skfmFlowGallery = nil then
@@ -159,23 +175,26 @@ begin
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
   skfmFlowGallery.AnimationSpeed := 3;
   skfmFlowGallery.Spacing := 4;
+  skfmFlowGallery.PageSize := 100;
   skfmFlowGallery.ShowCaptions := True;
-  skfmFlowGallery.ShowHint := True;
+  skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := True;
   skfmFlowGallery.SmallPicImageList := Imagelist1;
   IMList:= TStringList.create;
   Pathlist:= TStringList.create;
   Captionlist:= TStringList.create;
   Hintlist:= TStringList.create;
+  smallimgindex := TList.Create;
   try
    for i := 1 to 12 do begin
      IMList.add(AppDir + inttostr(i) + '.jpg');
      Pathlist.add('Folder or whatever');
      Captionlist.add('Caption');
      Hintlist.Add('Hint');
+     smallimgindex.Add(Pointer(i));
    end;
   skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
-  skfmFlowGallery.AddImagesAsync(IMList,Captionlist,Pathlist, Hintlist);
+  skfmFlowGallery.AddImages(IMList,Captionlist,Pathlist, Hintlist, smallimgindex);
   finally
    IMList.Free;
    Pathlist.Free;
@@ -186,7 +205,6 @@ begin
   skfmFlowGallery.SetBackgroundpicture(FileName);
   skfmFlowGallery.CaptionFont.Size := 14;
   skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
-  skfmFlowGallery.ShowCaptions := True;
   skfmFlowGallery.HotTrackZoom := True;
   skfmFlowGallery.Visible := True;
   skfmFlowGallery.BringToFront;
@@ -207,7 +225,7 @@ end;
 
 procedure TfrmMain.lytcontrolsResize(Sender: TObject);
 begin
- if visible then
+ if visible and assigned(skfmFlowGallery) then
   skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
 end;
 
