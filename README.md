@@ -13,6 +13,20 @@ Hotzoom, Breathing, Hottrack
 Animated "fly-in" effects when adding images     
 Background image support    
 
+ ----Latest Changes   
+   v 0.1    
+   - Ported basic VCL Flowmotion functionality to Skia.    
+    - Added basic particle effects on click.    
+    - Added corner dot for rotating images.    
+    - Added basic glitch effect while rotating.     
+    - Added Shadow effect under selected image.    
+    - Added HotTrack TechBrackets.     
+    - Implemented "Holographic" Background Effect:     
+      Replaced static wave lines with a "Tri-Layer Ghost" technique.     
+      Draws the background image three times (Normal + 2 Ghost layers).     
+      Layers are offset by Sine waves (WaveX, WaveY) to simulate liquid refraction     
+      or a heat haze over the entire picture.     
+     
     Zipped sample exe, that way its small enough for upload  
     
 You can already see that the core animation engine and smooth rendering work beautifully thanks to Skia – images fly in nicely, and the foundation feels solid.   
