@@ -24,7 +24,10 @@ Background image support
     - Implemented "Holographic" Background Effect:    
       Draws the background image three times (Normal + 2 Ghost layers).     
       Layers are offset by Sine waves (WaveX, WaveY) to simulate liquid refraction     
-      or a heat haze over the entire picture.     
+      or a heat haze over the entire picture.    
+    - fixed shadow perspective when rotated   
+    - improved pos calculation of rotatecircle for mousedown   
+    - added lots more of functions from vcl version    
      
     Zipped sample exe, that way its small enough for upload  
     
