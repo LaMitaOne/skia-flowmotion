@@ -12,7 +12,7 @@
 {
  ----Latest Changes
    v 0.1
-   - Ported basic VCL Flowmotion functionality to Skia.
+    - Ported basic VCL Flowmotion functionality to Skia.
     - Added basic particle effects on click.
     - Added corner dot for rotating images.
     - Added basic glitch effect while rotating.
@@ -22,7 +22,11 @@
       Draws the background image three times (Normal + 2 Ghost layers).
       Layers are offset by Sine waves (WaveX, WaveY) to simulate liquid refraction
       or a heat haze over the entire picture.
+    - fixed shadow perspective when rotated
+    - improved pos calculation of rotatecircle for mousedown
+    - added lots more of functions from vcl version
    }
+
 unit uSkFlowmotion;
 
 interface
@@ -359,6 +363,7 @@ type
     function GetMasterItem(Index: Integer): TFlowMasterItem;
     function GetSmallPicBitmap(const Index: Integer): TBitmap;
     function GetVisualRect(ImageItem: TImageItem): TRectF;
+    function GetLocalPoint(const P: TPointF; const Rect: TRectF; AngleDeg: Single): TPointF;
     // Property Setters
     procedure SetActive(Value: Boolean);
     procedure SetSelectedMovable(Value: Boolean);
@@ -794,7 +799,7 @@ begin
   FSelectedCaptionColor := TAlphaColors.Black;
   FSelectedCaptionBackground := TAlphaColors.Aqua;
   FCaptionAlpha := 180;
-  FShowCaptions := True;
+  FShowCaptions := False;
   FAutoScrollPageForNewAdded := False;
   FCaptionOnHoverOnly := True;
   FCaptionOffsetY := 8;
@@ -835,7 +840,7 @@ begin
   FCornerRadius := 0.0;
   FRotationAllowed := True;
   FDrawTechBrackets := True;
-  FAnimatedBackground := true;
+  FAnimatedBackground := False;
   FGridOffsetY := 0;
   FParticleColor := TAlphaColors.Aqua;
   FRotateHandlePosition := spTopRight;
@@ -1839,6 +1844,11 @@ var
   VisualRect: TRectF;
   P: TParticle;
   WaveX, WaveY: Single;
+  ShadowRad, ShadowDx, ShadowDy: Single;
+const
+  SHADOW_OFFSET_X = 8.0;
+const
+  SHADOW_OFFSET_Y = 8.0;
 
   procedure DrawSmallPicOverlay(const Item: TImageItem; const BaseRect: TRectF);
   var
@@ -1871,7 +1881,7 @@ var
       spBottomRight:
         IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Bottom - Margin - IconRect.Height);
     end;
-    ACanvas.DrawImageRect(IconSkImg, IconRect, TSkSamplingOptions.High);
+    ACanvas.DrawImageRect(IconSkImg, IconRect, TSkSamplingOptions.High, Paint);
   end;
 
   procedure DrawTechBrackets(const R: TRectF; const P: ISkPaint);
@@ -1945,7 +1955,6 @@ begin
       ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
 
       // LAYER 2: Ghost Layer 1 (Offset + Semi-Transparent)
-      // This creates the "Underwater" blur effect without using Blur Filters
       Paint.Alpha := 100;
       RRect := ADest;
       OffsetRect(RRect, WaveX, WaveY);
@@ -1971,6 +1980,7 @@ begin
   // =========================================================================
   Paint := TSkPaint.Create;
   Paint.AntiAlias := True;
+  // Shadow for normal images (Static offset is fine here)
   ShadowFilter := TSkImageFilter.MakeDropShadow(8.0, 8.0, 10.0, 10.0, TAlphaColors.Black, nil);
 
   for i := 0 to FImages.Count - 1 do
@@ -2027,10 +2037,10 @@ begin
 
     ACanvas.Restore;
 
-    // FIX: RESTORED SmallPic Draw Call
+    // SmallPic Draw Call
     DrawSmallPicOverlay(ImageItem, DstRect);
 
-    // FIX: RESTORED Tech Brackets Draw Call
+    // Tech Brackets Draw Call
     if FDrawTechBrackets and (ImageItem = FHotItem) or (ImageItem.IsSelected) then
     begin
       Paint.Style := TSkPaintStyle.Stroke;
@@ -2079,6 +2089,32 @@ begin
     // Calculate Visual Rect for Handle Placement
     VisualRect := DstRect;
 
+    // ========================================================================
+    // SHADOW CALCULATION
+    // ========================================================================
+    // To make the shadow stay fixed relative to the screen (always down-right)
+    // while the image rotates, we must rotate the shadow offset vector in the
+    // opposite direction of the image rotation.
+    if ImageItem.ActualRotation <> 0 then
+    begin
+      // Convert degrees to radians for Math functions
+      ShadowRad := -ImageItem.ActualRotation * (PI / 180);
+
+      // Inverse Rotation Matrix applied to the shadow offset vector
+      // X' = x cos(-a) - y sin(-a)
+      // Y' = x sin(-a) + y cos(-a)
+      ShadowDx := (SHADOW_OFFSET_X * Cos(ShadowRad)) - (SHADOW_OFFSET_Y * Sin(ShadowRad));
+      ShadowDy := (SHADOW_OFFSET_X * Sin(ShadowRad)) + (SHADOW_OFFSET_Y * Cos(ShadowRad));
+    end
+    else
+    begin
+      ShadowDx := SHADOW_OFFSET_X;
+      ShadowDy := SHADOW_OFFSET_Y;
+    end;
+
+    // Create the filter with the calculated local offset
+    ShadowFilter := TSkImageFilter.MakeDropShadow(ShadowDx, ShadowDy, 10.0, 10.0, TAlphaColors.Black, nil);
+
     ACanvas.Save;
 
     if ImageItem.ActualRotation <> 0 then
@@ -2092,9 +2128,10 @@ begin
 
     Paint.ImageFilter := ShadowFilter;
     Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := 220;
+    Paint.Alpha := 160;
     ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, TSkSamplingOptions.High, Paint);
 
+    {        //effect while rotate...
     if ImageItem.GlitchIntensity > 0.01 then
     begin
       Paint.ImageFilter := nil;
@@ -2108,12 +2145,11 @@ begin
         OffsetRect(RRect, (Random - 0.5) * 20 * ImageItem.GlitchIntensity, 0);
         ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, RRect, TSkSamplingOptions.Low, Paint);
       end;
-    end;
+    end;    }
 
     // 4. ROTATION HANDLE (Round Dot)
     if FRotationAllowed then
     begin
-      // SYNTAX FIX: Calculate Integers separately
       l := Round(VisualRect.Left);
       t := Round(VisualRect.Top);
       r := Round(VisualRect.Right);
@@ -2131,7 +2167,7 @@ begin
 
     ACanvas.Restore;
 
-    // FIX: RESTORED Tech Brackets Draw Call for Selected Image
+    //Tech Brackets Draw Call for Selected Image
     Paint.ImageFilter := nil;
     Paint.Style := TSkPaintStyle.Stroke;
     Paint.Color := TAlphaColor(FGlowColor);
@@ -2155,19 +2191,67 @@ begin
   DrawAndAnimateParticles;
 end;
 
-
-
 // --- Finders ---
 function TSkFlowmotion.FindImageByPath(const Path: string): TImageItem;
+var
+  i: Integer;
+  AbsoluteIndex: Integer;
 begin
-  // Stub
   Result := nil;
+  for i := 0 to FAllPaths.Count - 1 do
+  begin
+    if SameText(FAllPaths[i], Path) then
+    begin
+      AbsoluteIndex := i;
+      if (AbsoluteIndex >= GetPageStartIndex) and (AbsoluteIndex <= GetPageEndIndex) then
+      begin
+        Result := TImageItem(FImages[AbsoluteIndex - GetPageStartIndex]);
+      end
+      else
+      begin
+        // Switch page if necessary
+        FCurrentPage := AbsoluteIndex div FPageSize;
+        ShowPage(FCurrentPage);
+        if (AbsoluteIndex >= GetPageStartIndex) and (AbsoluteIndex <= GetPageEndIndex) then
+          Result := TImageItem(FImages[AbsoluteIndex - GetPageStartIndex]);
+      end;
+      Break;
+    end;
+  end;
 end;
 
 function TSkFlowmotion.FindImageByCaption(const Caption: string): TImageItem;
+var
+  i: Integer;
+  AbsoluteIndex, RelativeIndex, TargetPage: Integer;
 begin
-  // Stub
   Result := nil;
+  for i := 0 to FAllCaptions.Count - 1 do
+  begin
+    if SameText(FAllCaptions[i], Caption) then
+    begin
+      AbsoluteIndex := i;
+
+      if (AbsoluteIndex >= GetPageStartIndex) and (AbsoluteIndex <= GetPageEndIndex) then
+      begin
+        RelativeIndex := AbsoluteIndex - GetPageStartIndex;
+        if (RelativeIndex >= 0) and (RelativeIndex < FImages.Count) then
+          Result := TImageItem(FImages[RelativeIndex]);
+      end
+      else
+      begin
+        TargetPage := AbsoluteIndex div FPageSize;
+        if (TargetPage >= 0) and (TargetPage < GetPageCount) and (TargetPage <> FCurrentPage) then
+        begin
+          ShowPage(TargetPage);
+          RelativeIndex := AbsoluteIndex - GetPageStartIndex;
+          if (RelativeIndex >= 0) and (RelativeIndex < FImages.Count) then
+            Result := TImageItem(FImages[RelativeIndex]);
+        end;
+      end;
+      Break;
+    end;
+  end;
 end;
 
 function TSkFlowmotion.GetImageIndex(ImageItem: TImageItem): Integer;
@@ -2297,7 +2381,6 @@ var
   i: Integer;
   CurrentSmallIndex: Integer;
 begin
-  // Stub
   for i := 0 to FileNames.Count - 1 do
   begin
     if Assigned(SmallPicIndices) and (i < SmallPicIndices.Count) then
@@ -2310,7 +2393,6 @@ end;
 
 procedure TSkFlowmotion.AddImagesAsync(const FileNames, Captions, Paths, Hints: TStringList; const SmallPicIndices: TList = nil);
 begin
-  // Stub
   AddImages(FileNames, Captions, Paths, Hints, SmallPicIndices);
 end;
 
@@ -2554,12 +2636,10 @@ procedure TSkFlowmotion.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y
 var
   ImageItem: TImageItem;
   ItemIndex: Integer;
-  HandleRect: TRect;
+  HandleRect, CapRect: TRect;
   VisualRect: TRectF;
-  P, CenterP: TPoint;
-  Radians: Single;
-  LocalX, LocalY, CosA, SinA: Single;
-  L, T, R, B: Integer; // Added these to fix the TRect syntax error
+  CheckPt: TPointF;
+  CapHeight, L, T, R, B: Integer;
 begin
   if (FImages.Count = 0) or FClearing or FInFallAnimation then
     Exit;
@@ -2572,7 +2652,29 @@ begin
   begin
     if FSelectedImage <> nil then
       SetSelectedImage(nil, -1);
+    SpawnParticles(X, Y, 20, FParticleColor);
     Exit;
+  end;
+
+  // --- CHECK CAPTION CLICK ---
+  if (Button = TMouseButton.mbLeft) and ShowCaptions then
+  begin
+    if ImageItem <> nil then
+    begin
+      // Approximate caption height based on font size (since we don't have Canvas here)
+      CapHeight := Round(FCaptionFont.Size * 1.4) + 4;
+      CapRect.Left := Round(ImageItem.CurrentRect.Left);
+      CapRect.Right := Round(ImageItem.CurrentRect.Right);
+      CapRect.Bottom := Round(ImageItem.CurrentRect.Bottom);
+      CapRect.Top := CapRect.Bottom - CapHeight - FCaptionOffsetY;
+
+      if PtInRect(CapRect, Point(Round(X), Round(Y))) then
+      begin
+        if Assigned(FOnCaptionClick) then
+          FOnCaptionClick(Self, ImageItem, ItemIndex);
+        Exit; // Stop processing, it was a caption click
+      end;
+    end;
   end;
 
   // Handle double-click
@@ -2585,6 +2687,7 @@ begin
       if Assigned(FOnSelectedImageDblClick) then
         FOnSelectedImageDblClick(Self, ImageItem, ItemIndex);
     end;
+    SpawnParticles(X, Y, 20, FParticleColor);
     Exit;
   end;
 
@@ -2594,21 +2697,7 @@ begin
     // Get Visual Rect (Zoomed)
     VisualRect := GetVisualRect(FSelectedImage);
 
-    // Transform Mouse Point to Image Local Space (Matrix Math)
-    P := Point(Round(X), Round(Y));
-    CenterP := Point(Round((VisualRect.Left + VisualRect.Right) / 2), Round((VisualRect.Top + VisualRect.Bottom) / 2));
-
-    LocalX := P.X - CenterP.X;
-    LocalY := P.Y - CenterP.Y;
-    Radians := -FSelectedImage.FActualRotation * (PI / 180);
-    CosA := Cos(Radians);
-    SinA := Sin(Radians);
-    LocalX := LocalX * CosA - LocalY * SinA;
-    LocalY := LocalX * SinA + LocalY * CosA;
-    LocalX := LocalX + CenterP.X;
-    LocalY := LocalY + CenterP.Y;
-
-    // SYNTAX FIX: Calculate Integers separately before passing to Rect
+    // Get Integer Bounds for Handle Calc
     L := Round(VisualRect.Left);
     T := Round(VisualRect.Top);
     R := Round(VisualRect.Right);
@@ -2616,16 +2705,18 @@ begin
 
     HandleRect := GetRotateHandleRect(Rect(L, T, R, B));
 
-    // FIX: Increase tolerance significantly
-    // This makes the dot much easier to click.
+    // Transform Mouse Point to Image Local Space for accurate check
+    // This fixes the "upsidedown handle unclickable" bug
+    CheckPt := GetLocalPoint(TPointF.Create(X, Y), VisualRect, FSelectedImage.ActualRotation);
+
+    // Increase tolerance
     InflateRect(HandleRect, 12, 12);
 
-    if PtInRect(HandleRect, Point(Round(LocalX), Round(LocalY))) then
+    if PtInRect(HandleRect, Point(Round(CheckPt.X), Round(CheckPt.Y))) then
     begin
       FIsRotating := True;
       FRotatingImage := FSelectedImage;
-      FLastMouseAngle := ArcTan2(Y - CenterP.Y, X - CenterP.X) * (180 / Pi);
-      // Spawn particles
+      FLastMouseAngle := ArcTan2(Y - ((VisualRect.Top + VisualRect.Bottom) / 2), X - ((VisualRect.Left + VisualRect.Right) / 2)) * (180 / Pi);
       SpawnParticles(X, Y, 20, FParticleColor);
       Exit;
     end;
@@ -2660,6 +2751,7 @@ begin
         if Assigned(FOnItemSelected) then
           FOnItemSelected(Self, ImageItem, ItemIndex);
       end;
+      SpawnParticles(X, Y, 20, FParticleColor);
       Exit;
     end
     else // SORTED LAYOUT MODE
@@ -2704,11 +2796,11 @@ var
   ImageItem: TImageItem;
   NewHot: TImageItem;
   NewCenterX, NewCenterY: Integer;
-  P, CenterP: TPoint;
+  CenterP: TPointF;
   HandleRect: TRect;
   VisualRect: TRectF;
-  Radians, LocalX, LocalY, CosA, SinA: Single;
-  L, T, R, B: Integer; // Added to fix TRect syntax error
+  CheckPt: TPointF;
+  L, T, R, B: Integer;
 begin
   if FClearing or FInFallAnimation then
     Exit;
@@ -2716,7 +2808,7 @@ begin
   // --- 1. ROTATION (Active) ---
   if FIsRotating and Assigned(FRotatingImage) then
   begin
-    CenterP := Point(Round((FRotatingImage.CurrentRect.Left + FRotatingImage.CurrentRect.Right) / 2), Round((FRotatingImage.CurrentRect.Top + FRotatingImage.CurrentRect.Bottom) / 2));
+    CenterP := TPointF.Create((FRotatingImage.CurrentRect.Left + FRotatingImage.CurrentRect.Right) / 2, (FRotatingImage.CurrentRect.Top + FRotatingImage.CurrentRect.Bottom) / 2);
     CurrentAngle := ArcTan2(Y - CenterP.Y, X - CenterP.X) * (180 / Pi);
     FRotatingImage.FActualRotation := FRotatingImage.FActualRotation + (CurrentAngle - FLastMouseAngle);
     FLastMouseAngle := CurrentAngle;
@@ -2792,7 +2884,6 @@ begin
   begin
     VisualRect := GetVisualRect(FSelectedImage);
 
-    // FIX: Calculate Integers separately
     L := Round(VisualRect.Left);
     T := Round(VisualRect.Top);
     R := Round(VisualRect.Right);
@@ -2800,20 +2891,10 @@ begin
 
     HandleRect := GetRotateHandleRect(Rect(L, T, R, B));
 
-    // Matrix Transform for Mouse
-    P := Point(Round(X), Round(Y));
-    CenterP := Point(Round((VisualRect.Left + VisualRect.Right) / 2), Round((VisualRect.Top + VisualRect.Bottom) / 2));
-    LocalX := P.X - CenterP.X;
-    LocalY := P.Y - CenterP.Y;
-    Radians := -FSelectedImage.FActualRotation * (PI / 180);
-    CosA := Cos(Radians);
-    SinA := Sin(Radians);
-    LocalX := LocalX * CosA - LocalY * SinA;
-    LocalY := LocalX * SinA + LocalY * CosA;
-    LocalX := LocalX + CenterP.X;
-    LocalY := LocalY + CenterP.Y;
+    // Transform Mouse to Local Space for accurate hit detection
+    CheckPt := GetLocalPoint(TPointF.Create(X, Y), VisualRect, FSelectedImage.ActualRotation);
 
-    if PtInRect(HandleRect, Point(Round(LocalX), Round(LocalY))) then
+    if PtInRect(HandleRect, Point(Round(CheckPt.X), Round(CheckPt.Y))) then
     begin
       Cursor := crSizeNWSE;
       //STOP BREATHING ===
@@ -2913,6 +2994,37 @@ begin
   inherited KeyDown(Key, KeyChar, Shift);
 end;
 // -----------------------------------------------------------------------------
+// HELPER FOR ROTATION MATH
+// -----------------------------------------------------------------------------
+// Transforms a screen point (P) into the local coordinate system of a rotated rect
+
+function TSkFlowmotion.GetLocalPoint(const P: TPointF; const Rect: TRectF; AngleDeg: Single): TPointF;
+var
+  Center, D: TPointF;
+  Rad, CosA, SinA: Single;
+begin
+  Center.X := (Rect.Left + Rect.Right) / 2;
+  Center.Y := (Rect.Top + Rect.Bottom) / 2;
+
+  // Vector from center to point
+  D.X := P.X - Center.X;
+  D.Y := P.Y - Center.Y;
+
+  // Inverse rotation matrix
+  Rad := -AngleDeg * (PI / 180);
+  CosA := Cos(Rad);
+  SinA := Sin(Rad);
+
+  // Rotate vector
+  Result.X := D.X * CosA - D.Y * SinA;
+  Result.Y := D.X * SinA + D.Y * CosA;
+
+  // Translate back
+  Result.X := Result.X + Center.X;
+  Result.Y := Result.Y + Center.Y;
+end;
+
+// -----------------------------------------------------------------------------
 // NAVIGATION HELPERS
 // -----------------------------------------------------------------------------
 
@@ -2920,46 +3032,36 @@ function TSkFlowmotion.GetImageAtPoint(X, Y: Single): TImageItem;
 var
   i: Integer;
   ImageItem: TImageItem;
-  P: TPoint;
-  CenterX, CenterY, BaseW, BaseH, NewW, NewH: Integer;
-  DrawRect: TRect;
-  ZoomFactor: Double;
-  CurrentZoom: Double;
-  CurrentRect: TRect;
+  P, CheckPt: TPointF;
+  DrawRect: TRectF;
   BestCandidate: TImageItem;
   BestCandidateZoom: Double;
+  VisualRect: TRectF;
 begin
-  P := Point(Round(X), Round(Y));
+  P := TPointF.Create(X, Y);
   Result := nil;
   { 1. SELECTED IMAGE CHECK (Highest Priority) }
   if (FSelectedImage <> nil) and FSelectedImage.Visible then
   begin
-    if (FSelectedImage = FHotItem) or (FSelectedImage.FHotZoom > 1.01) then
-      ZoomFactor := FSelectedImage.FHotZoom
+    VisualRect := GetVisualRect(FSelectedImage);
+
+    // Transform mouse to local space if rotated
+    if FSelectedImage.ActualRotation <> 0 then
+      CheckPt := GetLocalPoint(P, VisualRect, FSelectedImage.ActualRotation)
     else
-      ZoomFactor := 1.0;
-    if (FSelectedImage.CurrentRect.Right - FSelectedImage.CurrentRect.Left <= 0) or (FSelectedImage.CurrentRect.Bottom - FSelectedImage.CurrentRect.Top <= 0) then
-    begin
-      CenterX := (FSelectedImage.TargetRect.Left + FSelectedImage.TargetRect.Right) div 2;
-      CenterY := (FSelectedImage.TargetRect.Top + FSelectedImage.TargetRect.Bottom) div 2;
-      BaseW := FSelectedImage.TargetRect.Right - FSelectedImage.TargetRect.Left;
-      BaseH := FSelectedImage.TargetRect.Bottom - FSelectedImage.TargetRect.Top;
-    end
-    else
-    begin
-      CenterX := (FSelectedImage.CurrentRect.Left + FSelectedImage.CurrentRect.Right) div 2;
-      CenterY := (FSelectedImage.CurrentRect.Top + FSelectedImage.CurrentRect.Bottom) div 2;
-      BaseW := FSelectedImage.CurrentRect.Right - FSelectedImage.CurrentRect.Left;
-      BaseH := FSelectedImage.CurrentRect.Bottom - FSelectedImage.CurrentRect.Top;
-    end;
-    DrawRect := Rect(CenterX - Round(BaseW * ZoomFactor / 2), CenterY - Round(BaseH * ZoomFactor / 2), CenterX + Round(BaseW * ZoomFactor / 2), CenterY + Round(BaseH * ZoomFactor / 2));
+      CheckPt := P;
+
+    // Inflate slightly for border tolerance
+    DrawRect := VisualRect;
     InflateRect(DrawRect, Max(FGlowWidth, FHotTrackWidth), Max(FGlowWidth, FHotTrackWidth));
-    if PtInRect(DrawRect, P) then
+
+    if DrawRect.Contains(CheckPt) then
     begin
       Result := FSelectedImage;
       Exit;
     end;
   end;
+
   { 2. ALL OTHER IMAGES (Z-Order Logic) }
   BestCandidate := nil;
   BestCandidateZoom := -1.0;
@@ -2968,43 +3070,38 @@ begin
     ImageItem := TImageItem(FImages[i]);
     if not ImageItem.Visible or (ImageItem = FSelectedImage) then
       Continue;
-    { Calculate Zoom Factor }
-    if (ImageItem.FHotZoom > 1.01) then
-    begin
-      ZoomFactor := ImageItem.FHotZoom;
-      CenterX := (ImageItem.CurrentRect.Left + ImageItem.CurrentRect.Right) div 2;
-      CenterY := (ImageItem.CurrentRect.Top + ImageItem.CurrentRect.Bottom) div 2;
-      BaseW := ImageItem.CurrentRect.Right - ImageItem.CurrentRect.Left;
-      BaseH := ImageItem.CurrentRect.Bottom - ImageItem.CurrentRect.Top;
-    end
+
+    VisualRect := GetVisualRect(ImageItem);
+
+    // Transform mouse to local space if rotated
+    if ImageItem.ActualRotation <> 0 then
+      CheckPt := GetLocalPoint(P, VisualRect, ImageItem.ActualRotation)
     else
-    begin
-      ZoomFactor := 1.0;
-      DrawRect := ImageItem.CurrentRect;
-    end;
+      CheckPt := P;
+
     { Calculate Hit Rect with Border }
+    DrawRect := VisualRect;
     if (ImageItem.FHotZoom > 1.01) or (ImageItem = FHotItem) then
-    begin
-      CenterX := (ImageItem.CurrentRect.Left + ImageItem.CurrentRect.Right) div 2;
-      CenterY := (ImageItem.CurrentRect.Top + ImageItem.CurrentRect.Bottom) div 2;
-      BaseW := ImageItem.CurrentRect.Right - ImageItem.CurrentRect.Left;
-      BaseH := ImageItem.CurrentRect.Bottom - ImageItem.CurrentRect.Top;
-      NewW := Round(BaseW * ZoomFactor);
-      NewH := Round(BaseH * ZoomFactor);
-      DrawRect := Rect(CenterX - NewW div 2, CenterY - NewH div 2, CenterX + NewW div 2, CenterY + NewH div 2);
       InflateRect(DrawRect, FHotTrackWidth, FHotTrackWidth);
-    end;
+
     { Check Hit and Z-Order }
-    if PtInRect(DrawRect, P) then
+    if DrawRect.Contains(CheckPt) then
     begin
-      CurrentZoom := ImageItem.FHotZoom;
-      if CurrentZoom < 1.0 then
-        CurrentZoom := 1.0;
+      if ImageItem.FHotZoom < 1.0 then
+        BestCandidateZoom := 1.0
+      else
+        BestCandidateZoom := ImageItem.FHotZoom;
+
       { Pick the one with highest zoom (on top) }
-      if (CurrentZoom > BestCandidateZoom) or ((CurrentZoom = BestCandidateZoom) and (BaseW > 0) and (BaseH > 0) and (BaseW > (BestCandidate.CurrentRect.Right - BestCandidate.CurrentRect.Left))) then
+      if (BestCandidateZoom > BestCandidateZoom) or ((BestCandidateZoom = BestCandidateZoom) and (BestCandidate <> nil) and (VisualRect.Width > 0) and (VisualRect.Height > 0) and (VisualRect.Width > GetVisualRect(BestCandidate).Width)) then
       begin
         BestCandidate := ImageItem;
-        BestCandidateZoom := CurrentZoom;
+        BestCandidateZoom := BestCandidateZoom;
+      end
+      else if BestCandidate = nil then
+      begin
+        BestCandidate := ImageItem;
+        BestCandidateZoom := BestCandidateZoom;
       end;
     end;
   end;
@@ -3117,8 +3214,58 @@ end;
 // -----------------------------------------------------------------------------
 
 procedure TSkFlowmotion.AddImagesWithPositions(const FileNames, Captions, Paths: TStringList; const Positions: array of TRect);
+var
+  i: Integer;
+  SkImg: ISkImage;
+  NewItem: TImageItem;
 begin
-  // Stub
+  if (FileNames = nil) or (Captions = nil) or (Paths = nil) or (FileNames.Count <> Length(Positions)) then
+    Exit;
+
+  for i := 0 to FileNames.Count - 1 do
+  begin
+    if TFile.Exists(FileNames[i]) then
+    begin
+      SkImg := TSkImage.MakeFromEncodedFile(FileNames[i]);
+      if Assigned(SkImg) then
+      begin
+        NewItem := TImageItem.Create;
+        NewItem.SkImage := SkImg;
+        NewItem.Caption := Captions[i];
+        NewItem.Path := Paths[i];
+        NewItem.FileName := FileNames[i];
+        NewItem.Direction := GetEntryDirection;
+        NewItem.Visible := False;
+        FImages.Add(NewItem);
+
+        // Add to Master Lists
+        FAllFiles.Add(FileNames[i]);
+        FAllCaptions.Add(Captions[i]);
+        FAllPaths.Add(Paths[i]);
+        FAllHints.Add('');
+        FAllSmallPicIndices.Add(Pointer(-1));
+
+        if Visible then
+        begin
+          if FFlowLayout = flFreeFloat then
+          begin
+            NewItem.TargetRect := Positions[i];
+            NewItem.OriginalTargetRect := Positions[i];
+            AnimateImage(NewItem, NewItem.Direction, True, Positions[i]);
+          end
+          else
+          begin
+            // In Sorted mode, the saved position is just a preference,
+            // usually CalculateLayout overrides it. But we can try to force it.
+            NewItem.TargetRect := Positions[i];
+            AnimateImage(NewItem, NewItem.Direction, False, Rect(0, 0, 0, 0));
+          end;
+          NewItem.Visible := True;
+        end;
+      end;
+    end;
+  end;
+  StartAnimationThread;
 end;
 
 procedure TSkFlowmotion.InsertImage(Pic: TBitmap; const XFileName, XCaption, XPath, XHint: string; ASmallPicIndex: Integer = -1);
@@ -3149,8 +3296,201 @@ begin
 end;
 
 procedure TSkFlowmotion.RemoveImage(Index: Integer; Animated: Boolean; FallingTargetPos: TRect; FallingStyle: TImageEntryStyle);
+var
+  StartTick: Cardinal;
+  AbsIndex: Integer;
+  ImageItem: TImageItem;
+  R: TRect;
+  AllOut: Boolean;
+  Speed: Integer;
+  CurCX, CurCY, TargetCX, TargetCY, MoveX, MoveY: Integer;
+  ShrinkFactor: Single; // Changed to Single for better precision
 begin
-  // Stub
+  // 1. Safety checks
+  if (Index < 0) or (Index >= FImages.Count) then
+    Exit;
+
+  AbsIndex := GetPageStartIndex + Index;
+  if (AbsIndex < 0) or (AbsIndex >= FAllFiles.Count) then
+    Exit;
+
+  ImageItem := TImageItem(FImages[Index]);
+
+  // 2. Instant remove if not animated
+  if not Animated then
+  begin
+    if ImageItem = FSelectedImage then
+    begin
+      FSelectedImage := nil;
+      FCurrentSelectedIndex := -1;
+    end
+    else if Index < FCurrentSelectedIndex then
+      Dec(FCurrentSelectedIndex);
+
+    ImageItem.Free;
+    FImages.Delete(Index);
+
+    // Remove from Master Lists
+    if (AbsIndex >= 0) and (AbsIndex < FAllSmallPicIndices.Count) then
+      FAllSmallPicIndices.Delete(AbsIndex);
+    FAllFiles.Delete(AbsIndex);
+    FAllCaptions.Delete(AbsIndex);
+    FAllPaths.Delete(AbsIndex);
+    FAllHints.Delete(AbsIndex);
+
+    if Visible then
+    begin
+      CalculateLayout;
+      Repaint;
+    end;
+    Exit;
+  end;
+
+  // 3. Animated remove
+  StopAnimationThread;
+  ImageItem.Animating := True;
+
+  StartTick := GetTickCount;
+  Speed := Max(1, FAnimationSpeed * 2 - 8);
+
+  repeat
+    AllOut := True;
+    R := ImageItem.CurrentRect;
+
+    // Falling Logic (Simulated from VCL)
+    case FallingStyle of
+      iesFromTop:
+        OffsetRect(R, 0, -Trunc(FAnimationSpeed * Speed));
+      iesFromBottom:
+        OffsetRect(R, 0, Trunc(FAnimationSpeed * Speed));
+      iesFromLeft:
+        OffsetRect(R, -Trunc(FAnimationSpeed * Speed), 0);
+      iesFromRight:
+        OffsetRect(R, Trunc(FAnimationSpeed * Speed), 0);
+      iesFromTopLeft:
+        OffsetRect(R, -Trunc(FAnimationSpeed * Speed), -Trunc(FAnimationSpeed * Speed));
+      iesFromTopRight:
+        OffsetRect(R, Trunc(FAnimationSpeed * Speed), -Trunc(FAnimationSpeed * Speed));
+      iesFromBottomLeft:
+        OffsetRect(R, -Trunc(FAnimationSpeed * Speed), Trunc(FAnimationSpeed * Speed));
+      iesFromBottomRight:
+        OffsetRect(R, Trunc(FAnimationSpeed * Speed), Trunc(FAnimationSpeed * Speed));
+      iesRandom:
+        case Random(8) of
+          0:
+            OffsetRect(R, 0, -Trunc(FAnimationSpeed * Speed));
+          1:
+            OffsetRect(R, 0, Trunc(FAnimationSpeed * Speed));
+          2:
+            OffsetRect(R, -Trunc(FAnimationSpeed * Speed), 0);
+          3:
+            OffsetRect(R, Trunc(FAnimationSpeed * Speed), 0);
+          4:
+            OffsetRect(R, -Trunc(FAnimationSpeed * Speed), -Trunc(FAnimationSpeed * Speed));
+          5:
+            OffsetRect(R, Trunc(FAnimationSpeed * Speed), -Trunc(FAnimationSpeed * Speed));
+          6:
+            OffsetRect(R, -Trunc(FAnimationSpeed * Speed), Trunc(FAnimationSpeed * Speed));
+          7:
+            OffsetRect(R, Trunc(FAnimationSpeed * Speed), Trunc(FAnimationSpeed * Speed));
+        end;
+      iesFromCenter:
+        begin
+          CurCX := Trunc(Width) div 2;
+          CurCY := Trunc(Height) div 2;
+          MoveX := Trunc((CurCX - (R.Left + R.Right) / 2) * 0.18);
+          MoveY := Trunc((CurCY - (R.Top + R.Bottom) / 2) * 0.18);
+          OffsetRect(R, MoveX, MoveY);
+        end;
+      iesFromPoint:
+        if not IsRectEmpty(FallingTargetPos) then
+        begin
+          TargetCX := (FallingTargetPos.Left + FallingTargetPos.Right) div 2;
+          TargetCY := (FallingTargetPos.Top + FallingTargetPos.Bottom) div 2;
+          MoveX := Trunc((TargetCX - (R.Left + R.Right) / 2) * 0.20);
+          MoveY := Trunc((TargetCY - (R.Top + R.Bottom) / 2) * 0.20);
+          OffsetRect(R, MoveX, MoveY);
+        end;
+    end;
+
+    // Hide conditions
+    if (FallingStyle in [iesFromTop, iesFromBottom, iesFromLeft, iesFromRight, iesFromTopLeft, iesFromTopRight, iesFromBottomLeft, iesFromBottomRight, iesRandom]) then
+    begin
+      if (R.Bottom < -100) or (R.Top > Trunc(Height) + 100) or (R.Right < -100) or (R.Left > Trunc(Width) + 100) then
+        ImageItem.Visible := False
+      else
+        AllOut := False;
+    end
+    else if FallingStyle = iesFromCenter then
+    begin
+      CurCX := (R.Left + R.Right) div 2;
+      CurCY := (R.Top + R.Bottom) div 2;
+      if (Abs(CurCX - Trunc(Width) div 2) < 80) and (Abs(CurCY - Trunc(Height) div 2) < 80) then
+        ImageItem.Visible := False
+      else
+        AllOut := False;
+    end
+    else if FallingStyle = iesFromPoint then
+    begin
+      if not IsRectEmpty(FallingTargetPos) then
+      begin
+        TargetCX := (FallingTargetPos.Left + FallingTargetPos.Right) div 2;
+        TargetCY := (FallingTargetPos.Top + FallingTargetPos.Bottom) div 2;
+        CurCX := (R.Left + R.Right) div 2;
+        CurCY := (R.Top + R.Bottom) div 2;
+        if (Abs(CurCX - TargetCX) < 200) and (Abs(CurCY - TargetCY) < 200) then
+          ImageItem.Visible := False
+        else
+          AllOut := False;
+      end
+      else
+      begin
+        if (R.Bottom < -100) or (R.Top > Trunc(Height) + 100) then
+          ImageItem.Visible := False
+        else
+          AllOut := False;
+      end;
+    end;
+
+    ImageItem.CurrentRect := R;
+    Repaint;
+    Application.ProcessMessages;
+    Sleep(FAnimationSpeed);
+
+    // Timeout safety
+    if (GetTickCount - StartTick) > 3000 then
+      AllOut := True;
+
+  until AllOut;
+
+  // 4. Final Cleanup
+  if ImageItem = FSelectedImage then
+  begin
+    FSelectedImage := nil;
+    FCurrentSelectedIndex := -1;
+  end
+  else if Index < FCurrentSelectedIndex then
+    Dec(FCurrentSelectedIndex);
+
+  ImageItem.Free;
+  FImages.Delete(Index);
+
+  // Remove from Master Lists
+  if (AbsIndex >= 0) and (AbsIndex < FAllSmallPicIndices.Count) then
+    FAllSmallPicIndices.Delete(AbsIndex);
+  FAllFiles.Delete(AbsIndex);
+  FAllCaptions.Delete(AbsIndex);
+  FAllPaths.Delete(AbsIndex);
+  FAllHints.Delete(AbsIndex);
+
+  if Visible then
+  begin
+    CalculateLayout;
+    Repaint;
+  end;
+
+  if (FImages.Count = 0) and (FCurrentPage > 0) then
+    PrevPage;
 end;
 
 function TSkFlowmotion.GetPicture(index: Integer): TBitmap;
@@ -3172,28 +3512,148 @@ begin
 end;
 
 procedure TSkFlowmotion.MoveImageToPos(RelIndexFrom, RelIndexTo: Integer);
+var
+  PageStart: Integer;
+  AbsIndexFrom, AbsIndexTo: Integer;
+  Item: TImageItem;
+  FileName, Caption, Path, Hint: string;
+  OldSelectedIndex: Integer;
+  TempSmallIndex: Integer;
 begin
-  // Stub
+  // Safety
+  if FInFallAnimation or FPageChangeInProgress or AnimationsRunning then
+    Exit;
+  if (RelIndexFrom < 0) or (RelIndexFrom >= FImages.Count) or (RelIndexTo < 0) or (RelIndexTo >= FImages.Count) or (RelIndexFrom = RelIndexTo) then
+    Exit;
+
+  // 1. Move in visible list (FImages)
+  Item := TImageItem(FImages[RelIndexFrom]);
+  FImages.Delete(RelIndexFrom);
+  FImages.Insert(RelIndexTo, Item);
+
+  // 2. Calculate absolute indices in master lists
+  PageStart := GetPageStartIndex;
+  AbsIndexFrom := PageStart + RelIndexFrom;
+  AbsIndexTo := PageStart + RelIndexTo;
+
+  // 3. Move in ALL master lists (permanent change)
+  FileName := FAllFiles[AbsIndexFrom];
+  Caption := FAllCaptions[AbsIndexFrom];
+  Path := FAllPaths[AbsIndexFrom];
+  Hint := FAllHints[AbsIndexFrom];
+  TempSmallIndex := Integer(FAllSmallPicIndices[AbsIndexFrom]);
+
+  FAllFiles.Delete(AbsIndexFrom);
+  FAllFiles.Insert(AbsIndexTo, FileName);
+
+  FAllCaptions.Delete(AbsIndexFrom);
+  FAllCaptions.Insert(AbsIndexTo, Caption);
+
+  FAllPaths.Delete(AbsIndexFrom);
+  FAllPaths.Insert(AbsIndexTo, Path);
+
+  FAllHints.Delete(AbsIndexFrom);
+  FAllHints.Insert(AbsIndexTo, Hint);
+
+  FAllSmallPicIndices.Delete(AbsIndexFrom);
+  FAllSmallPicIndices.Insert(AbsIndexTo, Pointer(TempSmallIndex));
+
+  // 4. Fix selected index (critical!)
+  OldSelectedIndex := FCurrentSelectedIndex;
+  if OldSelectedIndex = RelIndexFrom then
+    FCurrentSelectedIndex := RelIndexTo
+  else if (OldSelectedIndex > RelIndexFrom) and (OldSelectedIndex <= RelIndexTo) then
+    Dec(FCurrentSelectedIndex)
+  else if (OldSelectedIndex >= RelIndexTo) and (OldSelectedIndex < RelIndexFrom) then
+    Inc(FCurrentSelectedIndex);
+
+  // 5. Refresh layout and repaint
+  CalculateLayout;
+  Repaint;
 end;
 
 procedure TSkFlowmotion.SavePositionsToFile(const FileName: string);
+var
+  Stream: TFileStream;
 begin
-  // Stub
+  Stream := TFileStream.Create(FileName, fmCreate);
+  try
+    SavePositionsToStream(Stream);
+  finally
+    Stream.Free;
+  end;
 end;
 
 procedure TSkFlowmotion.LoadPositionsFromFile(const FileName: string);
+var
+  Stream: TFileStream;
 begin
-  // Stub
+  if not TFile.Exists(FileName) then
+    Exit;
+
+  Stream := TFileStream.Create(FileName, fmOpenRead);
+  try
+    LoadPositionsFromStream(Stream);
+  finally
+    Stream.Free;
+  end;
 end;
 
 procedure TSkFlowmotion.SavePositionsToStream(Stream: TStream);
+var
+  Writer: TWriter;
+  i: Integer;
 begin
-  // Stub
+  Writer := TWriter.Create(Stream, 4096);
+  try
+    // Number of images
+    Writer.WriteInteger(FImages.Count);
+
+    for i := 0 to FImages.Count - 1 do
+      with TImageItem(FImages[i]) do
+      begin
+        Writer.WriteString(FileName);
+        Writer.WriteString(Caption);
+        Writer.WriteString(Path);
+
+        Writer.WriteInteger(TargetRect.Left);
+        Writer.WriteInteger(TargetRect.Top);
+        Writer.WriteInteger(TargetRect.Right - TargetRect.Left);
+        Writer.WriteInteger(TargetRect.Bottom - TargetRect.Top);
+      end;
+  finally
+    Writer.Free;
+  end;
 end;
 
 procedure TSkFlowmotion.LoadPositionsFromStream(Stream: TStream);
+var
+  Reader: TReader;
+  Count, i: Integer;
 begin
-  // Stub
+  Reader := TReader.Create(Stream, 4096);
+  try
+    Count := Reader.ReadInteger;
+    // Sanity check
+    if (Count < 0) or (Count > 10000) then
+      Exit;
+
+    SetLength(FLoadedPositions, Count);
+
+    for i := 0 to Count - 1 do
+    begin
+      FLoadedPositions[i].FileName := Reader.ReadString;
+      FLoadedPositions[i].Caption := Reader.ReadString;
+      FLoadedPositions[i].Path := Reader.ReadString;
+
+      FLoadedPositions[i].Left := Reader.ReadInteger;
+      FLoadedPositions[i].Top := Reader.ReadInteger;
+      FLoadedPositions[i].Width := Reader.ReadInteger;
+      FLoadedPositions[i].Height := Reader.ReadInteger;
+    end;
+  finally
+    Reader.Free;
+  end;
 end;
 
 function TSkFlowmotion.GetCurrentPositions: TImagePositions;
@@ -3720,4 +4180,3 @@ begin
 end;
 
 end.
-
