@@ -19,7 +19,6 @@
     - Added Shadow effect under selected image.
     - Added HotTrack TechBrackets.
     - Implemented "Holographic" Background Effect:
-      Replaced static wave lines with a "Tri-Layer Ghost" technique.
       Draws the background image three times (Normal + 2 Ghost layers).
       Layers are offset by Sine waves (WaveX, WaveY) to simulate liquid refraction
       or a heat haze over the entire picture.
@@ -3721,3 +3720,4 @@ begin
 end;
 
 end.
+
