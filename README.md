@@ -50,7 +50,7 @@ Skia4Delphi installed and enabled
    
    
 Current Status   
-Alpha prototype – runs, looks promising, but not really usable yet.    
+Alpha prototype – runs, looks promising, but not fully usable yet.    
 I plan to continue development and eventually make it a full-featured, smooth image gallery component.
 Feedback, ideas, bug reports, and even contributions are very welcome!   
 If you're into Delphi, FMX, or Skia – feel free to star, watch, or open issues.  
