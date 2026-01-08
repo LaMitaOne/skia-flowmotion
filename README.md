@@ -25,6 +25,7 @@ If you want to tip me a coffee.. :)
 - Paging with falling animation    
 - ActivationZone -> move selected to defined areas and trigger event   
 
+    
  ----Latest Changes   
    v 0.2   
     - Caption & Smallimg working now   
