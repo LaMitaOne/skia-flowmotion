@@ -1826,12 +1826,53 @@ begin
   end;
 end;
 // -----------------------------------------------------------------------------
-// VISUAL PAINT METHOD (SKIA RENDERING) - NO PROGRAMMATIC PATHS VERSION
+// VISUAL PAINT METHOD (SKIA RENDERING)
 // -----------------------------------------------------------------------------
+
+// Helper comparison function for sorting items by Zoom (HotTrack) priority
+// Used in Paint method to determine drawing order
+function CompareHotZoom(A, B: Pointer): Integer;
+var
+  Zoom1, Zoom2: Single;
+  Area1, Area2: Int64;
+  Rect1, Rect2: TRectF;
+  Img1, Img2: TImageItem;
+begin
+  Img1 := TImageItem(A);
+  Img2 := TImageItem(B);
+
+  // 1. Primary Sort: Zoom Factor (Highest first)
+  Zoom1 := Img1.FHotZoom;
+  Zoom2 := Img2.FHotZoom;
+
+  if Zoom1 > Zoom2 then
+    Result := 1
+  else if Zoom1 < Zoom2 then
+    Result := -1
+  else
+  begin
+    // 2. Secondary Sort: Area (Largest first)
+    Rect1 := Img1.CurrentRect;
+    Rect2 := Img2.CurrentRect;
+
+    if IsRectEmpty(Rect1) then Rect1 := Img1.TargetRect;
+    if IsRectEmpty(Rect2) then Rect2 := Img2.TargetRect;
+
+    Area1 := Trunc(Rect1.Width) * Trunc(Rect1.Height);
+    Area2 := Trunc(Rect2.Width) * Trunc(Rect2.Height);
+
+    if Area1 > Area2 then
+      Result := 1
+    else if Area1 < Area2 then
+      Result := -1
+    else
+      Result := 0;
+  end;
+end;
 
 procedure TSkFlowmotion.Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
 var
-  i, x, l, t, r, b: Integer;
+  i, L, T, R, B: Integer;
   ImageItem: TImageItem;
   DstRect: TRectF;
   BaseRect: TRectF;
@@ -1845,11 +1886,18 @@ var
   P: TParticle;
   WaveX, WaveY: Single;
   ShadowRad, ShadowDx, ShadowDy: Single;
-const
-  SHADOW_OFFSET_X = 8.0;
-const
-  SHADOW_OFFSET_Y = 8.0;
 
+  // Z-Ordering Lists
+  StaticImages: TList;
+  AnimatingImages: TList;
+  EnteringImages: TList;
+  // Helper vars for iteration
+  CurrentItem: TImageItem;
+
+  const SHADOW_OFFSET_X = 8.0;
+  const SHADOW_OFFSET_Y = 8.0;
+
+  // Local Procedures for Drawing (Encapsulated for re-use)
   procedure DrawSmallPicOverlay(const Item: TImageItem; const BaseRect: TRectF);
   var
     IconBmp: TBitmap;
@@ -1857,34 +1905,25 @@ const
     IconRect: TRectF;
     Margin: Integer;
   begin
-    if not FSmallPicVisible then
-      Exit;
-    if (Item.SmallPicIndex < 0) or (FSmallPicImageList = nil) then
-      Exit;
-    if (Item.SmallPicIndex >= FSmallPicImageList.Count) then
-      Exit;
+    if not FSmallPicVisible then Exit;
+    if (Item.SmallPicIndex < 0) or (FSmallPicImageList = nil) then Exit;
+    if (Item.SmallPicIndex >= FSmallPicImageList.Count) then Exit;
     IconBmp := GetSmallPicBitmap(Item.SmallPicIndex);
-    if not Assigned(IconBmp) then
-      Exit;
+    if not Assigned(IconBmp) then Exit;
     IconSkImg := BitmapToSkImage(IconBmp);
-    if not Assigned(IconSkImg) then
-      Exit;
+    if not Assigned(IconSkImg) then Exit;
     Margin := 2;
     IconRect := TRectF.Create(0, 0, IconSkImg.Width, IconSkImg.Height);
     case FSmallPicPosition of
-      spTopLeft:
-        IconRect.Offset(BaseRect.Left + Margin, BaseRect.Top + Margin);
-      spTopRight:
-        IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Top + Margin);
-      spBottomLeft:
-        IconRect.Offset(BaseRect.Left + Margin, BaseRect.Bottom - Margin - IconRect.Height);
-      spBottomRight:
-        IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Bottom - Margin - IconRect.Height);
+      spTopLeft: IconRect.Offset(BaseRect.Left + Margin, BaseRect.Top + Margin);
+      spTopRight: IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Top + Margin);
+      spBottomLeft: IconRect.Offset(BaseRect.Left + Margin, BaseRect.Bottom - Margin - IconRect.Height);
+      spBottomRight: IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Bottom - Margin - IconRect.Height);
     end;
     ACanvas.DrawImageRect(IconSkImg, IconRect, TSkSamplingOptions.High, Paint);
   end;
 
-  procedure DrawTechBrackets(const R: TRectF; const P: ISkPaint);
+  procedure DrawTechBrackets(const R: TRectF; const P: ISkPaint; const Item: TImageItem);
   var
     Len: Single;
     L, T, Rgt, B: Single;
@@ -1901,7 +1940,13 @@ const
     ACanvas.DrawLine(L, B - Len, L, B, P);
     ACanvas.DrawLine(L, B, L + Len, B, P);
     ACanvas.DrawLine(Rgt - Len, B, Rgt, B, P);
-    ACanvas.DrawLine(Rgt, B - Len, Rgt, B, P);
+    ACanvas.DrawLine(Rgt, B, Rgt, B - Len, P);
+
+    // Only draw handle bracket for selected image to avoid clutter
+    if Item = FSelectedImage then
+    begin
+      // Draw handle icon placeholder? (Not strictly needed if dot is drawn)
+    end;
   end;
 
   procedure DrawAndAnimateParticles;
@@ -1909,8 +1954,7 @@ const
     PPaint: ISkPaint;
     i: Integer;
   begin
-    if FParticles.Count = 0 then
-      Exit;
+    if FParticles.Count = 0 then Exit;
     PPaint := TSkPaint.Create;
     PPaint.Style := TSkPaintStyle.Fill;
     for i := FParticles.Count - 1 downto 0 do
@@ -1929,263 +1973,311 @@ const
     end;
   end;
 
-begin
-  // =========================================================================
-  // PASS 1: BACKGROUND - HOLOGRAPHIC "TRI-LAYER" EFFECT
-  // =========================================================================
-  if Assigned(FBackgroundSkImage) then
+  // Core Drawing Logic for an item (Returns Visual Rect for hit checks if needed)
+  // This logic handles the Rect calculation and Rotation
+  function ProcessItem(Item: TImageItem; UseGlow: Boolean): TRectF;
+  var
+    BaseRect, VisRect: TRectF;
+    Cx, Cy, BW, BH, NW, NH: Single;
+    ZF: Double;
   begin
-    Paint := TSkPaint.Create;
-    Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := 255;
+    Result := TRectF.Create(0,0,0,0);
+    if not Item.Visible then Exit;
+    if not Assigned(Item.SkImage) then Exit;
 
-    if FAnimatedBackground then
+    BaseRect := TRectF.Create(Item.CurrentRect);
+    ZF := Item.FHotZoom;
+
+    if Abs(ZF - 1.0) > 0.01 then
     begin
-      // Animate
-      FGridOffsetY := FGridOffsetY + 1.0;
-      if FGridOffsetY > 1000 then
-        FGridOffsetY := 0;
-
-      // Calculate offsets based on Sine Waves to simulate liquid refraction
-      WaveX := Sin(FGridOffsetY * 0.02) * 10; // Horizontal float
-      WaveY := Sin(FGridOffsetY * 0.03) * 10; // Vertical float
-
-      // LAYER 1: Normal (Solid)
-      Paint.ImageFilter := nil;
-      ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
-
-      // LAYER 2: Ghost Layer 1 (Offset + Semi-Transparent)
-      Paint.Alpha := 100;
-      RRect := ADest;
-      OffsetRect(RRect, WaveX, WaveY);
-      ACanvas.DrawImageRect(FBackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
-
-      // LAYER 3: Ghost Layer 2 (Offset Further + Very Transparent)
-      Paint.Alpha := 40;
-      RRect := ADest;
-      OffsetRect(RRect, -WaveX, -WaveY); // Reverse direction for complex interference
-      ACanvas.DrawImageRect(FBackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
+      Cx := (BaseRect.Left + BaseRect.Right) / 2;
+      Cy := (BaseRect.Top + BaseRect.Bottom) / 2;
+      BW := BaseRect.Width;
+      BH := BaseRect.Height;
+      NW := BW * ZF;
+      NH := BH * ZF;
+      VisRect := TRectF.Create(Cx - NW / 2, Cy - NH / 2, Cx + NW / 2, Cy + NH / 2);
     end
     else
-    begin
-      // Static Background
-      ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
-    end;
-  end
-  else
-    ACanvas.Clear(TAlphaColors.Black);
-
-  // =========================================================================
-  // PASS 2: NORMAL IMAGES
-  // =========================================================================
-  Paint := TSkPaint.Create;
-  Paint.AntiAlias := True;
-  // Shadow for normal images (Static offset is fine here)
-  ShadowFilter := TSkImageFilter.MakeDropShadow(8.0, 8.0, 10.0, 10.0, TAlphaColors.Black, nil);
-
-  for i := 0 to FImages.Count - 1 do
-  begin
-    ImageItem := TImageItem(FImages[i]);
-    if not ImageItem.Visible or (ImageItem = FSelectedImage) then
-      Continue;
-    if not Assigned(ImageItem.SkImage) then
-      Continue;
-
-    BaseRect := TRectF.Create(ImageItem.CurrentRect);
-    ZoomFactor := ImageItem.FHotZoom;
-
-    if Abs(ZoomFactor - 1.0) > 0.01 then
-    begin
-      CenterX := (BaseRect.Left + BaseRect.Right) / 2;
-      CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
-      BaseW := BaseRect.Width;
-      BaseH := BaseRect.Height;
-      NewW := BaseW * ZoomFactor;
-      NewH := BaseH * ZoomFactor;
-      DstRect := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
-    end
-    else
-      DstRect := BaseRect;
+      VisRect := BaseRect;
 
     ACanvas.Save;
 
-    if ImageItem.ActualRotation <> 0 then
+    // Handle Rotation
+    if Item.ActualRotation <> 0 then
     begin
-      CenterX := (DstRect.Left + DstRect.Right) / 2;
-      CenterY := (DstRect.Top + DstRect.Bottom) / 2;
-      ACanvas.Translate(CenterX, CenterY);
-      ACanvas.Rotate(ImageItem.ActualRotation);
-      ACanvas.Translate(-CenterX, -CenterY);
+      Cx := (VisRect.Left + VisRect.Right) / 2;
+      Cy := (VisRect.Top + VisRect.Bottom) / 2;
+      ACanvas.Translate(Cx, Cy);
+      ACanvas.Rotate(Item.ActualRotation);
+      ACanvas.Translate(-Cx, -Cy);
     end;
 
     Paint.ImageFilter := nil;
     Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := 150;
-    ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, TSkSamplingOptions.High, Paint);
+    Paint.Alpha := 220; // Base Alpha
 
+    // Draw Image
+    ACanvas.DrawImageRect(Item.SkImage, VisRect, TSkSamplingOptions.High, Paint);
+
+    // Draw Effects (Glow / Tech Brackets / SmallPic)
     if FCornerRadius > 0 then
     begin
       Paint.Style := TSkPaintStyle.Stroke;
       Paint.StrokeWidth := 1;
       Paint.Color := TAlphaColor(FHotTrackColor);
       Paint.Alpha := 100;
-      try
-        ACanvas.DrawRoundRect(DstRect, FCornerRadius, FCornerRadius, Paint);
-      except
-      end;
+      try ACanvas.DrawRoundRect(VisRect, FCornerRadius, FCornerRadius, Paint); except end;
     end;
 
-    ACanvas.Restore;
+    DrawSmallPicOverlay(Item, VisRect);
 
-    // SmallPic Draw Call
-    DrawSmallPicOverlay(ImageItem, DstRect);
-
-    // Tech Brackets Draw Call
-    if FDrawTechBrackets and (ImageItem = FHotItem) or (ImageItem.IsSelected) then
+    // Tech Brackets: Only for Hot, Selected (unless UseGlow is false)
+    if UseGlow and (FDrawTechBrackets and ((Item = FHotItem) or Item.IsSelected)) then
     begin
       Paint.Style := TSkPaintStyle.Stroke;
       Paint.Color := TAlphaColor(FHotTrackColor);
       Paint.ImageFilter := nil;
       Paint.Alpha := 150;
       Paint.StrokeWidth := 1.5;
-      if ImageItem.ActualRotation <> 0 then
-      begin
-        CenterX := (DstRect.Left + DstRect.Right) / 2;
-        CenterY := (DstRect.Top + DstRect.Bottom) / 2;
-        ACanvas.Save;
-        ACanvas.Translate(CenterX, CenterY);
-        ACanvas.Rotate(ImageItem.ActualRotation);
-        ACanvas.Translate(-CenterX, -CenterY);
-        DrawTechBrackets(DstRect, Paint);
-        ACanvas.Restore;
-      end
-      else
-        DrawTechBrackets(DstRect, Paint);
-    end;
-  end;
-
-  // =========================================================================
-  // PASS 3: SELECTED IMAGE (With Full FX + Dot Handle)
-  // =========================================================================
-  if Assigned(FSelectedImage) and FSelectedImage.Visible then
-  begin
-    ImageItem := FSelectedImage;
-    BaseRect := TRectF.Create(ImageItem.CurrentRect);
-    ZoomFactor := ImageItem.FHotZoom;
-
-    if Abs(ZoomFactor - 1.0) > 0.01 then
-    begin
-      CenterX := (BaseRect.Left + BaseRect.Right) / 2;
-      CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
-      BaseW := BaseRect.Width;
-      BaseH := BaseRect.Height;
-      NewW := BaseW * ZoomFactor;
-      NewH := BaseH * ZoomFactor;
-      DstRect := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
-    end
-    else
-      DstRect := BaseRect;
-
-    // Calculate Visual Rect for Handle Placement
-    VisualRect := DstRect;
-
-    // ========================================================================
-    // SHADOW CALCULATION
-    // ========================================================================
-    // To make the shadow stay fixed relative to the screen (always down-right)
-    // while the image rotates, we must rotate the shadow offset vector in the
-    // opposite direction of the image rotation.
-    if ImageItem.ActualRotation <> 0 then
-    begin
-      // Convert degrees to radians for Math functions
-      ShadowRad := -ImageItem.ActualRotation * (PI / 180);
-
-      // Inverse Rotation Matrix applied to the shadow offset vector
-      // X' = x cos(-a) - y sin(-a)
-      // Y' = x sin(-a) + y cos(-a)
-      ShadowDx := (SHADOW_OFFSET_X * Cos(ShadowRad)) - (SHADOW_OFFSET_Y * Sin(ShadowRad));
-      ShadowDy := (SHADOW_OFFSET_X * Sin(ShadowRad)) + (SHADOW_OFFSET_Y * Cos(ShadowRad));
-    end
-    else
-    begin
-      ShadowDx := SHADOW_OFFSET_X;
-      ShadowDy := SHADOW_OFFSET_Y;
-    end;
-
-    // Create the filter with the calculated local offset
-    ShadowFilter := TSkImageFilter.MakeDropShadow(ShadowDx, ShadowDy, 10.0, 10.0, TAlphaColors.Black, nil);
-
-    ACanvas.Save;
-
-    if ImageItem.ActualRotation <> 0 then
-    begin
-      CenterX := (DstRect.Left + DstRect.Right) / 2;
-      CenterY := (DstRect.Top + DstRect.Bottom) / 2;
-      ACanvas.Translate(CenterX, CenterY);
-      ACanvas.Rotate(ImageItem.ActualRotation);
-      ACanvas.Translate(-CenterX, -CenterY);
-    end;
-
-    Paint.ImageFilter := ShadowFilter;
-    Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := 160;
-    ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, TSkSamplingOptions.High, Paint);
-
-    {        //effect while rotate...
-    if ImageItem.GlitchIntensity > 0.01 then
-    begin
-      Paint.ImageFilter := nil;
-      for i := 0 to 4 do
-      begin
-        if Random > 0.5 then
-          Continue;
-        RRect := DstRect;
-        RRect.Top := DstRect.Top + (DstRect.Height * (i / 5));
-        RRect.Bottom := RRect.Top + (DstRect.Height / 10);
-        OffsetRect(RRect, (Random - 0.5) * 20 * ImageItem.GlitchIntensity, 0);
-        ACanvas.DrawImageRect(ImageItem.SkImage, DstRect, RRect, TSkSamplingOptions.Low, Paint);
-      end;
-    end;    }
-
-    // 4. ROTATION HANDLE (Round Dot)
-    if FRotationAllowed then
-    begin
-      l := Round(VisualRect.Left);
-      t := Round(VisualRect.Top);
-      r := Round(VisualRect.Right);
-      b := Round(VisualRect.Bottom);
-
-      HandleRect := GetRotateHandleRect(rect(l, t, r, b));
-
-      Paint.Style := TSkPaintStyle.Fill;
-      Paint.Color := TAlphaColors.Cyan;
-      Paint.ImageFilter := nil;
-
-      // Draw Round Dot (Oval)
-      ACanvas.DrawOval(TRectF.Create(HandleRect.Left, HandleRect.Top, HandleRect.Right, HandleRect.Bottom), Paint);
+      DrawTechBrackets(VisRect, Paint, Item);
     end;
 
     ACanvas.Restore;
+    Result := VisRect;
+  end;
 
-    //Tech Brackets Draw Call for Selected Image
-    Paint.ImageFilter := nil;
-    Paint.Style := TSkPaintStyle.Stroke;
-    Paint.Color := TAlphaColor(FGlowColor);
-    Paint.StrokeWidth := 2.0;
+begin
+  // =========================================================================
+  // 0. PREPARE BUCKETS FOR Z-ORDERING
+  // =========================================================================
+  StaticImages := TList.Create;
+  AnimatingImages := TList.Create;
+  EnteringImages := TList.Create;
 
-    if ImageItem.ActualRotation <> 0 then
+  Paint := TSkPaint.Create;
+  Paint.AntiAlias := True;
+  ShadowFilter := TSkImageFilter.MakeDropShadow(SHADOW_OFFSET_X, SHADOW_OFFSET_Y, 10.0, 10.0, TAlphaColors.Black, nil);
+
+  try
+    // =========================================================================
+    // 1. BACKGROUND
+    // =========================================================================
+    if Assigned(FBackgroundSkImage) then
     begin
-      CenterX := (DstRect.Left + DstRect.Right) / 2;
-      CenterY := (DstRect.Top + DstRect.Bottom) / 2;
-      ACanvas.Save;
-      ACanvas.Translate(CenterX, CenterY);
-      ACanvas.Rotate(ImageItem.ActualRotation);
-      ACanvas.Translate(-CenterX, -CenterY);
-      DrawTechBrackets(DstRect, Paint);
-      ACanvas.Restore;
+      Paint.Style := TSkPaintStyle.Fill;
+      Paint.Alpha := 255;
+
+      if FAnimatedBackground then
+      begin
+        FGridOffsetY := FGridOffsetY + 1.0;
+        if FGridOffsetY > 1000 then FGridOffsetY := 0;
+        WaveX := Sin(FGridOffsetY * 0.02) * 10;
+        WaveY := Sin(FGridOffsetY * 0.03) * 10;
+
+        // LAYER 1
+        Paint.ImageFilter := nil;
+        ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
+        // LAYER 2
+        Paint.Alpha := 100;
+        RRect := ADest; OffsetRect(RRect, WaveX, WaveY);
+        ACanvas.DrawImageRect(FBackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
+        // LAYER 3
+        Paint.Alpha := 40;
+        RRect := ADest; OffsetRect(RRect, -WaveX, -WaveY);
+        ACanvas.DrawImageRect(FBackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
+      end
+      else
+        ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
     end
     else
-      DrawTechBrackets(DstRect, Paint);
+      ACanvas.Clear(TAlphaColors.Black);
+
+    // =========================================================================
+    // 2. SORT IMAGES INTO Z-ORDER BUCKETS
+    // =========================================================================
+    if FImages.Count > 0 then
+    begin
+      for i := 0 to FImages.Count - 1 do
+      begin
+        ImageItem := TImageItem(FImages[i]);
+        if ImageItem = FSelectedImage then Continue; // Selected handled separately
+
+        // Is it an entering (flying in) image?
+        if (ImageItem.AnimationProgress < 0.99) and (ImageItem.FHotZoom < 0.99) then
+        begin
+          EnteringImages.Add(ImageItem);
+          ImageItem.Animating := True;
+        end
+        // Is it an animating or hot-zoomed image?
+        else if ImageItem.Animating or (Abs(ImageItem.FHotZoom - ImageItem.FHotZoomTarget) > HOT_ZOOM_EPSILON) then
+        begin
+          AnimatingImages.Add(ImageItem);
+        end
+        // It's static
+        else
+        begin
+          StaticImages.Add(ImageItem);
+        end;
+      end;
+    end;
+
+    // =========================================================================
+    // 3. DRAW STATIC IMAGES (Back layer)
+    // =========================================================================
+    for i := 0 to StaticImages.Count - 1 do
+    begin
+      ProcessItem(TImageItem(StaticImages[i]), False);
+    end;
+
+    // =========================================================================
+    // 4. DRAW ANIMATING / HOT-ZOOMED IMAGES (Middle layer)
+    // Sorted by Zoom (Highest = On Top) to prevent flicker
+    // =========================================================================
+    if AnimatingImages.Count > 0 then
+    begin
+      AnimatingImages.Sort(@CompareHotZoom);
+      for i := 0 to AnimatingImages.Count - 1 do
+      begin
+        CurrentItem := TImageItem(AnimatingImages[i]);
+        // Don't draw Selected here if it's in this list (shouldn't be, but just in case)
+        if CurrentItem = FSelectedImage then Continue;
+        ProcessItem(CurrentItem, True);
+      end;
+    end;
+
+    // =========================================================================
+    // 5. DRAW HOT ITEM (Top of Animating)
+    // =========================================================================
+    if (FHotItem <> nil) and (FHotItem <> FSelectedImage) then
+    begin
+      ProcessItem(FHotItem, True);
+    end;
+
+    // =========================================================================
+    // 6. DRAW ENTERING IMAGES (Top-most layer)
+    // Sorted so new images appear on top
+    // =========================================================================
+    if EnteringImages.Count > 0 then
+    begin
+      EnteringImages.Sort(@CompareHotZoom);
+      for i := 0 to EnteringImages.Count - 1 do
+      begin
+        ProcessItem(TImageItem(EnteringImages[i]), True);
+      end;
+    end;
+
+    // =========================================================================
+    // 7. DRAW SELECTED IMAGE (Absolute Top)
+    // =========================================================================
+    if Assigned(FSelectedImage) and FSelectedImage.Visible then
+    begin
+      ImageItem := FSelectedImage;
+      BaseRect := TRectF.Create(ImageItem.CurrentRect);
+      ZoomFactor := ImageItem.FHotZoom;
+
+      // Calculate Visual Rect
+      if Abs(ZoomFactor - 1.0) > 0.01 then
+      begin
+        CenterX := (BaseRect.Left + BaseRect.Right) / 2;
+        CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
+        BaseW := BaseRect.Width;
+        BaseH := BaseRect.Height;
+        NewW := BaseW * ZoomFactor;
+        NewH := BaseH * ZoomFactor;
+        VisualRect := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
+      end
+      else
+        VisualRect := BaseRect;
+
+      // --- SHADOW CALCULATION (Fixed Perspective) ---
+      if ImageItem.ActualRotation <> 0 then
+      begin
+        ShadowRad := -ImageItem.ActualRotation * (PI / 180);
+        ShadowDx := (SHADOW_OFFSET_X * Cos(ShadowRad)) - (SHADOW_OFFSET_Y * Sin(ShadowRad));
+        ShadowDy := (SHADOW_OFFSET_X * Sin(ShadowRad)) + (SHADOW_OFFSET_Y * Cos(ShadowRad));
+      end
+      else
+      begin
+        ShadowDx := SHADOW_OFFSET_X;
+        ShadowDy := SHADOW_OFFSET_Y;
+      end;
+      ShadowFilter := TSkImageFilter.MakeDropShadow(ShadowDx, ShadowDy, 10.0, 10.0, TAlphaColors.Black, nil);
+
+      ACanvas.Save;
+      // Rotate Context
+      if ImageItem.ActualRotation <> 0 then
+      begin
+        CenterX := (VisualRect.Left + VisualRect.Right) / 2;
+        CenterY := (VisualRect.Top + VisualRect.Bottom) / 2;
+        ACanvas.Translate(CenterX, CenterY);
+        ACanvas.Rotate(ImageItem.ActualRotation);
+        ACanvas.Translate(-CenterX, -CenterY);
+      end;
+
+      Paint.ImageFilter := ShadowFilter;
+      Paint.Style := TSkPaintStyle.Fill;
+      Paint.Alpha := 220;
+      ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, TSkSamplingOptions.High, Paint);
+
+      // Glitch Effect
+      if ImageItem.GlitchIntensity > 0.01 then
+      begin
+        Paint.ImageFilter := nil;
+        for i := 0 to 4 do
+        begin
+          if Random > 0.5 then Continue;
+          RRect := VisualRect;
+          RRect.Top := VisualRect.Top + (VisualRect.Height * (i / 5));
+          RRect.Bottom := RRect.Top + (VisualRect.Height / 10);
+          OffsetRect(RRect, (Random - 0.5) * 20 * ImageItem.GlitchIntensity, 0);
+          ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, RRect, TSkSamplingOptions.Low, Paint);
+        end;
+      end;
+
+      // ROTATION HANDLE (Dot)
+      if FRotationAllowed then
+      begin
+        L := Round(VisualRect.Left);
+        T := Round(VisualRect.Top);
+        R := Round(VisualRect.Right);
+        B := Round(VisualRect.Bottom);
+        HandleRect := GetRotateHandleRect(rect(L, T, R, B));
+
+        Paint.Style := TSkPaintStyle.Fill;
+        Paint.Color := TAlphaColors.Cyan;
+        Paint.ImageFilter := nil;
+        ACanvas.DrawOval(TRectF.Create(HandleRect.Left, HandleRect.Top, HandleRect.Right, HandleRect.Bottom), Paint);
+      end;
+
+      ACanvas.Restore;
+
+      // TECH BRACKETS (Selected Color)
+      Paint.ImageFilter := nil;
+      Paint.Style := TSkPaintStyle.Stroke;
+      Paint.Color := TAlphaColor(FGlowColor);
+      Paint.StrokeWidth := 2.0;
+      // Rotate context for brackets manually again or rely on previous save?
+      // Previous restore killed the rotation. We need brackets to match rotation.
+      ACanvas.Save;
+      if ImageItem.ActualRotation <> 0 then
+      begin
+        CenterX := (VisualRect.Left + VisualRect.Right) / 2;
+        CenterY := (VisualRect.Top + VisualRect.Bottom) / 2;
+        ACanvas.Translate(CenterX, CenterY);
+        ACanvas.Rotate(ImageItem.ActualRotation);
+        ACanvas.Translate(-CenterX, -CenterY);
+      end;
+      DrawTechBrackets(VisualRect, Paint, ImageItem);
+      ACanvas.Restore;
+    end;
+  finally
+    // =========================================================================
+    // 8. CLEANUP
+    // =========================================================================
+    StaticImages.Free;
+    AnimatingImages.Free;
+    EnteringImages.Free;
   end;
 
   DrawAndAnimateParticles;
