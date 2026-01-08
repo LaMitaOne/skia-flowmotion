@@ -1,19 +1,38 @@
 # skia-flowmotion
-Delphi RAD Studio Skia Flowmotion Alpha first running prototype, not everything implemented so far, but basic animation core things working already 
+Delphi RAD Studio Skia Flowmotion Alpha v0.2 
   
 [![Skia-FlowMotion Demo Video](https://img.youtube.com/vi/Tisq6QcFHXs/maxresdefault.jpg)](https://www.youtube.com/watch?v=Tisq6QcFHXs)
    
-This is a very early alpha prototype – the first quick attempt to see if a performant, animated image flow gallery can be built using Delphi's cross-platform FireMonkey framework powered by Skia4Delphi (Google's Skia graphics library).   
+This is an animated image flow gallery built using Delphi's cross-platform FireMonkey framework powered by Skia4Delphi (Google's Skia graphics library).   
     
-What's already working?   
+      
+If you want to tip me a coffee.. :)   
+
+<p align="center">
+  <a href="https://www.paypal.com/donate/?hosted_button_id=RX5KTTMXW497Q">
+    <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="Donate with PayPal"/>
+  </a>
+</p>
     
-Loading single images or lists of images      
-Layout, dragging selected or all   
-Hotzoom, Breathing, Hottrack  
-Animated "fly-in" effects when adding images     
-Background image support    
+  
+### Features:  
+- Pinterest-like masonry layout   
+- freefloat Layout with save/load positions   
+- Animated appearance (slide-in, “falling” effects, breathing)   
+- Select / move or zoom it into a target rect     
+- HotTrack & HotZoom hover effects     
+- Dragging selected or all free floating     
+- Paging with falling animation    
+- ActivationZone -> move selected to defined areas and trigger event   
 
  ----Latest Changes   
+   v 0.2   
+    - Caption & Smallimg working now   
+    - Fixed last missing functions from vcl version   
+    - Added TSurfaceEffect - sueNone, sueShadow   
+    - Added property RoundEdges   
+    - Added TPictureBorderType - btTech, btFull   
+    - Added propertys AlphaStatic, AlphaHotPhase, AlphaHotSelected   
    v 0.1    
    - Ported basic VCL Flowmotion functionality to Skia.    
     - Added basic particle effects on click.    
@@ -31,15 +50,7 @@ Background image support
      
     Zipped sample exe, that way its small enough for upload  
     
-You can already see that the core animation engine and smooth rendering work beautifully thanks to Skia – images fly in nicely, and the foundation feels solid.   
-Performance not exactly like vcl version, but with 200 pics still fine, but on 1000s we get slow...but thats cool since we have paging       
-    
-What's not working yet   
-   
-Captions, hints   
-activation zones   
-Save/load positions   
-Many bugs and incomplete features   
+  
        
 This project aims to bring way more and better features to Flowmotion using the power of Skia4Delphi.   
 Some already implemented now, rotating of images, particle effects on click, shadow for selected, feels a bit like that microsot surface tables long ago, only better:   
@@ -53,8 +64,8 @@ Skia4Delphi installed and enabled
    
    
 Current Status   
-Alpha prototype – runs, looks promising, but not fully usable yet.    
-I plan to continue development and eventually make it a full-featured, smooth image gallery component.
-Feedback, ideas, bug reports, and even contributions are very welcome!   
-If you're into Delphi, FMX, or Skia – feel free to star, watch, or open issues.  
-More coming soon...  😄   
+Alpha, everything of vcl version implemented now, checking for bugs, but getting usable slowly  😄   
+
+   
+Homepage https://lamita.jimdosite.com/  
+   
