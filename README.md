@@ -35,7 +35,7 @@ If you want to tip me a coffee.. :)
     - Added TPictureBorderType - btTech, btFull   
     - Added propertys AlphaStatic, AlphaHotPhase, AlphaHotSelected   
    v 0.1    
-   - Ported basic VCL Flowmotion functionality to Skia.    
+    - Ported basic VCL Flowmotion functionality to Skia.    
     - Added basic particle effects on click.    
     - Added corner dot for rotating images.    
     - Added basic glitch effect while rotating.     
