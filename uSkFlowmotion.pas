@@ -1945,7 +1945,7 @@ var
     // Only draw handle bracket for selected image to avoid clutter
     if Item = FSelectedImage then
     begin
-      // Draw handle icon placeholder? (Not strictly needed if dot is drawn)
+      // Draw handle icon placeholder
     end;
   end;
 
@@ -2015,7 +2015,7 @@ var
 
     Paint.ImageFilter := nil;
     Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := 220; // Base Alpha
+    Paint.Alpha := 180; // Base Alpha
 
     // Draw Image
     ACanvas.DrawImageRect(Item.SkImage, VisRect, TSkSamplingOptions.High, Paint);
@@ -2217,11 +2217,11 @@ begin
 
       Paint.ImageFilter := ShadowFilter;
       Paint.Style := TSkPaintStyle.Fill;
-      Paint.Alpha := 220;
+      Paint.Alpha := 160;
       ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, TSkSamplingOptions.High, Paint);
 
       // Glitch Effect
-      if ImageItem.GlitchIntensity > 0.01 then
+    {  if ImageItem.GlitchIntensity > 0.01 then
       begin
         Paint.ImageFilter := nil;
         for i := 0 to 4 do
@@ -2233,7 +2233,7 @@ begin
           OffsetRect(RRect, (Random - 0.5) * 20 * ImageItem.GlitchIntensity, 0);
           ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, RRect, TSkSamplingOptions.Low, Paint);
         end;
-      end;
+      end;   }
 
       // ROTATION HANDLE (Dot)
       if FRotationAllowed then
@@ -3017,7 +3017,7 @@ begin
     if Assigned(FSelectedImage) then
     begin
       FSelectedImage.FGlitchIntensity := 1.0;
-      SpawnParticles((FSelectedImage.CurrentRect.Left + FSelectedImage.CurrentRect.Right) / 2, (FSelectedImage.CurrentRect.Top + FSelectedImage.CurrentRect.Bottom) / 2, 50, TAlphaColors.Red); // Red sparks on finish
+      SpawnParticles(x, y, 50, TAlphaColors.Red); // Red sparks on finish
     end;
   end;
 
