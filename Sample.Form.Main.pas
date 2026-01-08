@@ -31,6 +31,7 @@ type
     Button8: TButton;
     Label1: TLabel;
     ComboBox1: TComboBox;
+    CheckBox1: TCheckBox;
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -39,10 +40,12 @@ type
     procedure Button6Click(Sender: TObject);
     procedure Button7Click(Sender: TObject);
     procedure Button8Click(Sender: TObject);
+    procedure CheckBox1Change(Sender: TObject);
     procedure ComboBox1Change(Sender: TObject);
     procedure fanFadeOutTransitionFinish(Sender: TObject);
     procedure saiAnimatedLogoAnimationFinished(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure lytcontrolsResize(Sender: TObject);
   private
     skfmFlowGallery: TSkFlowmotion;
     procedure InitGallery;
@@ -124,6 +127,11 @@ begin
    else Button8.Text := 'Drag selected off';
 end;
 
+procedure TfrmMain.CheckBox1Change(Sender: TObject);
+begin
+  skfmFlowGallery.AnimatedBackground := Checkbox1.IsChecked;
+end;
+
 procedure TfrmMain.ComboBox1Change(Sender: TObject);
 begin
    case Combobox1.ItemIndex of
@@ -166,7 +174,7 @@ begin
      Captionlist.add('Caption');
      Hintlist.Add('Hint');
    end;
-  skfmFlowGallery.MaxZoomSize := trunc(Clientwidth / 4);
+  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
   skfmFlowGallery.AddImagesAsync(IMList,Captionlist,Pathlist, Hintlist);
   finally
    IMList.Free;
@@ -195,6 +203,12 @@ begin
   saiAnimatedLogo.Visible := True;
   saiAnimatedLogo.BringToFront;
   lytContent.Visible := False;
+end;
+
+procedure TfrmMain.lytcontrolsResize(Sender: TObject);
+begin
+ if visible then
+  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
 end;
 
 procedure TfrmMain.saiAnimatedLogoAnimationFinished(Sender: TObject);
