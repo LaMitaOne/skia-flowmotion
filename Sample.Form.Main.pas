@@ -28,11 +28,19 @@ type
     Button7: TButton;
     OpenDialog1: TOpenDialog;
     ImageList1: TImageList;
-    Button8: TButton;
     Label1: TLabel;
     ComboBox1: TComboBox;
     CheckBox1: TCheckBox;
     Rectangle1: TRectangle;
+    CheckBox2: TCheckBox;
+    Button9: TButton;
+    Button10: TButton;
+    Panel1: TPanel;
+    CheckBox3: TCheckBox;
+    CheckBox4: TCheckBox;
+    CheckBox5: TCheckBox;
+    Button8: TButton;
+    procedure Button10Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -41,7 +49,12 @@ type
     procedure Button6Click(Sender: TObject);
     procedure Button7Click(Sender: TObject);
     procedure Button8Click(Sender: TObject);
+    procedure Button9Click(Sender: TObject);
     procedure CheckBox1Change(Sender: TObject);
+    procedure CheckBox2Change(Sender: TObject);
+    procedure CheckBox3Change(Sender: TObject);
+    procedure CheckBox4Change(Sender: TObject);
+    procedure CheckBox5Change(Sender: TObject);
     procedure ComboBox1Change(Sender: TObject);
     procedure fanFadeOutTransitionFinish(Sender: TObject);
     procedure saiAnimatedLogoAnimationFinished(Sender: TObject);
@@ -62,18 +75,19 @@ implementation
 
 {$R *.fmx}
 
+procedure TfrmMain.Button10Click(Sender: TObject);
+begin
+   skfmFlowGallery.Clear(true, true, Panel1.BoundsRect.Round, Panel1.BoundsRect.Round, iesFromPoint, true);
+end;
+
 procedure TfrmMain.MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean);
 begin
   inherited;
-
-  // Rad nach vorne (hoch) → vorheriges Bild
   if WheelDelta > 0 then
     skfmFlowGallery.SelectPreviousImage
-  // Rad nach hinten (runter) → nächstes Bild
   else if WheelDelta < 0 then
     skfmFlowGallery.SelectNextImage;
-
-  Handled := True; // Wichtig! Damit das Event nicht weiterverarbeitet wird
+  Handled := True;
 end;
 
 procedure TfrmMain.Button1Click(Sender: TObject);
@@ -138,14 +152,42 @@ end;
 
 procedure TfrmMain.Button8Click(Sender: TObject);
 begin
-  skfmFlowGallery.SelectedMovable := not skfmFlowGallery.SelectedMovable;
-  if skfmFlowGallery.SelectedMovable then Button8.Text := 'Drag selected on'
-   else Button8.Text := 'Drag selected off';
+  skfmFlowGallery.ResetAllRotations;
+end;
+
+procedure TfrmMain.Button9Click(Sender: TObject);
+begin
+  skfmFlowGallery.ImageEntryStyle := iesFromLeft;
+   if Opendialog1.Execute then begin
+    skfmFlowGallery.AddImageAsync(Opendialog1.FileName);
+   end;
 end;
 
 procedure TfrmMain.CheckBox1Change(Sender: TObject);
 begin
-  skfmFlowGallery.AnimatedBackground := Checkbox1.IsChecked;
+   if Checkbox1.IsChecked then skfmFlowGallery.PictureBorderType := btFull
+   else skfmFlowGallery.PictureBorderType := btTech;
+end;
+
+procedure TfrmMain.CheckBox2Change(Sender: TObject);
+begin
+ skfmFlowGallery.AnimatedBackground := Checkbox2.IsChecked;
+end;
+
+procedure TfrmMain.CheckBox3Change(Sender: TObject);
+begin
+  skfmFlowGallery.SelectedMovable := CheckBox3.IsChecked;
+end;
+
+procedure TfrmMain.CheckBox4Change(Sender: TObject);
+begin
+if CheckBox4.IsChecked then
+   skfmFlowGallery.StartingAngle := 0 else skfmFlowGallery.StartingAngle := -1;
+end;
+
+procedure TfrmMain.CheckBox5Change(Sender: TObject);
+begin
+   skfmFlowGallery.RotationAllowed := CheckBox5.IsChecked;
 end;
 
 procedure TfrmMain.ComboBox1Change(Sender: TObject);
@@ -218,6 +260,7 @@ end;
 
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
+  lytcontrols.Visible := False;
   saiAnimatedLogo.Visible := True;
   saiAnimatedLogo.BringToFront;
   lytContent.Visible := False;
@@ -231,6 +274,7 @@ end;
 
 procedure TfrmMain.saiAnimatedLogoAnimationFinished(Sender: TObject);
 begin
+  lytcontrols.Visible := True;
   lytContent.Visible := True;
   Fill.Color := $FFEBEEF1;
   fanFadeOutTransition.Enabled := True;
