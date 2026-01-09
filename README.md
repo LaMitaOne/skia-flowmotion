@@ -1,8 +1,9 @@
 # skia-flowmotion
 Delphi RAD Studio Skia Flowmotion Alpha v0.2 
+    
+[[![Skia-FlowMotion Demo Video](https://img.youtube.com/vi/Tisq6QcFHXs/maxresdefault.jpg)](https://www.youtube.com/watch?v=Tisq6QcFHXs)
+  ](https://www.youtube.com/watch?v=8hZTfmZOqe8)  
   
-[![Skia-FlowMotion Demo Video](https://img.youtube.com/vi/Tisq6QcFHXs/maxresdefault.jpg)](https://www.youtube.com/watch?v=Tisq6QcFHXs)
-   
 This is an animated image flow gallery built using Delphi's cross-platform FireMonkey framework powered by Skia4Delphi (Google's Skia graphics library).   
     
       
@@ -51,12 +52,11 @@ If you want to tip me a coffee.. :)
      
     Zipped sample exe, that way its small enough for upload  
     
-  
-       
+  <img width="2560" height="1440" alt="Unbenannt" src="https://github.com/user-attachments/assets/6c6ebbce-c241-41bf-87da-7006efa5b7c7" />
+   
+        
 This project aims to bring way more and better features to Flowmotion using the power of Skia4Delphi.   
 Some already implemented now, rotating of images, particle effects on click, shadow for selected, feels a bit like that microsot surface tables long ago, only better:   
-<img width="2560" height="1440" alt="Unbenannt" src="https://github.com/user-attachments/assets/79007956-eb90-487b-8255-f3497653c812" />
-
      
 Requirements    
     
