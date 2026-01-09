@@ -40,6 +40,9 @@ type
     CheckBox4: TCheckBox;
     CheckBox5: TCheckBox;
     Button8: TButton;
+    CheckBox6: TCheckBox;
+    CheckBox7: TCheckBox;
+    CheckBox8: TCheckBox;
     procedure Button10Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
@@ -55,6 +58,9 @@ type
     procedure CheckBox3Change(Sender: TObject);
     procedure CheckBox4Change(Sender: TObject);
     procedure CheckBox5Change(Sender: TObject);
+    procedure CheckBox6Change(Sender: TObject);
+    procedure CheckBox7Change(Sender: TObject);
+    procedure CheckBox8Change(Sender: TObject);
     procedure ComboBox1Change(Sender: TObject);
     procedure fanFadeOutTransitionFinish(Sender: TObject);
     procedure saiAnimatedLogoAnimationFinished(Sender: TObject);
@@ -108,7 +114,7 @@ end;
 procedure TfrmMain.Button4Click(Sender: TObject);
 begin
   skfmFlowGallery.ImageEntryStyle := iesFromLeft;
-  skfmFlowGallery.AddImageAsync(ExtractFilePath(ParamStr(0)) + inttostr(random(11)+1) + '.jpg');
+  skfmFlowGallery.AddImageAsync(ExtractFilePath(ParamStr(0)) + inttostr(random(13)+1) + '.jpg');
 end;
 
 procedure TfrmMain.Button5Click(Sender: TObject);
@@ -129,7 +135,13 @@ begin
   Captionlist:= TStringList.create;
   Hintlist:= TStringList.create;
   try
-   for i := 1 to 12 do begin
+   for i := 0 to 14 do begin
+     IMList.add(AppDir + inttostr(i) + '.jpg');
+     Pathlist.add('Folder or whatever');
+     Captionlist.add('Caption');
+     Hintlist.Add('Hint');
+   end;
+   for i := 14 downto 0 do begin
      IMList.add(AppDir + inttostr(i) + '.jpg');
      Pathlist.add('Folder or whatever');
      Captionlist.add('Caption');
@@ -190,6 +202,21 @@ begin
    skfmFlowGallery.RotationAllowed := CheckBox5.IsChecked;
 end;
 
+procedure TfrmMain.CheckBox6Change(Sender: TObject);
+begin
+   skfmFlowGallery.SmallPicVisible := CheckBox6.IsChecked;
+end;
+
+procedure TfrmMain.CheckBox7Change(Sender: TObject);
+begin
+ skfmFlowGallery.ShowCaptions := CheckBox7.IsChecked;
+end;
+
+procedure TfrmMain.CheckBox8Change(Sender: TObject);
+begin
+  skfmFlowGallery.CaptionOnHoverOnly := CheckBox8.IsChecked;
+end;
+
 procedure TfrmMain.ComboBox1Change(Sender: TObject);
 begin
    case Combobox1.ItemIndex of
@@ -216,8 +243,8 @@ begin
   skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
   skfmFlowGallery.AnimationSpeed := 3;
-  skfmFlowGallery.Spacing := 4;
-  skfmFlowGallery.PageSize := 100;
+  skfmFlowGallery.Spacing := 15;
+  skfmFlowGallery.PageSize := 80;
   skfmFlowGallery.ShowCaptions := True;
   skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := True;
@@ -228,7 +255,21 @@ begin
   Hintlist:= TStringList.create;
   smallimgindex := TList.Create;
   try
-   for i := 1 to 12 do begin
+   for i := 0 to 14 do begin
+     IMList.add(AppDir + inttostr(i) + '.jpg');
+     Pathlist.add('Folder or whatever');
+     Captionlist.add('Caption');
+     Hintlist.Add('Hint');
+     smallimgindex.Add(Pointer(i));
+   end;
+   for i := 0 to 14 do begin
+     IMList.add(AppDir + inttostr(i) + '.jpg');
+     Pathlist.add('Folder or whatever');
+     Captionlist.add('Caption');
+     Hintlist.Add('Hint');
+     smallimgindex.Add(Pointer(i));
+   end;
+   for i := 14 downto 0 do begin
      IMList.add(AppDir + inttostr(i) + '.jpg');
      Pathlist.add('Folder or whatever');
      Captionlist.add('Caption');
