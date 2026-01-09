@@ -554,9 +554,9 @@ type
     property SurfaceEffect: TSurfaceEffect read FSurfaceEffect write SetSurfaceEffect default sueNone;
     property RoundEdges: Integer read FRoundEdges write SetRoundEdges default 0;
     property PictureBorderType: TPictureBorderType read FPictureBorderType write SetPictureBorderType default btTech;
-    property AlphaStatic: Byte read FAlphaStatic write FAlphaStatic default 140;
-    property AlphaHotPhase: Byte read FAlphaHotPhase write FAlphaHotPhase default 180;
-    property AlphaHotSelected: Byte read FAlphaHotSelected write FAlphaHotSelected default 200;
+    property AlphaStatic: Byte read FAlphaStatic write FAlphaStatic default 40;
+    property AlphaHotPhase: Byte read FAlphaHotPhase write FAlphaHotPhase default 80;
+    property AlphaHotSelected: Byte read FAlphaHotSelected write FAlphaHotSelected default 100;
     // Inherited
     property Align;
     property Anchors;
@@ -2082,16 +2082,6 @@ begin
       end;
   end;
 
-  // === DRAW IMAGE ON TOP (Opaque) ===
-  // We draw the image again (without shadow filter) so it looks sharp on top
-  if FSurfaceEffect = sueShadow then
-  begin
-    LPaint.ImageFilter := nil; // Clear filter for the main image
-    LPaint.Style := TSkPaintStyle.Fill;
-    LPaint.Alpha := BasePaint.Alpha; // Use original alpha
-    ACanvas.DrawImageRect(Image, DstRect, TSkSamplingOptions.High, LPaint);
-  end;
-
   ACanvas.Restore;
 end;
 
@@ -2132,7 +2122,6 @@ const
   var
     // Use LocalBmp (not FTempBitmap) to avoid scope errors
     LocalBmp: TBitmap;
-
     // Calculation Vars
     Lines: TStringList;
     i, LineHeight, LineWidth: Integer;
@@ -2140,12 +2129,10 @@ const
     CurrentLine, Word: string;
     WordStart, WordEnd: Integer;
     ActualLinesToShow, MaxLinesToShow: Integer;
-
     // Positioning Vars
     TextRect, LineRect: TRectF;
     InflatedDrawRect: TRectF;
     CapTop, DrawX, DrawY: Single;
-
     // Skia Drawing Vars
     SkFont: ISkFont;
     SkStyle: TSkFontStyle;
@@ -2387,18 +2374,15 @@ const
     Rgt := R.Right;
     B := R.Bottom;
 
-    // Draw normal tech corners (if not selected) or just corners if selected
-    if Item <> FSelectedImage then
-    begin
-      ACanvas.DrawLine(L, T, L + Len, T, P);
-      ACanvas.DrawLine(L, T, L, T + Len, P);
-      ACanvas.DrawLine(Rgt - Len, T, Rgt, T, P);
-      ACanvas.DrawLine(Rgt, T, Rgt, T + Len, P);
-      ACanvas.DrawLine(L, B - Len, L, B, P);
-      ACanvas.DrawLine(L, B, L + Len, B, P);
-      ACanvas.DrawLine(Rgt - Len, B, Rgt, B, P);
-      ACanvas.DrawLine(Rgt, B, Rgt, B - Len, P);
-    end;
+    // Draw corners for ALL images (including Selected)
+    ACanvas.DrawLine(L, T, L + Len, T, P);
+    ACanvas.DrawLine(L, T, L, T + Len, P);
+    ACanvas.DrawLine(Rgt - Len, T, Rgt, T, P);
+    ACanvas.DrawLine(Rgt, T, Rgt, T + Len, P);
+    ACanvas.DrawLine(L, B - Len, L, B, P);
+    ACanvas.DrawLine(L, B, L + Len, B, P);
+    ACanvas.DrawLine(Rgt - Len, B, Rgt, B, P);
+    ACanvas.DrawLine(Rgt, B, Rgt, B - Len, P);
 
     // Only draw handle bracket/tech hole for selected image
     if Item = FSelectedImage then
@@ -2447,7 +2431,9 @@ const
         FParticles[i] := P;
     end;
   end;
-  // Core Drawing Logic for an item (Returns Visual Rect for hit checks if needed)
+
+
+// Core Drawing Logic for an item (Returns Visual Rect for hit checks if needed)
   // This logic handles the Rect calculation and Rotation
 
   function ProcessItem(Item: TImageItem; UseGlow: Boolean): TRectF;
@@ -2498,7 +2484,8 @@ const
 
     Paint.ImageFilter := nil;
     Paint.Style := TSkPaintStyle.Fill;
-    Paint.Alpha := trunc(ImageAlpha / 255.0); // <--- FIX: Divide by 255
+    // FIX: Cast to Single to satisfy strict DCC32/64 type checking
+    Paint.Alpha := ImageAlpha;
 
     // Draw Image
     DrawImageWithEffect(ACanvas, Item.SkImage, VisRect, Paint);
@@ -2512,7 +2499,7 @@ const
       // === NORMAL IMAGE: Subtle Border ===
       Paint.Style := TSkPaintStyle.Stroke;
       Paint.Color := TAlphaColors.DarkGray;
-      Paint.Alpha := trunc(80 / 255.0); // <--- FIX: Divide by 255
+      Paint.Alpha := 140;
       Paint.StrokeWidth := 1;
       Paint.ImageFilter := nil;
 
@@ -2528,7 +2515,7 @@ const
       Paint.Style := TSkPaintStyle.Stroke;
       Paint.Color := TAlphaColor(FHotTrackColor);
       Paint.ImageFilter := nil;
-      Paint.Alpha := trunc(150 / 255.0); // <--- FIX: Divide by 255
+      Paint.Alpha := 140;
       Paint.StrokeWidth := 1.5;
 
       // Apply BorderType Logic
