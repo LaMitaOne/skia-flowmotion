@@ -14,7 +14,8 @@ If you want to tip me a coffee.. :)
   </a>
 </p>
     
-  
+ Delphi Gallery Component –Flowmotion
+   
 ### Features:  
 - Pinterest-like masonry layout   
 - freefloat Layout with save/load positions   
