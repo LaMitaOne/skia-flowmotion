@@ -3554,13 +3554,17 @@ begin
           if FSelectedImage = FWasSelectedItem then
             FWasSelectedItem := nil;
         end;
+        if ImageItem.FHotZoom >= 1.1 then
+          ImageItem.FHotZoom := ImageItem.FHotZoom - 0.1;
         FSelectedImage := ImageItem;
         FCurrentSelectedIndex := ItemIndex;
         ImageItem.IsSelected := True;
         FHotItem := ImageItem;
         if Assigned(FOnItemSelected) then
           FOnItemSelected(Self, ImageItem, ItemIndex);
-      end;
+      end
+      else
+        FBreathingPhase := FBreathingPhase - 0.4;
       SpawnParticles(X, Y, 20, FParticleColor);
       Exit;
     end
