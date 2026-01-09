@@ -905,7 +905,7 @@ begin
   FStartingAngle := -1;  //-1 is some random
   FSurfaceEffect := sueShadow;   //sueNone, sueShadow
   FPictureBorderType := btTech; //btFull, btTech
-  FRoundEdges := 10;
+  FRoundEdges := 0;
   { --- Defaults - Selection --- }
   FSelectedImage := nil;
   FWasSelectedItem := nil;
@@ -2008,26 +2008,12 @@ end;
 // Helper comparison function for sorting items by Z-Order
 // Used in Paint method to determine drawing order
 
-function CompareHotZoom(A, B: Pointer): Integer;
+function CompareZOrder(A, B: Pointer): Integer;
 var
   Img1, Img2: TImageItem;
-  IsHot1, IsHot2: Boolean;
 begin
   Img1 := TImageItem(A);
   Img2 := TImageItem(B);
-
-  // 1. Primary Priority: Global Hot Item (Mouse Hover)
-  // Hot Item should be drawn LAST (on top) compared to normal items
-  IsHot1 := (Img1 = GlobalSortHotItem);
-  IsHot2 := (Img2 = GlobalSortHotItem);
-
-  if IsHot1 and (not IsHot2) then
-    Result := 1  // Img1 is Hot, comes after Img2
-  else if (not IsHot1) and IsHot2 then
-    Result := -1 // Img2 is Hot, comes after Img1
-  else
-  begin
-    // 2. Secondary Priority: ImageIndex (Master Index)
     // Higher Master Index = Draws Later = On Top.
     // This ensures a fixed drawing order and prevents "z-fighting" glitches.
     if Img1.FImageIndex > Img2.FImageIndex then
@@ -2036,7 +2022,6 @@ begin
       Result := -1
     else
       Result := 0;
-  end;
 end;
 
 procedure TSkFlowmotion.DrawImageWithEffect(const ACanvas: ISkCanvas; const Image: ISkImage; const DstRect: TRectF; const BasePaint: ISkPaint);
@@ -2050,36 +2035,64 @@ begin
 
   ACanvas.Save;
 
-  // === Clipping for Rounded Edges ===
+  // === CASE: ROUNDED EDGES ===
   if FRoundEdges > 0 then
   begin
     RR := TSkRoundRect.Create(DstRect, FRoundEdges, FRoundEdges);
-    ACanvas.ClipRoundRect(RR, TSkClipOp.Intersect, True);
-  end;
 
-  // === APPLY SURFACE EFFECT ===
-  case FSurfaceEffect of
-    sueShadow:
-      begin
-        // 1. Create Shadow Filter
-        // Offset: 5px Right, 5px Down. Blur Radius: 10px.
-        ShadowFilter := TSkImageFilter.MakeDropShadow(5, 5, 10.0, 10.0, TAlphaColors.Black, nil);
+    // If we want a shadow, we must draw it BEFORE clipping
+    if FSurfaceEffect = sueShadow then
+    begin
+      // 1. Create Shadow Filter
+      ShadowFilter := TSkImageFilter.MakeDropShadow(5, 5, 10.0, 10.0, TAlphaColors.Black, nil);
 
-        // 2. Draw Shadow Layer (Semi-transparent black)
-        LPaint.ImageFilter := ShadowFilter;
-        LPaint.Style := TSkPaintStyle.Fill;
-        LPaint.Alpha := 200; // Shadow strength (0-255)
-        ACanvas.DrawImageRect(Image, DstRect, TSkSamplingOptions.High, LPaint);
-      end;
+      // 2. Draw Shadow Layer (Square Image + Shadow)
+      LPaint.ImageFilter := ShadowFilter;
+      LPaint.Style := TSkPaintStyle.Fill;
+      LPaint.Alpha := 200;
+      // We draw this WITHOUT clipping
+      ACanvas.DrawImageRect(Image, DstRect, TSkSamplingOptions.High, LPaint);
 
-    sueNone:
-      begin
-        // No effect, just draw image
-        LPaint.ImageFilter := nil;
-        LPaint.Style := TSkPaintStyle.Fill;
-        LPaint.Alpha := BasePaint.Alpha;
-        ACanvas.DrawImageRect(Image, DstRect, TSkSamplingOptions.High, LPaint);
-      end;
+      // 3. Prepare for the main image draw
+      // Remove the filter so we don't double-draw the shadow
+      LPaint.ImageFilter := nil;
+      LPaint.Alpha := BasePaint.Alpha;
+
+      // 4. Clip the canvas to the Rounded Rect
+      ACanvas.ClipRoundRect(RR, TSkClipOp.Intersect, True);
+    end
+    else
+    begin
+      // No shadow, just clip the image
+      ACanvas.ClipRoundRect(RR, TSkClipOp.Intersect, True);
+    end;
+
+    // 5. Draw the actual Image
+    // This overwrites the "square" corners of the shadow-pass, making the image look round
+    LPaint.Style := TSkPaintStyle.Fill;
+    ACanvas.DrawImageRect(Image, DstRect, TSkSamplingOptions.High, LPaint);
+  end
+  // === CASE: SQUARE EDGES (No Clipping needed) ===
+  else
+  begin
+    case FSurfaceEffect of
+      sueShadow:
+        begin
+          ShadowFilter := TSkImageFilter.MakeDropShadow(5, 5, 10.0, 10.0, TAlphaColors.Black, nil);
+          LPaint.ImageFilter := ShadowFilter;
+          LPaint.Style := TSkPaintStyle.Fill;
+          LPaint.Alpha := 200;
+          ACanvas.DrawImageRect(Image, DstRect, TSkSamplingOptions.High, LPaint);
+        end;
+
+      sueNone:
+        begin
+          LPaint.ImageFilter := nil;
+          LPaint.Style := TSkPaintStyle.Fill;
+          LPaint.Alpha := BasePaint.Alpha;
+          ACanvas.DrawImageRect(Image, DstRect, TSkSamplingOptions.High, LPaint);
+        end;
+    end;
   end;
 
   ACanvas.Restore;
@@ -2105,7 +2118,6 @@ var
   StaticImages: TList;
   AnimatingImages: TList;
   EnteringImages: TList;
-  // Helper vars for iteration
   CurrentItem: TImageItem;
 const
   SHADOW_OFFSET_X = 8.0;
@@ -2373,7 +2385,6 @@ const
     T := R.Top;
     Rgt := R.Right;
     B := R.Bottom;
-
     // Draw corners for ALL images (including Selected)
     ACanvas.DrawLine(L, T, L + Len, T, P);
     ACanvas.DrawLine(L, T, L, T + Len, P);
@@ -2383,22 +2394,19 @@ const
     ACanvas.DrawLine(L, B, L + Len, B, P);
     ACanvas.DrawLine(Rgt - Len, B, Rgt, B, P);
     ACanvas.DrawLine(Rgt, B, Rgt, B - Len, P);
-
     // Only draw handle bracket/tech hole for selected image
     if Item = FSelectedImage then
     begin
       // Draw Handle Position
       HandleRect := GetRotateHandleRect(Rect(Round(L), Round(T), Round(Rgt), Round(B)));
-
       // === TECH HOLE (THE "BEAUTIFUL" ROTATION HANDLE) ===
       // Outer Ring (Cyan + Glow)
       P.Style := TSkPaintStyle.Stroke;
       P.StrokeWidth := 2.5;
       P.Color := TAlphaColors.Teal;
-      P.ImageFilter := TSkImageFilter.MakeDropShadow(0, 0, 4.0, 4.0, TAlphaColors.Black, nil); // Glow filter
+      P.ImageFilter := TSkImageFilter.MakeDropShadow(1, 1, 4.0, 4.0, TAlphaColors.Black, nil); // Glow filter
       P.Alpha := 1; // Opaque handle
       ACanvas.DrawOval(TRectF.Create(HandleRect.Left, HandleRect.Top, HandleRect.Right, HandleRect.Bottom), P);
-
       // Inner Ring (Black, Thin)
       P.StrokeWidth := 3;
       P.Color := TAlphaColors.Darkgray;
@@ -2435,7 +2443,6 @@ const
 
 // Core Drawing Logic for an item (Returns Visual Rect for hit checks if needed)
   // This logic handles the Rect calculation and Rotation
-
   function ProcessItem(Item: TImageItem; UseGlow: Boolean): TRectF;
   var
     BaseRect, VisRect: TRectF;
@@ -2450,7 +2457,6 @@ const
       Exit;
     BaseRect := TRectF.Create(Item.CurrentRect);
     ZF := Item.FHotZoom;
-
     if Abs(ZF - 1.0) > 0.01 then
     begin
       Cx := (BaseRect.Left + BaseRect.Right) / 2;
@@ -2473,7 +2479,6 @@ const
       ACanvas.Rotate(Item.ActualRotation);
       ACanvas.Translate(-Cx, -Cy);
     end;
-
     // === DETERMINE ALPHA (NORMALIZED TO 0.0 - 1.0) ===
     if Item = FSelectedImage then
       ImageAlpha := FAlphaHotSelected
@@ -2481,28 +2486,22 @@ const
       ImageAlpha := FAlphaHotPhase
     else
       ImageAlpha := FAlphaStatic;
-
     Paint.ImageFilter := nil;
     Paint.Style := TSkPaintStyle.Fill;
-    // FIX: Cast to Single to satisfy strict DCC32/64 type checking
     Paint.Alpha := ImageAlpha;
-
     // Draw Image
     DrawImageWithEffect(ACanvas, Item.SkImage, VisRect, Paint);
-
     // Draw Effects (Borders / Tech Brackets / SmallPic)
     // ===========================================================
-
     // 1. CHECK STATE: NORMAL OR (HOT / SELECTED)
     if not ((Item = FHotItem) or Item.IsSelected) then
     begin
       // === NORMAL IMAGE: Subtle Border ===
       Paint.Style := TSkPaintStyle.Stroke;
-      Paint.Color := TAlphaColors.DarkGray;
+      Paint.Color := TAlphaColor($FF373737);//TAlphaColors.DarkGray;
       Paint.Alpha := 140;
       Paint.StrokeWidth := 1;
       Paint.ImageFilter := nil;
-
       // Draw Rounded or Rect border
       if FRoundEdges > 0 then
         ACanvas.DrawRoundRect(VisRect, FRoundEdges, FRoundEdges, Paint)
@@ -2517,14 +2516,12 @@ const
       Paint.ImageFilter := nil;
       Paint.Alpha := 140;
       Paint.StrokeWidth := 1.5;
-
       // Apply BorderType Logic
       case FPictureBorderType of
         btTech:
           begin
             DrawTechBrackets(VisRect, Paint, Item)
           end;
-
         btFull:
           begin
             // Draw Full Border (Rounded or Square based on FRoundEdges)
@@ -2535,13 +2532,10 @@ const
           end;
       end;
     end;
-
     // Draw Caption
     DrawCaption(Item, VisRect);
-
     // Draw SmallPic
     DrawSmallPicOverlay(Item, VisRect);
-
     ACanvas.Restore;
     Result := VisRect;
   end;
@@ -2622,7 +2616,7 @@ begin
           StaticImages.Add(ImageItem);
         end;
       end;
-      StaticImages.Sort(@CompareHotZoom);
+      StaticImages.Sort(@CompareZOrder);
     end;
     // =========================================================================
     // 3. DRAW STATIC IMAGES (Back layer)
@@ -2637,7 +2631,7 @@ begin
     // =========================================================================
     if AnimatingImages.Count > 0 then
     begin
-      AnimatingImages.Sort(@CompareHotZoom);
+      AnimatingImages.Sort(@CompareZOrder);
       for i := 0 to AnimatingImages.Count - 1 do
       begin
         CurrentItem := TImageItem(AnimatingImages[i]);
@@ -2660,7 +2654,7 @@ begin
     // =========================================================================
     if EnteringImages.Count > 0 then
     begin
-      EnteringImages.Sort(@CompareHotZoom);
+      EnteringImages.Sort(@CompareZOrder);
       for i := 0 to EnteringImages.Count - 1 do
       begin
         ProcessItem(TImageItem(EnteringImages[i]), True);
@@ -2687,40 +2681,52 @@ begin
       end
       else
         VisualRect := BaseRect;
-      // --- SHADOW CALCULATION (Fixed Perspective) ---
-      if ImageItem.ActualRotation <> 0 then
-      begin
-        ShadowRad := -ImageItem.ActualRotation * (PI / 180);
-        ShadowDx := (SHADOW_OFFSET_X * Cos(ShadowRad)) - (SHADOW_OFFSET_Y * Sin(ShadowRad));
-        ShadowDy := (SHADOW_OFFSET_X * Sin(ShadowRad)) + (SHADOW_OFFSET_Y * Cos(ShadowRad));
-      end
-      else
-      begin
-        ShadowDx := SHADOW_OFFSET_X;
-        ShadowDy := SHADOW_OFFSET_Y;
-      end;
-      ShadowFilter := TSkImageFilter.MakeDropShadow(ShadowDx, ShadowDy, 10.0, 10.0, TAlphaColors.Black, nil);
-      ACanvas.Save;
-      // Rotate Context
-      if ImageItem.ActualRotation <> 0 then
-      begin
-        CenterX := (VisualRect.Left + VisualRect.Right) / 2;
-        CenterY := (VisualRect.Top + VisualRect.Bottom) / 2;
-        ACanvas.Translate(CenterX, CenterY);
-        ACanvas.Rotate(ImageItem.ActualRotation);
-        ACanvas.Translate(-CenterX, -CenterY);
-      end;
+    // --- SHADOW CALCULATION ---
+    // Note: We create the filter, but use it carefully if Rounded
+    ShadowFilter := TSkImageFilter.MakeDropShadow(ShadowDx, ShadowDy, 10.0, 10.0, TAlphaColors.Black, nil);
 
-      // === CLIPPING FOR SELECTED IMAGE ===
-      if FRoundEdges > 0 then
-      begin
-        ACanvas.ClipRoundRect(TSkRoundRect.Create(VisualRect, FRoundEdges, FRoundEdges), TSkClipOp.Intersect, True);
-      end;
+    ACanvas.Save;
 
+    // Handle Rotation
+    if ImageItem.ActualRotation <> 0 then
+    begin
+      CenterX := (VisualRect.Left + VisualRect.Right) / 2;
+      CenterY := (VisualRect.Top + VisualRect.Bottom) / 2;
+      ACanvas.Translate(CenterX, CenterY);
+      ACanvas.Rotate(ImageItem.ActualRotation);
+      ACanvas.Translate(-CenterX, -CenterY);
+    end;
+
+    // === DRAW SHADOW AND IMAGE (Handling Round Edges) ===
+    if FRoundEdges > 0 then
+    begin
+      // 1. Draw Shadow Layer (Unclipped)
+      Paint.ImageFilter := ShadowFilter;
+      Paint.Style := TSkPaintStyle.Fill;
+      Paint.Alpha := 160;
+      // Draw full image (square) with shadow
+      ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, TSkSamplingOptions.High, Paint);
+
+      // 2. Prepare for Clipped Image
+      Paint.ImageFilter := nil; // Remove shadow filter
+      Paint.Alpha := 160; // Keep transparency
+
+      // 3. Clip to Rounded Rect
+      ACanvas.ClipRoundRect(TSkRoundRect.Create(VisualRect, FRoundEdges, FRoundEdges), TSkClipOp.Intersect, True);
+
+      // 4. Draw Clipped Image
+      // This draws the image again on top, cutting off the square corners of the shadow layer
+      ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, TSkSamplingOptions.High, Paint);
+    end
+    else
+    begin
+      // No Rounded Edges: One pass is sufficient
+      ACanvas.ClipRoundRect(TSkRoundRect.Create(VisualRect, FRoundEdges, FRoundEdges), TSkClipOp.Intersect, True);
       Paint.ImageFilter := ShadowFilter;
       Paint.Style := TSkPaintStyle.Fill;
       Paint.Alpha := 160;
       ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, TSkSamplingOptions.High, Paint);
+    end;
 
       // ROTATION HANDLE (Dot)
       if FRotationAllowed then
