@@ -30,6 +30,7 @@ If you want to tip me a coffee.. :)
    v 0.3  
     - Added property smallpicmargin, effects rotatedot too   
     - middleclick on rotate now resets rotation   
+    - rotate dot now changes color onmousedown   
     - added ResetAllRotations   
     - lot small improvements and bugfixes   
    v 0.2   
