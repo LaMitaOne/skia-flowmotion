@@ -1,5 +1,5 @@
 # skia-flowmotion
-Delphi RAD Studio Skia Flowmotion Alpha v0.2 
+Delphi RAD Studio Skia Flowmotion Alpha v0.3 
     
 [[![Skia-FlowMotion Demo Video](https://img.youtube.com/vi/Tisq6QcFHXs/maxresdefault.jpg)](https://www.youtube.com/watch?v=Tisq6QcFHXs)
   ](https://www.youtube.com/watch?v=8hZTfmZOqe8)  
@@ -28,6 +28,11 @@ If you want to tip me a coffee.. :)
 
     
  ----Latest Changes   
+   v 0.3  
+    - Added property smallpicmargin, effects rotatedot too   
+    - middleclick on rotate now resets rotation   
+    - added ResetAllRotations   
+    - lot small improvements and bugfixes   
    v 0.2   
     - Caption & Smallimg working now   
     - Fixed last missing functions from vcl version   
