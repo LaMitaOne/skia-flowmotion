@@ -14,6 +14,7 @@
    v 0.3
     - Added property smallpicmargin, effects rotatedot too
     - middleclick on rotate now resets rotation
+    - rotate dot now changes color onmousedown
     - added ResetAllRotations
     - lot small improvements and bugfixes
    v 0.2
@@ -98,10 +99,12 @@ type
     FileName: string;
     Caption: string;
     Path: string;
+    Hint: string;
     Left: Integer;
     Top: Integer;
     Width: Integer;
     Height: Integer;
+    Rotation: Single;
   end;
 
   TImagePositions = array of TImagePosition;
@@ -454,7 +457,7 @@ type
     procedure LoadPositionsFromFile(const FileName: string);
     procedure SavePositionsToStream(Stream: TStream);
     procedure LoadPositionsFromStream(Stream: TStream);
-    procedure AddImagesWithPositions(const FileNames, Captions, Paths: TStringList; const Positions: array of TRect);
+    procedure AddImagesWithPositions(const FileNames, Captions, Paths, Hints, Rotations: TStringList; const Positions: array of TImagePosition);
     function GetCurrentPositions: TImagePositions;
     procedure ResetPositions;
     procedure ResetAllRotations;
@@ -887,6 +890,7 @@ begin
   FAnimationThread := nil;
   FImageEntryStyle := iesRandom;
   FEntryPoint := TPoint.Create(-1000, -1000);
+  FIsRotating := False;
   { --- Defaults - Layout --- }
   FFlowLayout := flSorted;
   FKeepSpaceforZoomed := False;
@@ -1471,6 +1475,8 @@ begin
   FMasterItem.FIndex := Index;
   Result := FMasterItem;
 end;
+
+
 // --- Activation Zones ---
 
 procedure TSkFlowmotion.AddActivationZone(const AName: string; const ARect: TRect);
@@ -2117,7 +2123,7 @@ end;
 
 procedure TSkFlowmotion.Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
 var
-  i, L, T, R, B, MaxLineWidth, LineTextWidth: Integer;
+  i, L, T, R, B, MaxLineWidth, LineTextWidth, HandleSize, Margin: Integer;
   ImageItem: TImageItem;
   DstRect: TRectF;
   BaseRect: TRectF;
@@ -2126,7 +2132,7 @@ var
   CenterX, CenterY, BaseW, BaseH, NewW, NewH: Single;
   ZoomFactor: Double;
   RRect: TRectF;
-  HandleRect: TRect;
+  HandleRect: TRectF;
   VisualRect: TRectF;
   P: TParticle;
   WaveX, WaveY: Single;
@@ -2158,7 +2164,7 @@ const
     CurrentLine, Word: string;
     WordStart, WordEnd: Integer;
     ActualLinesToShow, MaxLinesToShow: Integer;
-    // Positioning Vars
+    // Positioning Vars (Changed to Single for smooth sub-pixel rendering)
     TextRect, LineRect: TRectF;
     InflatedDrawRect: TRectF;
     CapTop, DrawX, DrawY: Single;
@@ -2173,10 +2179,8 @@ const
       Exit;
 
     // 2. Create Local Bitmap for Text Measuring
-    // FMX Bitmap (GDI+) is very reliable for TextWidth/Height
     LocalBmp := TBitmap.Create;
     try
-      // Setup Font (Copy properties explicitly to avoid type issues)
       LocalBmp.Canvas.Font.Family := FCaptionFont.Family;
       LocalBmp.Canvas.Font.Size := FCaptionFont.Size;
       LocalBmp.Canvas.Font.Style := FCaptionFont.Style;
@@ -2189,30 +2193,25 @@ const
 
       // 4. Manual Word Wrapping (Using FMX Canvas)
       Lines := TStringList.Create;
-
       CurrentLine := '';
       i := 1;
       while i <= Length(Item.Caption) do
       begin
-          // Skip spaces
         while (i <= Length(Item.Caption)) and (Item.Caption[i] = ' ') do
           Inc(i);
         if i > Length(Item.Caption) then
           Break;
-
         WordStart := i;
         while (i <= Length(Item.Caption)) and (Item.Caption[i] <> ' ') do
           Inc(i);
         WordEnd := i - 1;
         Word := Copy(Item.Caption, WordStart, WordEnd - WordStart + 1);
 
-          // Measure Word Width
         if CurrentLine = '' then
           LineWidth := Trunc(LocalBmp.Canvas.TextWidth(Word))
         else
           LineWidth := Trunc(LocalBmp.Canvas.TextWidth(CurrentLine + ' ' + Word));
 
-          // Check if Word fits
         if LineWidth > MaxCaptionWidth then
         begin
           if CurrentLine <> '' then
@@ -2230,7 +2229,7 @@ const
       if CurrentLine <> '' then
         Lines.Add(CurrentLine);
 
-        // 5. Check Height and Truncate (Max 2 lines)
+      // 5. Check Height and Truncate
       LineHeight := Trunc(LocalBmp.Canvas.TextHeight('Hg')) + 2;
       MaxCaptionHeight := Max(MaxCaptionHeight, LineHeight * 2);
       MaxLinesToShow := 2;
@@ -2238,41 +2237,34 @@ const
         MaxLinesToShow := 1;
       ActualLinesToShow := Min(MaxLinesToShow, Lines.Count);
 
-        // If we have more lines than space, truncate the list's height.
       if Lines.Count > MaxLinesToShow then
         MaxCaptionHeight := MaxCaptionHeight
       else
         MaxCaptionHeight := Lines.Count * LineHeight + 12;
 
-        // 6. Calculate Final Rect (Inflating if image is too small for caption)
+      // 6. Calculate Final Rect (Inflating if image is too small for caption)
       InflatedDrawRect := DrawRect;
 
-        // Check if image height is insufficient for caption at bottom
+      // Logic to position box relative to the bottom of the image
       if (InflatedDrawRect.Bottom - InflatedDrawRect.Top) < MaxCaptionHeight + FCaptionOffsetY then
       begin
-          // Calculate how much to expand downwards visually
-          // We modify InflateddrawRect.Top for calculation,
-          // but we won't change the image itself.
         CapTop := InflatedDrawRect.Bottom - MaxCaptionHeight - FCaptionOffsetY;
         if CapTop < 0 then
           CapTop := 0;
-          // Set text rect top to calculated position
         TextRect.Top := CapTop;
         TextRect.Bottom := TextRect.Top + MaxCaptionHeight;
-          // Keep X center relative to image
         TextRect.Left := InflatedDrawRect.Left;
         TextRect.Right := InflatedDrawRect.Right;
       end
       else
       begin
-          // Standard position
         TextRect.Top := InflatedDrawRect.Bottom - MaxCaptionHeight - FCaptionOffsetY;
         TextRect.Bottom := TextRect.Top + MaxCaptionHeight;
         TextRect.Left := InflatedDrawRect.Left;
         TextRect.Right := InflatedDrawRect.Right;
       end;
 
-        // Calculate Width needed based on longest line
+      // Calculate Width needed based on longest line
       MaxLineWidth := 0;
       for i := 0 to ActualLinesToShow - 1 do
       begin
@@ -2281,11 +2273,13 @@ const
           MaxLineWidth := LineTextWidth;
       end;
 
-        // Final TextRect Dimensions
-      TextRect.Left := Trunc(TextRect.Left) + Trunc((TextRect.Right - TextRect.Left - (MaxLineWidth + 24))) div 2;
-      TextRect.Right := Trunc(TextRect.Left + MaxLineWidth + 24);
+      // --- FIX: SMOOTH FLOAT POSITIONING ---
+      // Removed Trunc() and div. Using / 2.0 allows Skia to render at sub-pixel coordinates.
+      // This stops the "jitter" or "flicker" during breathing animations.
+      TextRect.Left := TextRect.Left + ((TextRect.Right - TextRect.Left) - (MaxLineWidth + 24)) / 2.0;
+      TextRect.Right := TextRect.Left + (MaxLineWidth + 24);
 
-        // Screen Clipping
+      // Screen Clipping (Keep Trunc here for final bounds if needed, but generally not strictly necessary for smoothness)
       if TextRect.Bottom > Height then
       begin
         TextRect.Bottom := Height;
@@ -2296,41 +2290,30 @@ const
       if TextRect.Top < 0 then
         TextRect.Top := 0;
 
-        // --- 7. Draw Background Rect  ---
+      // 7. Draw Background Rect
       Paint.Style := TSkPaintStyle.Fill;
-
-        // We shift Alpha (Byte) into the high byte ($FF000000).
-        // We mask Color with $00FFFFFF to clear the old alpha.
       if Item.IsSelected then
         Paint.Color := (FSelectedCaptionBackground and $00FFFFFF) or (FCaptionAlpha shl 24)
       else
         Paint.Color := (FCaptionBackground and $00FFFFFF) or (FCaptionAlpha shl 24);
 
-        // Note: AlphaF is often ignored when Color is a Cardinal containing Alpha,
-        // but we set it to 1.0 just in case.
       Paint.AlphaF := 1.0;
+      Paint.AntiAlias := True;
       Paint.Alpha := FCaptionAlpha;
       Paint.ImageFilter := nil;
-
-        // CHANGED: DrawRect -> DrawRoundRect with 4.0 radius (4 pixels)
       ACanvas.DrawRoundRect(TextRect, 4.0, 4.0, Paint);
 
-        // 8. Draw Text (Skia - Opaque)
-        // Prepare Font Style
+      // 8. Draw Text (Skia)
       SkStyle := TSkFontStyle.Normal;
       if TFontStyle.fsBold in FCaptionFont.Style then
         SkStyle := TSkFontStyle.Bold;
       if TFontStyle.fsItalic in FCaptionFont.Style then
         SkStyle := TSkFontStyle.Italic;
-        // Note: Skia often combines these.
-        // If your binding supports TSkFontStyle.BoldItalic, use that.
 
-        // Create SkFont (Use your specific interface)
-        // We use TSkFont.Create(Typeface, Size) assuming that overload exists.
       SkFont := TSkFont.Create(TSkTypeface.MakeFromName(FCaptionFont.Family, SkStyle), FCaptionFont.Size);
 
       Paint.Style := TSkPaintStyle.Fill;
-      Paint.AlphaF := 1.0; // Text is opaque
+      Paint.AlphaF := 1.0;
       if Item.IsSelected then
         Paint.Color := FSelectedCaptionColor
       else
@@ -2340,14 +2323,11 @@ const
       begin
         LineTextWidth := Trunc(LocalBmp.Canvas.TextWidth(Lines[i]));
 
-          // Calculate Position
-          // X: Centered
-        DrawX := Trunc(TextRect.Left) + Trunc((TextRect.Right - TextRect.Left - LineTextWidth)) div 2;
-          // Y: Baseline Calculation.
-          // DrawSimpleText draws from the baseline (bottom of text roughly).
-          // Our TextRect.Top is the top of the box.
-          // Top of line = TextRect.Top + 6 + (i * LineHeight).
-          // Baseline = Top of line + LineHeight - (LineHeight * 0.2).
+        // --- FIX: SMOOTH TEXT POSITIONING ---
+        // Calculate X: Centered using float division
+        DrawX := TextRect.Left + (TextRect.Right - TextRect.Left - LineTextWidth) / 2.0;
+
+        // Calculate Y: Baseline Calculation using float math
         DrawY := (TextRect.Top + 6 + (i * LineHeight)) + LineHeight - (LineHeight * 0.25);
 
         ACanvas.DrawSimpleText(Lines[i], DrawX, DrawY, SkFont, Paint);
@@ -2397,7 +2377,8 @@ const
   var
     Len: Single;
     L, T, Rgt, B: Single;
-    HandleRect: TRect;
+    HandleRect: TRectF;
+    Margin, HandleSize: Single;
   begin
     Len := 15;
     L := R.Left;
@@ -2418,17 +2399,35 @@ const
     begin
       // Draw Handle Position
       HandleRect := GetRotateHandleRect(Rect(Round(L), Round(T), Round(Rgt), Round(B)));
+      HandleSize := 14;
+
+      case FRotateHandlePosition of
+        spTopLeft:
+          HandleRect := TRectF.Create(L + Margin, T + Margin, L + Margin + HandleSize, T + Margin + HandleSize);
+        spTopRight:
+          HandleRect := TRectF.Create(Rgt - Margin - HandleSize, T + Margin, Rgt - Margin, T + Margin + HandleSize);
+        spBottomLeft:
+          HandleRect := TRectF.Create(L + Margin, B - Margin - HandleSize, L + Margin + HandleSize, B - Margin);
+        spBottomRight:
+          HandleRect := TRectF.Create(Rgt - Margin - HandleSize, B - Margin - HandleSize, Rgt - Margin, B - Margin);
+      end;
       // === TECH HOLE (THE "BEAUTIFUL" ROTATION HANDLE) ===
       // Outer Ring
       P.Style := TSkPaintStyle.Stroke;
       P.StrokeWidth := 2.5;
+      P.AntiAlias := True;
       P.Color := TAlphaColors.Teal;
       P.ImageFilter := TSkImageFilter.MakeDropShadow(1, 1, 4.0, 4.0, TAlphaColors.Black, nil);
+      // ===========================================
+
       P.Alpha := 1; // Opaque handle
       ACanvas.DrawOval(TRectF.Create(HandleRect.Left, HandleRect.Top, HandleRect.Right, HandleRect.Bottom), P);
       // Inner Ring
       P.StrokeWidth := 3;
-      P.Color := TAlphaColors.Teal;
+      if FIsRotating and (FRotatingImage = Item) then
+        P.Color := TAlphaColors.Orange
+      else
+        P.Color := TAlphaColors.Teal;
       P.ImageFilter := nil; // No glow for inner line
       ACanvas.DrawOval(TRectF.Create(HandleRect.Left + 2, HandleRect.Top + 2, HandleRect.Right - 2, HandleRect.Bottom - 2), P);
     end;
@@ -2506,6 +2505,7 @@ const
     else
       ImageAlpha := FAlphaStatic;
     Paint.ImageFilter := nil;
+    Paint.AntiAlias := True;
     Paint.Style := TSkPaintStyle.Fill;
     Paint.Alpha := ImageAlpha;
     // Draw Image
@@ -2533,6 +2533,7 @@ const
       Paint.Style := TSkPaintStyle.Stroke;
       Paint.Color := TAlphaColor(FHotTrackColor);
       Paint.ImageFilter := nil;
+      Paint.AntiAlias := True;
       Paint.Alpha := ImageAlpha;
       Paint.StrokeWidth := 1.5;
       // Apply BorderType Logic
@@ -2737,6 +2738,7 @@ begin
         var LayerPaint: ISkPaint := TSkPaint.Create;
         LayerPaint.Color := TAlphaColors.White;
         LayerPaint.Alpha := FAlphaHotSelected;
+        LayerPaint.AntiAlias := True;
 
         ACanvas.SaveLayer(LayerBounds, LayerPaint);
 
@@ -2764,6 +2766,7 @@ begin
         // No Rounded Edges: Single pass
         ShadowFilter := TSkImageFilter.MakeDropShadow(ShadowDx, ShadowDy, 10.0, 10.0, TAlphaColors.Black, nil);
         Paint.ImageFilter := ShadowFilter;
+        Paint.AntiAlias := True;
         Paint.Style := TSkPaintStyle.Fill;
         Paint.Alpha := FAlphaHotSelected;
         ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, TSkSamplingOptions.High, Paint);
@@ -2775,30 +2778,43 @@ begin
         L := Round(VisualRect.Left);
         T := Round(VisualRect.Top);
         R := Round(VisualRect.Right);
-        B := Round(VisualRect.Bottom);   {
-        HandleRect := GetRotateHandleRect(rect(L, T, R, B));
-        Paint.Style := TSkPaintStyle.Fill;
-        Paint.Color := TAlphaColors.Cyan;
-        Paint.ImageFilter := nil;
-        Paint.Alpha := 160;
-        ACanvas.DrawOval(TRectF.Create(HandleRect.Left, HandleRect.Top, HandleRect.Right, HandleRect.Bottom), Paint);
-            }
-      // Draw Handle Position
-        HandleRect := GetRotateHandleRect(Rect(Round(L), Round(T), Round(R), Round(B)));
-      // === TECH HOLE (THE "BEAUTIFUL" ROTATION HANDLE) ===
-      // Outer Ring
+        B := Round(VisualRect.Bottom);
+
+        // === CALCULATE FLOAT HANDLE RECT (SMOOTH) ===
+        // Use VisualRect (Float) directly
+        Margin := FSmallpicMargin;
+        HandleSize := 14;
+
+        case FRotateHandlePosition of
+          spTopLeft:
+            HandleRect := TRectF.Create(VisualRect.Left + Margin, VisualRect.Top + Margin, VisualRect.Left + Margin + HandleSize, VisualRect.Top + Margin + HandleSize);
+          spTopRight:
+            HandleRect := TRectF.Create(VisualRect.Right - Margin - HandleSize, VisualRect.Top + Margin, VisualRect.Right - Margin, VisualRect.Top + Margin + HandleSize);
+          spBottomLeft:
+            HandleRect := TRectF.Create(VisualRect.Left + Margin, VisualRect.Bottom - Margin - HandleSize, VisualRect.Left + Margin + HandleSize, VisualRect.Bottom - Margin);
+          spBottomRight:
+            HandleRect := TRectF.Create(VisualRect.Right - Margin - HandleSize, VisualRect.Bottom - Margin - HandleSize, VisualRect.Right - Margin, VisualRect.Bottom - Margin);
+        end;
+        // === TECH HOLE (THE "BEAUTIFUL" ROTATION HANDLE) ===
+        // Outer Ring
         Paint.Style := TSkPaintStyle.Stroke;
         Paint.StrokeWidth := 2.5;
         Paint.Color := TAlphaColors.Teal;
         Paint.ImageFilter := TSkImageFilter.MakeDropShadow(1, 1, 4.0, 4.0, TAlphaColors.Black, nil);
+
+        // ===========================================
+
         Paint.Alpha := 1; // Opaque handle
         ACanvas.DrawOval(TRectF.Create(HandleRect.Left, HandleRect.Top, HandleRect.Right, HandleRect.Bottom), Paint);
-      // Inner Ring
+
+        // Inner Ring
         Paint.StrokeWidth := 3;
-        Paint.Color := TAlphaColors.Teal;
+        if FIsRotating then
+          Paint.Color := TAlphaColors.Orange
+        else
+          Paint.Color := TAlphaColors.Teal;
         Paint.ImageFilter := nil; // No glow for inner line
         ACanvas.DrawOval(TRectF.Create(HandleRect.Left + 2, HandleRect.Top + 2, HandleRect.Right - 2, HandleRect.Bottom - 2), Paint);
-
       end;
 
       // === DRAW CAPTION
@@ -2811,6 +2827,7 @@ begin
 
       // === BORDER / TECH BRACKETS LOGIC ===
       Paint.ImageFilter := nil;
+      Paint.AntiAlias := True;
       Paint.Style := TSkPaintStyle.Stroke;
       Paint.Color := TAlphaColor(FGlowColor);
       Paint.StrokeWidth := 2.0;
@@ -3037,9 +3054,52 @@ begin
 end;
 
 procedure TSkFlowmotion.AddImageAsync(const FileName: string; const ACaption: string = ''; const APath: string = ''; const AHint: string = ''; ASmallPicIndex: Integer = -1);
+var
+  NewAbsIndex, TargetPage: Integer;
+  LoadThread: TImageLoadThread;
+  WasEmpty: Boolean;
 begin
-  { Stub for async logic (currently sync for simplicity) }
-  AddImage(FileName, ACaption, APath, AHint, ASmallPicIndex);
+  // Basic safety check
+  if FileName = '' then
+    Exit;
+
+  WasEmpty := (FAllFiles.Count = 0);
+
+  { ==========================================================
+  1. Add ALL to Master Lists (Updates Counts/PageCount)
+  ========================================================== }
+  FAllFiles.Add(FileName);
+  FAllCaptions.Add(ACaption);
+  FAllPaths.Add(APath);
+  FAllHints.Add(AHint);
+  FAllSmallPicIndices.Add(Pointer(ASmallPicIndex));
+
+  // Calculate the absolute index of the new item
+  NewAbsIndex := FAllFiles.Count - 1;
+
+  { ==========================================================
+  2. Determine Page and Spawn Loading Thread
+  ========================================================== }
+  TargetPage := NewAbsIndex div FPageSize;
+
+  if WasEmpty then
+  begin
+    // If the list was empty, we must load the page immediately to show the image
+    ShowPage(FCurrentPage);
+  end
+  else if (TargetPage = FCurrentPage) then
+  begin
+    // Only spawn a thread if this specific image belongs to the CURRENT page
+    LoadThread := TImageLoadThread.Create(FileName, ACaption, APath, AHint, Self, NewAbsIndex, ASmallPicIndex);
+    LoadThread.Priority := FThreadPriority;
+    FLoadingThreads.Add(LoadThread);
+    Inc(FLoadingCount);
+  end;
+  // Else: Image is off-page. It stays in Master Lists but is NOT loaded.
+  // It will be loaded later when you navigate to that page.
+
+  // Ensure animation/render loop is active
+  StartAnimationThread;
 end;
 
 procedure TSkFlowmotion.AddImages(const FileNames, Captions, Paths, Hints: TStringList; const SmallPicIndices: TList = nil);
@@ -4145,14 +4205,15 @@ begin
     FOnItemSelected(Self, ImageItem, Index);
 end;
 // -----------------------------------------------------------------------------
-// INSERTION & PERSISTENCE (Stubs)
+// INSERTION & PERSISTENCE
 // -----------------------------------------------------------------------------
 
-procedure TSkFlowmotion.AddImagesWithPositions(const FileNames, Captions, Paths: TStringList; const Positions: array of TRect);
+procedure TSkFlowmotion.AddImagesWithPositions(const FileNames, Captions, Paths, Hints, Rotations: TStringList; const Positions: array of TImagePosition);
 var
   i: Integer;
   SkImg: ISkImage;
   NewItem: TImageItem;
+  PosRect: TRect;
 begin
   if (FileNames = nil) or (Captions = nil) or (Paths = nil) or (FileNames.Count <> Length(Positions)) then
     Exit;
@@ -4168,6 +4229,8 @@ begin
         NewItem.SkImage := SkImg;
         NewItem.Caption := Captions[i];
         NewItem.Path := Paths[i];
+        NewItem.Hint := Hints[i];
+        NewItem.FActualRotation := Strtoint(Rotations[i]);
         NewItem.FileName := FileNames[i];
         NewItem.Direction := GetEntryDirection;
         NewItem.ImageIndex := FAllFiles.Count - 1;
@@ -4183,17 +4246,18 @@ begin
 
         if Visible then
         begin
+          PosRect := Rect(Positions[i].Left, Positions[i].Top, Positions[i].Left + Positions[i].Width, Positions[i].Top + Positions[i].Height);
           if FFlowLayout = flFreeFloat then
           begin
-            NewItem.TargetRect := Positions[i];
-            NewItem.OriginalTargetRect := Positions[i];
-            AnimateImage(NewItem, NewItem.Direction, True, Positions[i]);
+            NewItem.TargetRect := PosRect;
+            NewItem.OriginalTargetRect := PosRect;
+            AnimateImage(NewItem, NewItem.Direction, True, PosRect);
           end
           else
           begin
             // In Sorted mode, the saved position is just a preference,
             // usually CalculateLayout overrides it. But we can try to force it.
-            NewItem.TargetRect := Positions[i];
+            NewItem.TargetRect := PosRect;
             AnimateImage(NewItem, NewItem.Direction, False, Rect(0, 0, 0, 0));
           end;
           NewItem.Visible := True;
@@ -4205,15 +4269,95 @@ begin
 end;
 
 procedure TSkFlowmotion.InsertImage(Pic: TBitmap; const XFileName, XCaption, XPath, XHint: string; ASmallPicIndex: Integer = -1);
+var
+  NewItem: TImageItem;
+  DummyName: string;
 begin
-  // Stub
-  AddImage(Pic);
+  if Pic = nil then
+    Exit;
+
+  DummyName := 'MemoryBitmap_' + IntToStr(GetTickCount) + '_' + IntToStr(Random(10000));
+
+  // Add to Master Lists manually to ensure Hint is saved
+  FAllFiles.Add(DummyName);
+  FAllCaptions.Add(XCaption);
+  FAllPaths.Add(XPath);
+  FAllHints.Add(XHint); // <--- FIX: Use the passed XHint
+  FAllSmallPicIndices.Add(Pointer(ASmallPicIndex));
+
+  // Create and Configure Item
+  NewItem := TImageItem.Create;
+  NewItem.SkImage := BitmapToSkImage(Pic);
+  NewItem.FileName := DummyName;
+  NewItem.Caption := XCaption;
+  NewItem.Path := XPath;
+  NewItem.Hint := XHint; // <--- FIX: Apply Hint
+  NewItem.ImageIndex := FAllFiles.Count - 1;
+  NewItem.Direction := GetEntryDirection;
+  NewItem.SmallPicIndex := ASmallPicIndex;
+  NewItem.Visible := False;
+
+  FImages.Add(NewItem);
+
+  if Visible then
+  begin
+    CalculateLayout;
+    AnimateImage(NewItem, NewItem.Direction, false, Rect(0, 0, 0, 0));
+    NewItem.Visible := True;
+  end;
+  StartAnimationThread;
 end;
 
 procedure TSkFlowmotion.InsertImageAsync(const FileName, Caption, Path, Hint: string; ASmallPicIndex: Integer = -1);
+var
+  NewAbsIndex: Integer;
+  LoadThread: TImageLoadThread;
+  TargetPage: Integer;
+  WasEmpty: Boolean;
 begin
-  // Stub
-  AddImageAsync(FileName, Caption, Path, Hint, ASmallPicIndex);
+  // Check if this is the very first image added
+  WasEmpty := (FAllFiles.Count = 0);
+
+  { ==========================================================
+  1. Add ALL to Master Lists (Updates Counts/PageCount)
+  ========================================================== }
+  FAllFiles.Add(FileName);
+  FAllCaptions.Add(Caption);
+  FAllPaths.Add(Path);
+  FAllHints.Add(Hint);
+  FAllSmallPicIndices.Add(Pointer(ASmallPicIndex));
+
+  // Calculate the absolute index of the new item
+  NewAbsIndex := FAllFiles.Count - 1;
+
+  { ==========================================================
+  2. Determine Loading Strategy
+  ========================================================== }
+  if WasEmpty then
+  begin
+    // If the list was empty, we must load the page immediately
+    ShowPage(FCurrentPage);
+  end
+  else
+  begin
+    // Calculate which page this new image belongs to
+    TargetPage := NewAbsIndex div FPageSize;
+
+    // Only load if it is on the CURRENT page
+    if (TargetPage = FCurrentPage) then
+    begin
+      // Create and Start Thread
+      LoadThread := TImageLoadThread.Create(FileName, Caption, Path, Hint, Self, NewAbsIndex, ASmallPicIndex);
+      LoadThread.Priority := FThreadPriority;
+      FLoadingThreads.Add(LoadThread);
+      Inc(FLoadingCount);
+    end;
+    // Else: Image is off-page. It stays in Master Lists but is NOT loaded.
+    // It will be loaded later when you navigate to that page.
+  end;
+
+  // Ensure animation/render loop is active
+  StartAnimationThread;
 end;
 
 procedure TSkFlowmotion.SetImage(Index: Integer; Bitmap: TBitmap);
@@ -4523,6 +4667,8 @@ end;
 procedure TSkFlowmotion.LoadPositionsFromFile(const FileName: string);
 var
   Stream: TFileStream;
+  i, j: Integer;
+  LoadedItem: TImageItem;
 begin
   if not TFile.Exists(FileName) then
     Exit;
@@ -4532,6 +4678,42 @@ begin
     LoadPositionsFromStream(Stream);
   finally
     Stream.Free;
+  end;
+
+  // ==========================================================
+  // APPLY LOADED DATA TO EXISTING ITEMS
+  // We match by FileName to ensure data goes to the right image
+  // ==========================================================
+  if Length(FLoadedPositions) > 0 then
+  begin
+    for i := 0 to Length(FLoadedPositions) - 1 do
+    begin
+      // Find the item in FImages that matches this filename
+      for j := 0 to FImages.Count - 1 do
+      begin
+        LoadedItem := TImageItem(FImages[j]);
+        if SameText(LoadedItem.FileName, FLoadedPositions[i].FileName) then
+        begin
+          // Apply Position (TargetRect handles animation)
+          LoadedItem.TargetRect := Rect(FLoadedPositions[i].Left, FLoadedPositions[i].Top, FLoadedPositions[i].Left + FLoadedPositions[i].Width, FLoadedPositions[i].Top + FLoadedPositions[i].Height);
+
+          // Force update to CurrentRect to snap immediately (optional, but usually desired on load)
+          LoadedItem.CurrentRect := LoadedItem.TargetRect;
+
+          // Apply Hint
+          LoadedItem.Hint := FLoadedPositions[i].Hint;
+
+          // Apply Rotation
+          LoadedItem.FActualRotation := FLoadedPositions[i].Rotation;
+
+          Break; // Found it, move to next loaded item
+        end;
+      end;
+    end;
+
+    // Refresh layout and repaint
+    CalculateLayout;
+    Repaint;
   end;
 end;
 
@@ -4551,11 +4733,14 @@ begin
         Writer.WriteString(FileName);
         Writer.WriteString(Caption);
         Writer.WriteString(Path);
+        Writer.WriteString(Hint);  // <--- ADDED
 
         Writer.WriteInteger(TargetRect.Left);
         Writer.WriteInteger(TargetRect.Top);
         Writer.WriteInteger(TargetRect.Right - TargetRect.Left);
         Writer.WriteInteger(TargetRect.Bottom - TargetRect.Top);
+
+        Writer.WriteSingle(FActualRotation); // <--- ADDED
       end;
   finally
     Writer.Free;
@@ -4581,11 +4766,14 @@ begin
       FLoadedPositions[i].FileName := Reader.ReadString;
       FLoadedPositions[i].Caption := Reader.ReadString;
       FLoadedPositions[i].Path := Reader.ReadString;
+      FLoadedPositions[i].Hint := Reader.ReadString;    // <--- ADDED
 
       FLoadedPositions[i].Left := Reader.ReadInteger;
       FLoadedPositions[i].Top := Reader.ReadInteger;
       FLoadedPositions[i].Width := Reader.ReadInteger;
       FLoadedPositions[i].Height := Reader.ReadInteger;
+
+      FLoadedPositions[i].Rotation := Reader.ReadSingle; // <--- ADDED
     end;
   finally
     Reader.Free;
@@ -4594,9 +4782,9 @@ end;
 
 function TSkFlowmotion.GetCurrentPositions: TImagePositions;
 var
-  i, AbsIndex: Integer;
+  i: Integer;
 begin
-  // Returns the TargetRects of all images currently in FImages
+  // Returns the TargetRects AND Hints/Rotation of all images currently in FImages
   SetLength(Result, FImages.Count);
   for i := 0 to FImages.Count - 1 do
   begin
@@ -4605,10 +4793,12 @@ begin
       Result[i].FileName := FileName;
       Result[i].Caption := Caption;
       Result[i].Path := Path;
+      Result[i].Hint := Hint;
       Result[i].Left := TargetRect.Left;
       Result[i].Top := TargetRect.Top;
       Result[i].Width := TargetRect.Right - TargetRect.Left;
       Result[i].Height := TargetRect.Bottom - TargetRect.Top;
+      Result[i].Rotation := ActualRotation;
     end;
   end;
 end;
