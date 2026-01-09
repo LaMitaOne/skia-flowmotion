@@ -2380,7 +2380,7 @@ const
     HandleRect: TRectF;
     Margin, HandleSize: Single;
   begin
-    Len := 15;
+    Len := 25;
     L := R.Left;
     T := R.Top;
     Rgt := R.Right;
@@ -2394,43 +2394,6 @@ const
     ACanvas.DrawLine(L, B, L + Len, B, P);
     ACanvas.DrawLine(Rgt - Len, B, Rgt, B, P);
     ACanvas.DrawLine(Rgt, B, Rgt, B - Len, P);
-    // Only draw handle bracket/tech hole for selected image
-    if Item = FSelectedImage then
-    begin
-      // Draw Handle Position
-      HandleRect := GetRotateHandleRect(Rect(Round(L), Round(T), Round(Rgt), Round(B)));
-      HandleSize := 14;
-
-      case FRotateHandlePosition of
-        spTopLeft:
-          HandleRect := TRectF.Create(L + Margin, T + Margin, L + Margin + HandleSize, T + Margin + HandleSize);
-        spTopRight:
-          HandleRect := TRectF.Create(Rgt - Margin - HandleSize, T + Margin, Rgt - Margin, T + Margin + HandleSize);
-        spBottomLeft:
-          HandleRect := TRectF.Create(L + Margin, B - Margin - HandleSize, L + Margin + HandleSize, B - Margin);
-        spBottomRight:
-          HandleRect := TRectF.Create(Rgt - Margin - HandleSize, B - Margin - HandleSize, Rgt - Margin, B - Margin);
-      end;
-      // === TECH HOLE (THE "BEAUTIFUL" ROTATION HANDLE) ===
-      // Outer Ring
-      P.Style := TSkPaintStyle.Stroke;
-      P.StrokeWidth := 2.5;
-      P.AntiAlias := True;
-      P.Color := TAlphaColors.Teal;
-      P.ImageFilter := TSkImageFilter.MakeDropShadow(1, 1, 4.0, 4.0, TAlphaColors.Black, nil);
-      // ===========================================
-
-      P.Alpha := 1; // Opaque handle
-      ACanvas.DrawOval(TRectF.Create(HandleRect.Left, HandleRect.Top, HandleRect.Right, HandleRect.Bottom), P);
-      // Inner Ring
-      P.StrokeWidth := 3;
-      if FIsRotating and (FRotatingImage = Item) then
-        P.Color := TAlphaColors.Orange
-      else
-        P.Color := TAlphaColors.Teal;
-      P.ImageFilter := nil; // No glow for inner line
-      ACanvas.DrawOval(TRectF.Create(HandleRect.Left + 2, HandleRect.Top + 2, HandleRect.Right - 2, HandleRect.Bottom - 2), P);
-    end;
   end;
 
   procedure DrawAndAnimateParticles;
