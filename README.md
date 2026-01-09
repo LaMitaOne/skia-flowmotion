@@ -71,6 +71,7 @@ Skia4Delphi installed and enabled
 Current Status   
 Alpha, everything of vcl version implemented now, checking for bugs, but getting usable slowly  😄   
 
+VCL Version: https://github.com/LaMitaOne/Flowmotion   
    
 Homepage https://lamita.jimdosite.com/  
    
