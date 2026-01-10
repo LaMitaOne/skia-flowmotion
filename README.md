@@ -4,7 +4,7 @@ Delphi RAD Studio Skia Flowmotion Alpha v0.3
 [![Demo-Video](https://img.youtube.com/vi/R_yIg2XfF24/maxresdefault.jpg)](https://www.youtube.com/watch?v=R_yIg2XfF24)
    
 This is an animated image flow gallery built using Delphi's cross-platform FireMonkey framework powered by Skia4Delphi (Google's Skia graphics library).   
-3 days and it was fully ported from D7 version and alreadyadded extreme cool improvements...so yea no big thing to port your old code ;) Try it...   
+3 days and it was fully ported from D7 version and already added extreme cool improvements...so yea no big thing to port your old code ;) Try it...   
       
 If you want to tip me a coffee.. :)   
 
