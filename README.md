@@ -1,5 +1,5 @@
 # skia-flowmotion
-Delphi RAD Studio Skia Flowmotion Alpha v0.3 
+Delphi RAD Studio Skia Flowmotion Alpha v0.4 
   
    <img width="1140" height="1139" alt="Unbenannt" src="https://github.com/user-attachments/assets/bad5c161-77b5-407b-9201-1c65aca9c563" />
    
@@ -44,7 +44,13 @@ If you want to tip me a coffee.. :)
   </a>
 </p>
     
- ----Latest Changes   
+ ----Latest Changes    
+   v 0.4   
+    - added propertys RotateDotColor, FRotateDotHotColor, FRotateDotDownColor  
+    - added property ShowSmallPicOnlyOnHover  
+    - fixed Glowwidth, Hotwidth  
+    - added internal TargetRotation  
+    - added putalltoAngle function  
    v 0.3  
     - Added property smallpicmargin, effects rotatedot too   
     - middleclick on rotate now resets rotation   
