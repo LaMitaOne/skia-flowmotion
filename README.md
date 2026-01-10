@@ -8,7 +8,7 @@ Delphi RAD Studio Skia Flowmotion Alpha v0.3
 **Animated Image Flow Gallery – Delphi FMX + Skia4Delphi (Google's Skia)**    
     
 Started as a simple port of my D7 VCL Flowmotion component...  
-**3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background, freefloat drag, breathing, glow, tech brackets...).   
+**3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background, tech brackets...).   
    
 From "just show some search result covers in my player" to **this beast** in about 3 months total (with pauses).    
 No big deal to port old code when Skia is involved 😉   
