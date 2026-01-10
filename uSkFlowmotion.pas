@@ -3935,7 +3935,7 @@ begin
   // ==========================================================
   if (Button = TMouseButton.mbMiddle) then
   begin
-    // 1. Handle Rotation Stop
+    // 1. Handle Rotation Stop (If user clicked middle while rotating)
     if FIsRotating and Assigned(FSelectedImage) then
     begin
       // Determine "Standard" angle
@@ -3943,6 +3943,7 @@ begin
       if TargetAngle = -1 then
         TargetAngle := 0;
 
+      // Only set Target. Actual is where mouse left it. Engine will smooth it. --->
       FSelectedImage.FTargetRotation := TargetAngle;
 
       FIsRotating := False;
@@ -3951,7 +3952,7 @@ begin
       Exit; // Stop processing
     end;
 
-    // 2. Handle Image Right Click
+    // 2. Handle Image Under Cursor (Normal Middle Click Reset)
     ImageUnderCursor := GetImageAtPoint(X, Y);
     if Assigned(ImageUnderCursor) then
     begin
@@ -3959,9 +3960,9 @@ begin
       if TargetAngle = -1 then
         TargetAngle := 0;
 
-      ImageUnderCursor.FActualRotation := TargetAngle;
-
-      // <--- FIX: Lock TargetRotation so it doesn't spin back! --->
+      // <--- THE FIX: ONLY SET TARGET. DO NOT TOUCH ACTUAL --->
+      // If we don't touch FActualRotation, the smoothing engine takes over
+      // and rotates the image smoothly from current angle to 0.
       ImageUnderCursor.FTargetRotation := TargetAngle;
 
       SpawnParticles(X, Y, 20, FParticleColor);
@@ -3971,15 +3972,15 @@ begin
   end;
 
   // ==========================================================
-  // EXISTING MOUSE UP LOGIC
+  // EXISTING MOUSE UP LOGIC (Left Button Release)
   // ==========================================================
 
-  // 1. Handle Rotation Stop
+  // 1. Handle Rotation Stop (Left Button Release)
   if FIsRotating then
   begin
     FIsRotating := False;
 
-    // <--- THE FIX: Lock the Target Rotation to where we are now --->
+    // <--- FIX: Lock Target Rotation to where we are now --->
     if Assigned(FSelectedImage) then
       FSelectedImage.FTargetRotation := FSelectedImage.FActualRotation;
 
@@ -3994,17 +3995,19 @@ begin
     end;
   end;
 
-  // ... (Rest of MouseUp logic: Dragging Selected, FreeFloat, etc.)
   if (Button = TMouseButton.mbLeft) then
   begin
+    // 2. Stop FreeFloat Dragging
     if FDraggingImage then
     begin
       FDraggingImage := False;
+
       if FDraggedImage <> nil then
       begin
         FDraggedImage.FHotZoomTarget := 1.0;
         FDraggedImage := nil;
       end;
+
       ImageUnderCursor := GetImageAtPoint(X, Y);
       if (ImageUnderCursor <> nil) then
       begin
@@ -4013,9 +4016,11 @@ begin
       end;
     end;
 
+    // 3. Stop Selected Image Dragging
     if FDraggingSelected then
     begin
       FDraggingSelected := False;
+
       if FSelectedImage <> nil then
         FSelectedImage.FHotZoomTarget := 1.0;
 
