@@ -2,10 +2,38 @@
 Delphi RAD Studio Skia Flowmotion Alpha v0.3 
 
 [![Demo-Video](https://img.youtube.com/vi/R_yIg2XfF24/maxresdefault.jpg)](https://www.youtube.com/watch?v=R_yIg2XfF24)
+     
+# Skia-FlowMotion    
+    
+**Animated Image Flow Gallery – Delphi FMX + Skia4Delphi (Google's Skia)**    
+    
+Started as a simple port of my old D7 VCL Flowmotion component...  
+**3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background, freefloat drag, breathing, glow, tech brackets...).   
    
-This is an animated image flow gallery built using Delphi's cross-platform FireMonkey framework powered by Skia4Delphi (Google's Skia graphics library).   
-3 days and it was fully ported from D7 version and already added extreme cool improvements...so yea no big thing to port your old code ;) Try it...   
-just wanted to show some search result covers inside my player and thats what it grown to after around 3 months from nothing to D7 to skia version ...      
+From "just show some search result covers in my player" to **this beast** in about 3 months total (with pauses).    
+No big deal to port old code when Skia is involved 😉   
+   
+**Features at a glance (v0.3):**   
+- Pinterest-like masonry layout   
+- freefloat Layout with save/load positions   
+- Animated appearance (slide-in, “falling” effects, breathing)   
+- Select / move or zoom it into a target rect     
+- HotTrack & HotZoom hover effects     
+- Dragging selected or all free floating     
+- Paging with falling animation    
+- ActivationZone -> move selected to defined areas and trigger even   
+- Free rotation with corner handle   
+- Particle explosions on click   
+- Realistic drop shadows    
+- Holographic background (triple layer sine-wave refraction)   
+- HotZoom, Breathing, Glow, Captions, SmallPic overlays   
+- Full live editor in demo (colors, sizes, toggles)     
+    
+**Try it!**     
+Grab the repo, run the sample, and watch the magic.     
+Feedback, stars or ideas very welcome – happy to discuss code or add features!   
+   
+**Let's make Delphi UIs awesome again!** 🚀     
       
 If you want to tip me a coffee.. :)   
 
@@ -14,19 +42,6 @@ If you want to tip me a coffee.. :)
     <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="Donate with PayPal"/>
   </a>
 </p>
-    
- Delphi Gallery Component –Flowmotion
-   
-### Features:  
-- Pinterest-like masonry layout   
-- freefloat Layout with save/load positions   
-- Animated appearance (slide-in, “falling” effects, breathing)   
-- Select / move or zoom it into a target rect     
-- HotTrack & HotZoom hover effects     
-- Dragging selected or all free floating     
-- Paging with falling animation    
-- ActivationZone -> move selected to defined areas and trigger event   
-
     
  ----Latest Changes   
    v 0.3  
@@ -62,9 +77,7 @@ If you want to tip me a coffee.. :)
   <img width="2560" height="1440" alt="Unbenannt" src="https://github.com/user-attachments/assets/6c6ebbce-c241-41bf-87da-7006efa5b7c7" />
    
         
-This project aims to bring way more and better features to Flowmotion using the power of Skia4Delphi.   
-Some already implemented now, rotating of images, particle effects on click, shadow for selected, feels a bit like that microsot surface tables long ago, only better:   
-     
+   
 Requirements    
     
 Delphi 11+ or 12 (RAD Studio)    
