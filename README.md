@@ -14,7 +14,7 @@ Started as a simple port of my D7 VCL Flowmotion component...
 From "just show some search result covers in my player" to **this beast** in about 3 months total (with pauses).    
 No big deal to port old code when Skia is involved 😉 btw its even my first component and...much playing with canvas at all... ^^      
    
-**Features at a glance (v0.3):**   
+**Features at a glance (v0.4):**   
 - Pinterest-like masonry layout   
 - freefloat Layout with save/load positions   
 - Animated appearance (slide-in, “falling” effects, breathing)   
