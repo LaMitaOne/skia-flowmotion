@@ -74,7 +74,8 @@ If you want to tip me a coffee.. :)
      
     Zipped sample exe, that way its small enough for upload  
     
-  <img width="2560" height="1440" alt="Unbenannt" src="https://github.com/user-attachments/assets/6c6ebbce-c241-41bf-87da-7006efa5b7c7" />
+  
+   <img width="1140" height="1139" alt="Unbenannt" src="https://github.com/user-attachments/assets/bad5c161-77b5-407b-9201-1c65aca9c563" />
    
         
    
