@@ -79,6 +79,7 @@ const
   BREATHING_SPEED_PER_SEC = 0.06;
   ROTATION_SMOOTHING_SPEED = 0.1;
   ROTATION_EPSILON = 0.01;
+
 type
   TFlowLayout = (flSorted, flFreeFloat);
 
@@ -314,9 +315,9 @@ type
     FSurfaceEffect: TSurfaceEffect;
     FRoundEdges: Integer;
     FPictureBorderType: TPictureBorderType;
-    FRotateDotColor : TAlphaColor;
-    FRotateDotHotColor : TAlphaColor;
-    FRotateDotDownColor  : TAlphaColor;
+    FRotateDotColor: TAlphaColor;
+    FRotateDotHotColor: TAlphaColor;
+    FRotateDotDownColor: TAlphaColor;
     // Selection & Zoom
     FSelectedImage: TImageItem;
     FWasSelectedItem: TImageItem;
@@ -1570,10 +1571,14 @@ begin
     // VCL Canvas clips automatically to the window edge.
     // Skia needs manual clamping to prevent "zooming out of screen".
     // We force the result to stay inside the control's size.
-    if Result.Left < 0 then Result.Left := 0;
-    if Result.Top < 0 then Result.Top := 0;
-    if Result.Right > Width then Result.Right := Width;
-    if Result.Bottom > Height then Result.Bottom := Height;
+    if Result.Left < 0 then
+      Result.Left := 0;
+    if Result.Top < 0 then
+      Result.Top := 0;
+    if Result.Right > Width then
+      Result.Right := Width;
+    if Result.Bottom > Height then
+      Result.Bottom := Height;
   end
   else
     Result := BaseRect;
@@ -2595,8 +2600,7 @@ const
     // A new image is "entering" (flying in) if:
     // Not hovered AND Not Selected AND Animation Progress < 99%
     // AND HotZoom < 99% AND Not actively hot-tracking (HotZoom vs Target)
-    IsEntering := (Item <> FHotItem) and (Item.AnimationProgress < 0.99) and (Item.FHotZoom < 0.99)
-                  and (Item <> FSelectedImage) and (not (Abs(Item.FHotZoom - Item.FHotZoomTarget) > HOT_ZOOM_EPSILON));
+    IsEntering := (Item <> FHotItem) and (Item.AnimationProgress < 0.99) and (Item.FHotZoom < 0.99) and (Item <> FSelectedImage) and (not (Abs(Item.FHotZoom - Item.FHotZoomTarget) > HOT_ZOOM_EPSILON));
 
     // ONLY DRAW THESE IF NOT ENTERING
     if not IsEntering then
@@ -3939,9 +3943,6 @@ begin
       if TargetAngle = -1 then
         TargetAngle := 0;
 
-      FSelectedImage.FActualRotation := TargetAngle;
-
-      // <--- FIX: Lock TargetRotation so it doesn't spin back! --->
       FSelectedImage.FTargetRotation := TargetAngle;
 
       FIsRotating := False;
@@ -4183,7 +4184,8 @@ end;
 
 procedure TSkFlowmotion.SelectNextImage;
 begin
-  if FPageChangeInProgress then Exit;
+  if FPageChangeInProgress then
+    Exit;
 
   if FInFallAnimation then
     Exit;
@@ -4202,7 +4204,8 @@ end;
 
 procedure TSkFlowmotion.SelectPreviousImage;
 begin
-  if FPageChangeInProgress then Exit;
+  if FPageChangeInProgress then
+    Exit;
 
   if FInFallAnimation then
     Exit;
@@ -4249,7 +4252,8 @@ begin
     if FWasSelectedItem = FHotItem then
       FWasSelectedItem.FHotZoomTarget := 1.0;
     { Start Zoom Out animation }
-    if (FFlowLayout <> flFreeFloat) then StartZoomAnimation(FWasSelectedItem, False);
+    if (FFlowLayout <> flFreeFloat) then
+      StartZoomAnimation(FWasSelectedItem, False);
   end;
   { --- 2. Handle NEW selection --- }
   FSelectedImage := ImageItem;
@@ -4992,10 +4996,7 @@ begin
         TempRect := Rect(FallX, FallY, FallX + FallW, FallY + FallH);
 
         // Interpolate StartRect -> TargetRect
-        TempRect := Rect(Round(ImageItem.StartRect.Left + (TempRect.Left - ImageItem.StartRect.Left) * Eased),
-                      Round(ImageItem.StartRect.Top + (TempRect.Top - ImageItem.StartRect.Top) * Eased),
-                      Round(ImageItem.StartRect.Right + (TempRect.Right - ImageItem.StartRect.Right) * Eased),
-                      Round(ImageItem.StartRect.Bottom + (TempRect.Bottom - ImageItem.StartRect.Bottom) * Eased));
+        TempRect := Rect(Round(ImageItem.StartRect.Left + (TempRect.Left - ImageItem.StartRect.Left) * Eased), Round(ImageItem.StartRect.Top + (TempRect.Top - ImageItem.StartRect.Top) * Eased), Round(ImageItem.StartRect.Right + (TempRect.Right - ImageItem.StartRect.Right) * Eased), Round(ImageItem.StartRect.Bottom + (TempRect.Bottom - ImageItem.StartRect.Bottom) * Eased));
 
         if not EqualRect(ImageItem.CurrentRect, TempRect) then
         begin
@@ -5053,15 +5054,11 @@ begin
       if FAnimationEasing then
         Progress := EaseInOutQuad(Progress);
 
-      TempRect := Rect(Round(ImageItem.StartRect.Left + (ImageItem.TargetRect.Left - ImageItem.StartRect.Left) * Progress),
-                    Round(ImageItem.StartRect.Top + (ImageItem.TargetRect.Top - ImageItem.StartRect.Top) * Progress),
-                    Round(ImageItem.StartRect.Right + (ImageItem.TargetRect.Right - ImageItem.StartRect.Right) * Progress),
-                    Round(ImageItem.StartRect.Bottom + (ImageItem.TargetRect.Bottom - ImageItem.StartRect.Bottom) * Progress));
+      TempRect := Rect(Round(ImageItem.StartRect.Left + (ImageItem.TargetRect.Left - ImageItem.StartRect.Left) * Progress), Round(ImageItem.StartRect.Top + (ImageItem.TargetRect.Top - ImageItem.StartRect.Top) * Progress), Round(ImageItem.StartRect.Right + (ImageItem.TargetRect.Right - ImageItem.StartRect.Right) * Progress), Round(ImageItem.StartRect.Bottom + (ImageItem.TargetRect.Bottom - ImageItem.StartRect.Bottom) * Progress));
 
       // === NEW: APPLY DRIFT ===
       // If Drift is enabled and item is not being dragged
-      if FFreeFloatDrift and (FFlowLayout = flFreeFloat) and (ImageItem <> FDraggedImage)
-         and (ImageItem <> FSelectedImage) and (ImageItem <> FRotatingImage) then
+      if FFreeFloatDrift and (FFlowLayout = flFreeFloat) and (ImageItem <> FDraggedImage) and (ImageItem <> FSelectedImage) and (ImageItem <> FRotatingImage) then
       begin
         DriftOffsetX := Sin(DriftTime * ImageItem.DriftRangeX) * 1.0; // Amplitude 1px
         DriftOffsetY := Cos(DriftTime * ImageItem.DriftRangeY) * 1.0;
@@ -5076,8 +5073,7 @@ begin
         NeedRepaint := True;
       end;
 
-      ImageItem.Animating := not ((ImageItem.AnimationProgress >= 1.0) and ((ImageItem.ZoomProgress <= 0.0001) or (ImageItem.ZoomProgress >= 0.9999))
-         and EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) and (Abs(ImageItem.FHotZoom - ImageItem.FHotZoomTarget) <= 0.006));
+      ImageItem.Animating := not ((ImageItem.AnimationProgress >= 1.0) and ((ImageItem.ZoomProgress <= 0.0001) or (ImageItem.ZoomProgress >= 0.9999)) and EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) and (Abs(ImageItem.FHotZoom - ImageItem.FHotZoomTarget) <= 0.006));
 
       if ImageItem = FWasSelectedItem then
         if (ImageItem.ZoomProgress <= 0.0001) and EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) then
@@ -5099,8 +5095,7 @@ begin
         begin
           // Linear Interpolation (Lerp): Move 10% of the distance per frame
           // This creates a natural "ease-in" effect.
-          ImageItem.FActualRotation := ImageItem.FActualRotation +
-            (ImageItem.FTargetRotation - ImageItem.FActualRotation) * ROTATION_SMOOTHING_SPEED;
+          ImageItem.FActualRotation := ImageItem.FActualRotation + (ImageItem.FTargetRotation - ImageItem.FActualRotation) * ROTATION_SMOOTHING_SPEED;
           NeedRepaint := True;
         end
         else
@@ -5166,9 +5161,7 @@ begin
   { Check if any animations are still running }
   AnyAnimating := FFallingOut;
   for i := 0 to FImages.Count - 1 do
-    if not ((TImageItem(FImages[i]).AnimationProgress >= 1.0) and ((TImageItem(FImages[i]).ZoomProgress <= 0.0001)
-         or (TImageItem(FImages[i]).ZoomProgress >= 0.9999)) and EqualRect(TImageItem(FImages[i]).CurrentRect, TImageItem(FImages[i]).TargetRect)
-         and (Abs(TImageItem(FImages[i]).FHotZoom - TImageItem(FImages[i]).FHotZoomTarget) <= 0.006)) then
+    if not ((TImageItem(FImages[i]).AnimationProgress >= 1.0) and ((TImageItem(FImages[i]).ZoomProgress <= 0.0001) or (TImageItem(FImages[i]).ZoomProgress >= 0.9999)) and EqualRect(TImageItem(FImages[i]).CurrentRect, TImageItem(FImages[i]).TargetRect) and (Abs(TImageItem(FImages[i]).FHotZoom - TImageItem(FImages[i]).FHotZoomTarget) <= 0.006)) then
     begin
       AnyAnimating := True;
       Break;
