@@ -1,7 +1,8 @@
 # skia-flowmotion
 Delphi RAD Studio Skia Flowmotion Alpha v0.3 
-
-[![Demo-Video](https://img.youtube.com/vi/R_yIg2XfF24/maxresdefault.jpg)](https://www.youtube.com/watch?v=R_yIg2XfF24)
+  
+   <img width="1140" height="1139" alt="Unbenannt" src="https://github.com/user-attachments/assets/bad5c161-77b5-407b-9201-1c65aca9c563" />
+   
      
 # Skia-FlowMotion    
     
@@ -74,9 +75,8 @@ If you want to tip me a coffee.. :)
      
     Zipped sample exe, that way its small enough for upload  
     
-  
-   <img width="1140" height="1139" alt="Unbenannt" src="https://github.com/user-attachments/assets/bad5c161-77b5-407b-9201-1c65aca9c563" />
-   
+
+[![Demo-Video](https://img.youtube.com/vi/R_yIg2XfF24/maxresdefault.jpg)](https://www.youtube.com/watch?v=R_yIg2XfF24)
         
    
 Requirements    
