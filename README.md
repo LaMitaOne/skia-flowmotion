@@ -1,5 +1,5 @@
 # skia-flowmotion
-Delphi RAD Studio Skia Flowmotion component alpha v0.42  
+Delphi RAD Studio Skia Flowmotion component alpha v0.43  
     
  <img width="1139" height="1137" alt="Unbenannt" src="https://github.com/user-attachments/assets/ed3f782e-1559-442f-b122-ad931a2ec215" />
   
@@ -14,7 +14,7 @@ Started as a simple port of my D7 VCL Flowmotion component...
 From "just show some search result covers in my player" to **this beast** in about 3 months total (with pauses).    
 No big deal to port old code when Skia is involved 😉 btw its even my first component and...playing with canvas at all... ^^      
    
-**Features at a glance (v0.42):**   
+**Features at a glance (v0.43):**   
 - Pinterest-like masonry layout   
 - freefloat Layout with save/load positions   
 - Animated appearance (slide-in, “falling” effects, breathing)   
@@ -45,8 +45,21 @@ If you want to tip me a coffee.. :)
   </a>
 </p>
     
- ----Latest Changes   
-   v 0.42   
+ ----Latest Changes 
+   v 0.43   
+    - skFLM now automatically resizes large images   
+    - Added MaxInternalPicSize property (default 720px)   
+    - Implemented real-time collision avoidance   
+      Images now dynamically move out of the way when the selected is dragged across the screen   
+      This creates a natural, magnetic interaction effect when KeepSpaceforZoomed is combined with   
+      SelectedMovable   
+    - We disable breathing/hotzoom if we are currently dragging the image   
+      This prevents the "Jitter/Flicker" effect caused by size changes while moving   
+    - Implemented dynamic shadow scaling based on zoom/breath state   
+    - Wall Sliding: Hotzoom and breathing effects now respect screen edges.   
+      Images smoothly slide against borders.   
+    - lots fine tuning and bugfixes   
+   v 0.42     
     - Fixed some mem leaks at clear and showpage    
     - Added SurfaceEffects -> sueGlow, sueAmbient    
     - Added function RotateAllBy   
