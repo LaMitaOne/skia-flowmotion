@@ -4,13 +4,21 @@ interface
 
 uses
   { Delphi }
-  System.SysUtils, System.Types, System.UITypes, System.Classes, FMX.Types,
-  FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Ani, FMX.Objects,
-  FMX.Layouts, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Effects,
+  System.SysUtils, System.Types, System.UITypes, System.Classes, FMX.Types, System.IOUtils,
+  FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Ani, FMX.Objects, ShellAPI,
+  FMX.Layouts, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Effects, System.Win.Registry,
+  //---
   uSkFlowmotion,
   { Skia }
   System.Skia, FMX.Skia, System.ImageList, FMX.ImgList, FMX.ListBox, FMX.Colors,
   FMX.Edit, FMX.EditBox, FMX.SpinBox;
+
+const
+  HKEY_CLASSES_ROOT = $80000000;
+  HKEY_CURRENT_USER  = $80000001;
+  HKEY_LOCAL_MACHINE = $80000002;
+  HKEY_USERS         = $80000003;
+  HKEY_CURRENT_CONFIG = $80000005;
 
 type
   { TfrmMain }
@@ -71,7 +79,11 @@ type
     rbrotatedotdown: TRadioButton;
     CheckBox12: TCheckBox;
     rbrotateall: TRadioButton;
+    CheckBox13: TCheckBox;
+    rbtechbracketwidth: TRadioButton;
+    Button11: TButton;
     procedure Button10Click(Sender: TObject);
+    procedure Button11Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -84,6 +96,7 @@ type
     procedure CheckBox10Change(Sender: TObject);
     procedure CheckBox11Change(Sender: TObject);
     procedure CheckBox12Change(Sender: TObject);
+    procedure CheckBox13Change(Sender: TObject);
     procedure CheckBox1Change(Sender: TObject);
     procedure CheckBox2Change(Sender: TObject);
     procedure CheckBox3Change(Sender: TObject);
@@ -107,6 +120,8 @@ type
   private
     skfmFlowGallery: TSkFlowmotion;
     procedure InitGallery;
+    procedure Flowmotion1SelectedImageDblClick(Sender: TObject; ImageItem: TImageItem; Index: Integer);
+    procedure LoadInstalledPrograms;
     procedure MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean); override;
     procedure Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
   public
@@ -123,6 +138,11 @@ implementation
 procedure TfrmMain.Button10Click(Sender: TObject);
 begin
    skfmFlowGallery.Clear(true, true, Panel1.BoundsRect.Round, Panel1.BoundsRect.Round, iesFromPoint, true);
+end;
+
+procedure TfrmMain.Button11Click(Sender: TObject);
+begin
+  LoadInstalledPrograms;
 end;
 
 procedure TfrmMain.Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
@@ -168,12 +188,29 @@ begin
 end;
 
 procedure TfrmMain.Button9Click(Sender: TObject);
+var
+  i: Integer;
 begin
-  skfmFlowGallery.ImageEntryStyle := iesFromPoint;
+  // 1. SET ENTRY POINT (Where images fly from)
+  // We use the button's screen center position as the target
   skfmFlowGallery.EntryPoint := Point(Round(Button9.Position.X), Round(Button9.Position.Y));
-   if Opendialog1.Execute then begin
-    skfmFlowGallery.AddImageAsync(Opendialog1.FileName);
-   end;
+  skfmFlowGallery.ImageEntryStyle := iesFromPoint;
+  // 2. SHOW DIALOG
+  // Ensure TOpenDialog1 has Options: [ofAllowMultiSelect] set in Object Inspector
+  if OpenDialog1.Execute then
+  begin
+    // 3. ITERATE AND ADD IMAGES
+    // TOpenDialog1.Files contains a list of all selected filenames (TStrings)
+    if OpenDialog1.Files.Count > 0 then
+    begin
+      for i := 0 to OpenDialog1.Files.Count - 1 do
+      begin
+        // Add each image asynchronously.
+        // The Control generates Captions/Paths automatically from the filename.
+        skfmFlowGallery.AddImageAsync(OpenDialog1.Files[i]);
+      end;
+    end;
+  end;
 end;
 
 procedure TfrmMain.Button5Click(Sender: TObject);
@@ -244,9 +281,14 @@ begin
  skfmFlowGallery.ZoomSelectedtoCenter := Checkbox12.IsChecked;
 end;
 
+procedure TfrmMain.CheckBox13Change(Sender: TObject);
+begin
+ skfmFlowGallery.KeepSpaceforZoomed := CheckBox13.IsChecked;
+end;
+
 procedure TfrmMain.CheckBox1Change(Sender: TObject);
 begin
-   if Checkbox1.IsChecked then skfmFlowGallery.PictureBorderType := btFull
+   if not Checkbox1.IsChecked then skfmFlowGallery.PictureBorderType := btFull
    else skfmFlowGallery.PictureBorderType := btTech;
 end;
 
@@ -324,6 +366,82 @@ begin
    end;
 end;
 
+procedure TfrmMain.LoadInstalledPrograms;
+var
+  Reg: TRegistry;
+  Keys: TStringList;
+  i: Integer;
+  AppName, ExePath, IconPath: string;
+begin
+  Reg := TRegistry.Create;
+  Keys := TStringList.Create;
+  try
+    Reg.RootKey := HKEY_LOCAL_MACHINE;
+    if Reg.OpenKeyReadOnly('SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall') then
+    begin
+      Reg.GetKeyNames(Keys);
+      Reg.CloseKey;
+    end;
+
+    // Zusätzlich 32-Bit-Apps auf 64-Bit Windows
+    if Reg.OpenKeyReadOnly('SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall') then
+    begin
+      Reg.GetKeyNames(Keys);
+      Reg.CloseKey;
+    end;
+
+    skfmFlowGallery.Clear(True);
+
+    for i := 0 to Keys.Count - 1 do
+    begin
+      if Reg.OpenKeyReadOnly('SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\' + Keys[i]) then
+      begin
+        AppName := Reg.ReadString('DisplayName');
+        IconPath := Reg.ReadString('DisplayIcon');
+        ExePath := Reg.ReadString('InstallLocation');
+        if (AppName <> '') and (IconPath <> '') then
+        begin
+          if Pos(',', IconPath) > 0 then
+            IconPath := Copy(IconPath, 1, Pos(',', IconPath) - 1);
+
+          if FileExists(IconPath) then
+          begin
+            skfmFlowGallery.AddImageAsync(IconPath, AppName, ExePath, AppName);
+          end;
+        end;
+
+        Reg.CloseKey;
+      end;
+    end;
+  finally
+    Keys.Free;
+    Reg.Free;
+  end;
+end;
+
+procedure TfrmMain.Flowmotion1SelectedImageDblClick(Sender: TObject; ImageItem: TImageItem; Index: Integer);
+var
+  FolderPath: string;
+begin
+  if (ImageItem = nil) or (ImageItem.Path = '') then
+    Exit;
+
+  FolderPath := ImageItem.Path;
+
+  // Saubermachen: Entferne ggf. Dateiname am Ende (falls es doch eine Datei ist)
+  if not DirectoryExists(FolderPath) then
+    FolderPath := ExtractFilePath(FolderPath);
+
+  if DirectoryExists(FolderPath) then
+  begin
+    // Öffne den Ordner im Windows Explorer
+    ShellExecute(0, 'open', 'explorer.exe', PChar('/select,' + FolderPath), nil, 1);
+    skfmFlowGallery.DeselectZoomedImage; // Optional, sieht sauberer aus
+  end
+  else
+    ShowMessage('Ordner nicht gefunden: ' + FolderPath);
+end;
+
 procedure TfrmMain.InitGallery;
 var
   AppDir: string;
@@ -342,9 +460,11 @@ begin
   skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
   skfmFlowGallery.AnimationSpeed := 3;
+  skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
   skfmFlowGallery.Spacing := 15;
   skfmFlowGallery.PageSize := 80;
   skfmFlowGallery.ShowCaptions := True;
+  skfmFlowGallery.KeepSpaceforZoomed := True;
   skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := True;
   skfmFlowGallery.SmallPicImageList := Imagelist1;
@@ -428,36 +548,28 @@ end;
 procedure TfrmMain.SpinBox1Change(Sender: TObject);
 begin
   if not Assigned(skfmFlowGallery) then Exit;
-
   if rbAnimspeed.IsChecked then
     skfmFlowGallery.AnimationSpeed := Round(SpinBox1.Value)
-
   else if rbGlowwidth.IsChecked then
     skfmFlowGallery.GlowWidth := Round(SpinBox1.Value)
-
   else if rbHotwidth.IsChecked then
     skfmFlowGallery.HotTrackWidth := Round(SpinBox1.Value)
-
   else if rbFontsize.IsChecked then
-    skfmFlowGallery.CaptionFont.Size := SpinBox1.Value   // Single, passt perfekt
-
+    skfmFlowGallery.CaptionFont.Size := SpinBox1.Value
   else if rbCaptionAlpha.IsChecked then
     skfmFlowGallery.CaptionAlpha := Round(SpinBox1.Value)
-
   else if rbCaptionYOffset.IsChecked then
     skfmFlowGallery.CaptionOffsetY := Round(SpinBox1.Value)
-
   else if rbPagesize.IsChecked then
     skfmFlowGallery.PageSize := Round(SpinBox1.Value)
-
   else if rbstartingAngle.IsChecked then
     skfmFlowGallery.StartingAngle := Round(SpinBox1.Value)
-
  else if rbRoundEdges.IsChecked then
     skfmFlowGallery.RoundEdges := Round(SpinBox1.Value)
-
  else if rbRotateall.IsChecked then
-    skfmFlowGallery.PutAllToAngle(SpinBox1.Value);
+    skfmFlowGallery.PutAllToAngle(SpinBox1.Value)
+ else if rbtechbracketwidth.IsChecked then
+    skfmFlowGallery.TechBracketWidth := trunc(SpinBox1.Value);
 end;
 
 procedure TfrmMain.Timer1Timer(Sender: TObject);
@@ -465,5 +577,7 @@ begin
   Timer1.Enabled := False;
   InitGallery;
 end;
+
+
 
 end.
