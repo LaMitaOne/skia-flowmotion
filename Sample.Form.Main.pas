@@ -8,9 +8,9 @@ uses
   FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Ani, FMX.Objects, ShellAPI,
   FMX.Layouts, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Effects, System.Win.Registry,
   System.Skia, FMX.Skia, System.ImageList, FMX.ImgList, FMX.ListBox, FMX.Colors,
-  FMX.Edit, FMX.EditBox, FMX.SpinBox,
+  FMX.Edit, FMX.EditBox, FMX.SpinBox, windows, messages,
   //-----
-  uSkFlowmotion;
+  uSkFlowmotion, FMX.Menus;
 
 const
   HKEY_CLASSES_ROOT = $80000000;
@@ -85,6 +85,10 @@ type
     rbparticle: TRadioButton;
     Rectangle2: TRectangle;
     Button12: TButton;
+    rbmaxinternal: TRadioButton;
+    rbhotalpha: TRadioButton;
+    rbalpha: TRadioButton;
+    rbselectedalpha: TRadioButton;
     procedure Button10Click(Sender: TObject);
     procedure Button11Click(Sender: TObject);
     procedure Button12Click(Sender: TObject);
@@ -116,18 +120,29 @@ type
     procedure fanFadeOutTransitionFinish(Sender: TObject);
     procedure saiAnimatedLogoAnimationFinished(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure lytcontrolsResize(Sender: TObject);
     procedure rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton; Shift:
         TShiftState; X, Y: Single);
     procedure SpinBox1Change(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
+    Loadedwithparams : Boolean;
+    ParamsTxtFile: string;
     skfmFlowGallery: TSkFlowmotion;
     procedure InitGallery;
+    procedure SendNextToPlayer(const FilePath: string);
+    procedure skfmFlowGalleryMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Single);
+    procedure SendSignalToPlayer(const FilePath: string);
+    procedure LoadFromTxtFile(const TxtFilePath: string);
+    function GetFirstImageInFolder(const Folder: string): string;
     procedure Flowmotion1SelectedImageDblClick(Sender: TObject; ImageItem: TImageItem; Index: Integer);
     procedure LoadInstalledPrograms;
     procedure MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean); override;
     procedure Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
+     protected
+     procedure WMCopyData(var Message: TWMCopyData); message WM_COPYDATA;
   public
     { Public declarations }
   end;
@@ -425,6 +440,88 @@ begin
   end;
 end;
 
+procedure TfrmMain.skfmFlowGalleryMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Single);
+var
+  Item: TImageItem;
+begin
+  if Button = TMouseButton.mbMiddle then  // Mittelklick
+  begin
+    Item := skfmFlowGallery.GetImageAtPoint(X, Y);
+    if (Item <> nil) and (Item.Path <> '') then
+    begin
+      SendNextToPlayer(Item.Path);
+      skfmFlowGallery.DeselectZoomedImage; // Optional
+      // Optional: Visuelles Feedback (z. B. Farbwechsel oder Message)
+      ShowMessage('Als Nächstes gesendet: ' + Item.Caption);
+    end;
+  end;
+end;
+
+procedure TfrmMain.SendNextToPlayer(const FilePath: string);
+var
+  PlayerHandle: HWND;
+  Data: AnsiString;
+  CopyData: TCopyDataStruct;
+begin
+  PlayerHandle := FindWindow('TMRMaster', 'MEDIA Revolution Master');
+  if PlayerHandle = 0 then Exit;
+
+  // Prefix für "Next" (wie du willst: MRXSKIAFLMNXT)
+  Data := AnsiString('MRXSKIAFLMNXT' + FilePath);
+
+  CopyData.dwData := 0;
+  CopyData.cbData := Length(Data) + 1;
+  CopyData.lpData := PAnsiChar(Data);
+
+  SendMessage(PlayerHandle, WM_COPYDATA, 0, LPARAM(@CopyData));
+end;
+
+procedure TfrmMain.WMCopyData(var Message: TWMCopyData);
+var
+  Data: string;
+begin
+  inherited;
+
+  if Message.CopyDataStruct.cbData > 0 then
+  begin
+    SetLength(Data, Message.CopyDataStruct.cbData);
+    Move(Message.CopyDataStruct.lpData^, Data[1], Message.CopyDataStruct.cbData);
+
+    while (Length(Data) > 0) and (Data[Length(Data)] = #0) do
+      SetLength(Data, Length(Data) - 1);
+
+    Data := Trim(Data);
+
+    if FileExists(Data)  then
+    begin
+      skfmFlowGallery.Clear(True);
+      LoadFromTxtFile(Data);
+    end;
+  end;
+
+  Message.Result := 1;
+end;
+
+procedure TfrmMain.SendSignalToPlayer(const FilePath: string);
+var
+  PlayerHandle: HWND;
+  Data: AnsiString;
+  CopyData: TCopyDataStruct;
+begin
+  PlayerHandle := FindWindow('TMRMaster', 'MEDIA Revolution Master');
+  if PlayerHandle = 0 then
+    Exit;
+
+  Data := AnsiString('MRXSKIAFLM' + FilePath);
+
+  CopyData.dwData := 0;
+  CopyData.cbData := Length(Data) + 1;
+  CopyData.lpData := PAnsiChar(Data);
+  SendMessage(PlayerHandle, WM_COPYDATA, 0, LPARAM(@CopyData));
+  Close;
+end;
+
 procedure TfrmMain.Flowmotion1SelectedImageDblClick(Sender: TObject; ImageItem: TImageItem; Index: Integer);
 var
   FolderPath: string;
@@ -432,6 +529,10 @@ begin
   if (ImageItem = nil) or (ImageItem.Path = '') then
     Exit;
   FolderPath := ImageItem.Path;
+  if Loadedwithparams then begin
+     SendSignaltoPlayer(FolderPath);
+     Exit;
+  end;
   if (FolderPath = '') or (FolderPath = 'Folder or whatever') then begin
     //ShowMessage('dblclicked selected');
     skfmFlowGallery.ZoomSelectedToFull;
@@ -471,7 +572,9 @@ begin
   skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
   skfmFlowGallery.Spacing := 15;
   skfmFlowGallery.PageSize := 80;
+  skfmFlowGallery.OnMouseUp := skfmFlowGalleryMouseUp;
   skfmFlowGallery.ShowCaptions := True;
+  skfmFlowGallery.SelectedMovable := True;
   skfmFlowGallery.KeepSpaceforZoomed := True;
   skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := True;
@@ -518,6 +621,7 @@ begin
 end;
 
 
+
 procedure TfrmMain.fanFadeOutTransitionFinish(Sender: TObject);
 begin
   saiAnimatedLogo.Visible := False;
@@ -526,10 +630,102 @@ end;
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
   lytcontrols.Visible := False;
-  saiAnimatedLogo.Visible := True;
-  saiAnimatedLogo.BringToFront;
-  lytContent.Visible := False;
+  LoadedWithParams := False;
+  if ParamCount >= 1 then
+  begin
+    borderstyle := TFmxFormBorderStyle.None;
+    ParamsTxtFile := ParamStr(1);
+    LoadedWithParams := True;
+    saiAnimatedLogo.Visible := False;
+    lytContent.Visible := True;
+  end
+  else begin
+    saiAnimatedLogo.Visible := True;
+    saiAnimatedLogo.BringToFront;
+    lytContent.Visible := False;
+  end;
 end;
+
+procedure TfrmMain.FormShow(Sender: TObject);
+begin
+ if Loadedwithparams then Timer1.Enabled := True;
+end;
+
+procedure TfrmMain.LoadFromTxtFile(const TxtFilePath: string);
+var
+  Lines: TStringList;
+  i: Integer;
+  Line, FilePath, Caption, CoverPath: string;
+  PosPipe: Integer;
+begin
+  if skfmFlowGallery = nil then
+  begin
+    skfmFlowGallery := TSkFlowmotion.Create(Self);
+    skfmFlowGallery.Parent := lytContent;
+    skfmFlowGallery.Align := TAlignLayout.Client;
+  end;
+  skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
+  skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
+  skfmFlowGallery.AnimationSpeed := 3;
+  skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
+  skfmFlowGallery.Spacing := 15;
+  skfmFlowGallery.PageSize := 80;
+  skfmFlowGallery.ShowCaptions := True;
+  skfmFlowGallery.KeepSpaceforZoomed := False;
+  skfmFlowGallery.ShowHint := true;
+  skfmFlowGallery.SmallPicVisible := False;
+  //skfmFlowGallery.SmallPicImageList := Imagelist1;
+  skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
+  //skfmFlowGallery.AddActivationZone('ActivationZone 1', Panel1.BoundsRect);
+  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
+  skfmFlowGallery.SetBackgroundpicture(ExtractFilePath(ParamStr(0)) + 'back.jpg');
+  skfmFlowGallery.CaptionFont.Size := 14;
+  skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
+  skfmFlowGallery.HotTrackZoom := True;
+  skfmFlowGallery.Visible := True;
+  skfmFlowGallery.BringToFront;
+  Lines := TStringList.Create;
+  try
+    Lines.LoadFromFile(TxtFilePath);
+    for i := 0 to Lines.Count - 1 do
+    begin
+      Line := Trim(Lines[i]);
+      if Line = '' then Continue;
+
+      PosPipe := Pos('|', Line);
+      if PosPipe > 0 then
+      begin
+        FilePath := Trim(Copy(Line, 1, PosPipe - 1));
+        Caption := Trim(Copy(Line, PosPipe + 1, MaxInt));
+      end
+      else
+      begin
+        FilePath := Line;
+        Caption := ExtractFileName(FilePath);
+      end;
+      if not FileExists(FilePath) then Continue;
+      CoverPath := GetFirstImageInFolder(ExtractFilePath(FilePath));
+      if CoverPath <> '' then
+        skfmFlowGallery.AddImageAsync(CoverPath, Caption, FilePath, '');
+    end;
+  finally
+    Lines.Free;
+  end;
+end;
+
+function TfrmMain.GetFirstImageInFolder(const Folder: string): string;
+var
+  Files: TArray<string>;
+begin
+  Result := '';
+  Files := TDirectory.GetFiles(Folder, '*.jpg', TSearchOption.soTopDirectoryOnly);
+  if Length(Files) > 0 then Exit(Files[0]);
+
+  Files := TDirectory.GetFiles(Folder, '*.png', TSearchOption.soTopDirectoryOnly);
+  if Length(Files) > 0 then Exit(Files[0]);
+end;
+
+
 
 procedure TfrmMain.lytcontrolsResize(Sender: TObject);
 begin
@@ -546,7 +742,7 @@ end;
 
 procedure TfrmMain.saiAnimatedLogoAnimationFinished(Sender: TObject);
 begin
-  lytcontrols.Visible := True;
+  lytcontrols.Visible := not Loadedwithparams;
   lytContent.Visible := True;
   Fill.Color := $FFEBEEF1;
   fanFadeOutTransition.Enabled := True;
@@ -579,12 +775,25 @@ begin
  else if rbtechbracketwidth.IsChecked then
     skfmFlowGallery.TechBracketWidth := trunc(SpinBox1.Value)
  else if rbRotateAllBy.IsChecked then
-    skfmFlowGallery.RotateAllBy(SpinBox1.Value);
+    skfmFlowGallery.RotateAllBy(SpinBox1.Value)
+ else if rbmaxinternal.IsChecked then
+    skfmFlowGallery.MaxInternalPicSize := Trunc(SpinBox1.Value)
+ else if rbselectedalpha.IsChecked then
+    skfmFlowGallery.AlphaHotSelected := Trunc(SpinBox1.Value)
+ else if rbhotalpha.IsChecked then
+    skfmFlowGallery.AlphaHotPhase := Trunc(SpinBox1.Value)
+ else if rbalpha.IsChecked then
+    skfmFlowGallery.AlphaStatic := Trunc(SpinBox1.Value);
 end;
+
+
 
 procedure TfrmMain.Timer1Timer(Sender: TObject);
 begin
   Timer1.Enabled := False;
+  if LoadedWithParams then
+    LoadFromTxtFile(ParamsTxtFile)
+    else
   InitGallery;
 end;
 
