@@ -1,7 +1,7 @@
 # skia-flowmotion
-Delphi RAD Studio Skia Flowmotion component alpha v0.4  
+Delphi RAD Studio Skia Flowmotion component alpha v0.41  
    
-<img width="1142" height="1143" alt="Unbenannt" src="https://github.com/user-attachments/assets/14e1d413-99ae-4352-8db5-69adaaba2388" />
+  <img width="1141" height="1141" alt="Unbenannt" src="https://github.com/user-attachments/assets/2e468e07-efab-49ac-a824-2e7a090e4959" />
    
      
 # Skia-FlowMotion    
@@ -14,7 +14,7 @@ Started as a simple port of my D7 VCL Flowmotion component...
 From "just show some search result covers in my player" to **this beast** in about 3 months total (with pauses).    
 No big deal to port old code when Skia is involved 😉 btw its even my first component and...much playing with canvas at all... ^^      
    
-**Features at a glance (v0.4):**   
+**Features at a glance (v0.41):**   
 - Pinterest-like masonry layout   
 - freefloat Layout with save/load positions   
 - Animated appearance (slide-in, “falling” effects, breathing)   
@@ -44,7 +44,12 @@ If you want to tip me a coffee.. :)
   </a>
 </p>
     
- ----Latest Changes    
+ ----Latest Changes   
+   v 0.41  
+    - FKeepSpaceforZoomed now working   
+      Layout keeps space free under centered Selected pic   
+    - added onSmallpicclicked   
+    - added techbracketwidth property   
    v 0.4   
     - added propertys RotateDotColor, FRotateDotHotColor, FRotateDotDownColor  
     - added property ShowSmallPicOnlyOnHover  
