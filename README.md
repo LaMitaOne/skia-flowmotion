@@ -1,5 +1,5 @@
 # skia-flowmotion
-Delphi RAD Studio Skia Flowmotion component alpha v0.41  
+Delphi RAD Studio Skia Flowmotion component alpha v0.42  
    
 <img width="1143" height="1142" alt="Unbenannt" src="https://github.com/user-attachments/assets/52582681-039b-496f-bf72-7d739735db78" />
    
@@ -14,7 +14,7 @@ Started as a simple port of my D7 VCL Flowmotion component...
 From "just show some search result covers in my player" to **this beast** in about 3 months total (with pauses).    
 No big deal to port old code when Skia is involved 😉 btw its even my first component and...playing with canvas at all... ^^      
    
-**Features at a glance (v0.41):**   
+**Features at a glance (v0.42):**   
 - Pinterest-like masonry layout   
 - freefloat Layout with save/load positions   
 - Animated appearance (slide-in, “falling” effects, breathing)   
@@ -25,7 +25,8 @@ No big deal to port old code when Skia is involved 😉 btw its even my first co
 - ActivationZone -> move selected to defined areas and trigger even   
 - Free rotation with corner handle   
 - Particle explosions on click   
-- Realistic drop shadows    
+- Realistic drop shadows
+- ZoomSelectedToFull, RotateAllBy, and more functions   
 - Holographic background (triple layer sine-wave refraction)   
 - HotZoom, Breathing, Glow, Captions, SmallPic overlays   
 - Full live editor in demo (colors, sizes, toggles)     
@@ -45,7 +46,12 @@ If you want to tip me a coffee.. :)
 </p>
     
  ----Latest Changes   
-   v 0.41  
+   v 0.42   
+    - Fixed some mem leaks at clear and showpage    
+    - Added SurfaceEffects -> sueGlow, sueAmbient    
+    - Added function RotateAllBy   
+    - Added function ZoomSelectedToFull   
+   v 0.41   
     - FKeepSpaceforZoomed now working   
       Layout keeps space free under centered Selected pic   
     - added onSmallpicclicked   
