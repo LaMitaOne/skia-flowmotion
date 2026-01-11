@@ -7,11 +7,10 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, FMX.Types, System.IOUtils,
   FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Ani, FMX.Objects, ShellAPI,
   FMX.Layouts, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Effects, System.Win.Registry,
-  //---
-  uSkFlowmotion,
-  { Skia }
   System.Skia, FMX.Skia, System.ImageList, FMX.ImgList, FMX.ListBox, FMX.Colors,
-  FMX.Edit, FMX.EditBox, FMX.SpinBox;
+  FMX.Edit, FMX.EditBox, FMX.SpinBox,
+  //-----
+  uSkFlowmotion;
 
 const
   HKEY_CLASSES_ROOT = $80000000;
@@ -82,8 +81,13 @@ type
     CheckBox13: TCheckBox;
     rbtechbracketwidth: TRadioButton;
     Button11: TButton;
+    rbRotateAllBy: TRadioButton;
+    rbparticle: TRadioButton;
+    Rectangle2: TRectangle;
+    Button12: TButton;
     procedure Button10Click(Sender: TObject);
     procedure Button11Click(Sender: TObject);
+    procedure Button12Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -143,6 +147,11 @@ end;
 procedure TfrmMain.Button11Click(Sender: TObject);
 begin
   LoadInstalledPrograms;
+end;
+
+procedure TfrmMain.Button12Click(Sender: TObject);
+begin
+  skfmFlowGallery.ZoomSelectedToFull;
 end;
 
 procedure TfrmMain.Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
@@ -355,7 +364,9 @@ if not Assigned(skfmFlowGallery) then Exit;
   else if rbrotatedothot.IsChecked then
     skfmFlowGallery.RotateDotHotColor := ColorPicker1.Color
   else if rbrotatedotDown.IsChecked then
-    skfmFlowGallery.RotateDotDownColor := ColorPicker1.Color;
+    skfmFlowGallery.RotateDotDownColor := ColorPicker1.Color
+  else if rbparticle.IsChecked then
+    skfmFlowGallery.ParticleColor := ColorPicker1.Color;
 end;
 
 procedure TfrmMain.ComboBox1Change(Sender: TObject);
@@ -382,16 +393,13 @@ begin
       Reg.GetKeyNames(Keys);
       Reg.CloseKey;
     end;
-
     // Zusätzlich 32-Bit-Apps auf 64-Bit Windows
     if Reg.OpenKeyReadOnly('SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall') then
     begin
       Reg.GetKeyNames(Keys);
       Reg.CloseKey;
     end;
-
     skfmFlowGallery.Clear(True);
-
     for i := 0 to Keys.Count - 1 do
     begin
       if Reg.OpenKeyReadOnly('SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\' + Keys[i]) then
@@ -403,13 +411,11 @@ begin
         begin
           if Pos(',', IconPath) > 0 then
             IconPath := Copy(IconPath, 1, Pos(',', IconPath) - 1);
-
           if FileExists(IconPath) then
           begin
             skfmFlowGallery.AddImageAsync(IconPath, AppName, ExePath, AppName);
           end;
         end;
-
         Reg.CloseKey;
       end;
     end;
@@ -425,21 +431,23 @@ var
 begin
   if (ImageItem = nil) or (ImageItem.Path = '') then
     Exit;
-
   FolderPath := ImageItem.Path;
+  if (FolderPath = '') or (FolderPath = 'Folder or whatever') then begin
+    //ShowMessage('dblclicked selected');
+    skfmFlowGallery.ZoomSelectedToFull;
+    Exit;
+  end;
 
-  // Saubermachen: Entferne ggf. Dateiname am Ende (falls es doch eine Datei ist)
   if not DirectoryExists(FolderPath) then
     FolderPath := ExtractFilePath(FolderPath);
-
   if DirectoryExists(FolderPath) then
   begin
-    // Öffne den Ordner im Windows Explorer
+
     ShellExecute(0, 'open', 'explorer.exe', PChar('/select,' + FolderPath), nil, 1);
-    skfmFlowGallery.DeselectZoomedImage; // Optional, sieht sauberer aus
+    skfmFlowGallery.DeselectZoomedImage;
   end
   else
-    ShowMessage('Ordner nicht gefunden: ' + FolderPath);
+    ShowMessage('folder not found: ' + FolderPath);
 end;
 
 procedure TfrmMain.InitGallery;
@@ -569,7 +577,9 @@ begin
  else if rbRotateall.IsChecked then
     skfmFlowGallery.PutAllToAngle(SpinBox1.Value)
  else if rbtechbracketwidth.IsChecked then
-    skfmFlowGallery.TechBracketWidth := trunc(SpinBox1.Value);
+    skfmFlowGallery.TechBracketWidth := trunc(SpinBox1.Value)
+ else if rbRotateAllBy.IsChecked then
+    skfmFlowGallery.RotateAllBy(SpinBox1.Value);
 end;
 
 procedure TfrmMain.Timer1Timer(Sender: TObject);
