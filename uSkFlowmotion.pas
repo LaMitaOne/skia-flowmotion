@@ -1,6 +1,6 @@
 {------------------------------------------------------------------------------}
 {                                                                              }
-{ Skia-Flowmotion v0.42                                                        }
+{ Skia-Flowmotion v0.43                                                        }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -11,13 +11,26 @@
 
 {
  ----Latest Changes
+   v 0.43
+    - skFLM now automatically resizes large images
+    - Added MaxInternalPicSize property (default 720px)
+    - Implemented real-time collision avoidance
+      Images now dynamically move out of the way when the selected is dragged across the screen
+      This creates a natural, magnetic interaction effect when KeepSpaceforZoomed is combined with
+      SelectedMovable
+    - We disable breathing/hotzoom if we are currently dragging the image
+      This prevents the "Jitter/Flicker" effect caused by size changes while moving
+    - Implemented dynamic shadow scaling based on zoom/breath state
+    - Wall Sliding: Hotzoom and breathing effects now respect screen edges.
+      Images smoothly slide against borders.
+    - lots fine tuning and bugfixes
    v 0.42
     - Fixed some mem leaks at clear and showpage
     - Added SurfaceEffects -> sueGlow, sueAmbient
     - Added function RotateAllBy
     - Added function ZoomSelectedToFull
    v 0.41
-    - FKeepSpaceforZoomed now working
+    - KeepSpaceforZoomed now working
       Layout keeps space free under centered Selected pic
     - added onSmallpicclicked
     - added techbracketwidth property
@@ -269,6 +282,7 @@ type
     FAllHints: TStringList;
     FAllSmallPicIndices: TList;
     FMasterItem: TFlowMasterItem;
+    FMaxInternalPicSize: Integer;
     // Threading
     FNextLoaderCoreIndex: Integer;
     FAnimationThread: TAnimationThread;
@@ -297,6 +311,7 @@ type
     FDragOffset: TPoint;
     FIsZoomedToFill: Boolean;
     FPreviousRotation: Single;
+    FPrevRect: TRect;
     // Visual
     FBackgroundSkImage: ISkImage;
     FBackgroundColor: TAlphaColor;
@@ -400,7 +415,6 @@ type
     procedure StartZoomAnimation(ImageItem: TImageItem; ZoomIn: Boolean);
     procedure DrawImageWithEffect(const ACanvas: ISkCanvas; const ImageItem: TImageitem; const DstRect: TRectF; const BasePaint: ISkPaint);
 
-
     // Internal Methods - Layout
     procedure CalculateLayout;
     procedure CalculateLayoutSorted;
@@ -434,6 +448,7 @@ type
     function GetVisualRect(ImageItem: TImageItem): TRectF;
     function GetDominantColor(const Img: ISkImage): TAlphaColor;
     function GetLocalPoint(const P: TPointF; const Rect: TRectF; AngleDeg: Single): TPointF;
+    function ResizeImageIfNeeded(const Source: ISkImage): ISkImage;
     // Property Setters
     procedure SetActive(Value: Boolean);
     procedure SetSelectedMovable(Value: Boolean);
@@ -623,6 +638,7 @@ type
     property AlphaHotPhase: Integer read FAlphaHotPhase write FAlphaHotPhase;
     property AlphaHotSelected: Integer read FAlphaHotSelected write FAlphaHotSelected;
     property OnSmallPicClick: TSmallPicClickEvent read FOnSmallPicClick write SetOnSmallPicClick;
+    property MaxInternalPicSize: Integer read FMaxInternalPicSize write FMaxInternalPicSize default 720;
     // Inherited
     property Align;
     property Anchors;
@@ -833,12 +849,13 @@ begin
     try
       if FOwner is TSkFlowmotion then
       begin
-        (FOwner as TSkFlowmotion).DoImageLoad(FFileName, FSuccess);
+        FSkImage := (FOwner as TSkFlowmotion).ResizeImageIfNeeded(FSkImage);
+       { (FOwner as TSkFlowmotion).DoImageLoad(FFileName, FSuccess);
         if not FSuccess then
         begin
           if Assigned((FOwner as TSkFlowmotion).FOnImageLoadFailed) then
             (FOwner as TSkFlowmotion).FOnImageLoadFailed(Self, FFileName, 'Failed to decode image or file not found.');
-        end;
+        end;  }
       end;
     except
     end;
@@ -1001,6 +1018,7 @@ begin
   FBreathingEnabled := True;
   FZoomSelectedtoCenter := True;
   Self.HitTest := True;
+  FMaxInternalPicSize := 720;
 end;
 
 destructor TSkFlowmotion.destroy;
@@ -1324,12 +1342,12 @@ begin
       if FHotItem <> nil then
       begin
         if FHotItem <> FSelectedImage then
-          FHotItem.FHotZoom := 1.0;
+          FHotItem.FHotZoomTarget := 1.0;
         FHotItem := nil;
       end;
       for i := 0 to FImages.Count - 1 do
         if (TImageItem(FImages[i]).FHotZoom > 1.0) and (TImageItem(FImages[i]) <> FSelectedImage) then
-          TImageItem(FImages[i]).FHotZoom := 1.0;
+          TImageItem(FImages[i]).FHotZoomTarget := 1.0;
     end;
     Repaint;
   end;
@@ -1677,9 +1695,12 @@ var
   BaseRect: TRectF;
   CenterX, CenterY, BaseW, BaseH, NewW, NewH: Single;
   ZoomFactor: Double;
+  ShiftX, ShiftY: Single;
 begin
   if not ImageItem.Visible then
     Exit;
+
+  // 1. Calculate Base Dimensions
   BaseRect := TRectF.Create(ImageItem.CurrentRect);
   if (ImageItem.CurrentRect.Right > ImageItem.CurrentRect.Left) and (ImageItem.CurrentRect.Bottom > ImageItem.CurrentRect.Top) then
   begin
@@ -1695,27 +1716,57 @@ begin
     BaseW := ImageItem.TargetRect.Right - ImageItem.TargetRect.Left;
     BaseH := ImageItem.TargetRect.Bottom - ImageItem.TargetRect.Top;
   end;
+
   ZoomFactor := ImageItem.FHotZoom;
+
+  // 2. Calculate Unbounded Zoomed Rect (Standard logic)
   if Abs(ZoomFactor - 1.0) > 0.01 then
   begin
     NewW := BaseW * ZoomFactor;
     NewH := BaseH * ZoomFactor;
     Result := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
-    // CLIP TO COMPONENT BOUNDS ***
-    // VCL Canvas clips automatically to the window edge.
-    // Skia needs manual clamping to prevent "zooming out of screen".
-    // We force the result to stay inside the control's size.
-    if Result.Left < 0 then
-      Result.Left := 0;
-    if Result.Top < 0 then
-      Result.Top := 0;
-    if Result.Right > Width then
-      Result.Right := Width;
-    if Result.Bottom > Height then
-      Result.Bottom := Height;
   end
   else
     Result := BaseRect;
+
+  // ==========================================================
+  // NEW: "HIT THE WALLS" LOGIC (VCL Style)
+  // If the image hits a wall, we "anchor" that edge
+  // and slide the image into the available space.
+  // ==========================================================
+
+  // 3. Anchor Left (Don't go < 0)
+  if Result.Left < 0 then
+  begin
+    ShiftX := -Result.Left; // Calculate how much to shift right
+    Result.Offset(ShiftX, 0);
+  end;
+
+  // 4. Anchor Top (Don't go < 0)
+  if Result.Top < 0 then
+  begin
+    ShiftY := -Result.Top; // Calculate how much to shift down
+    Result.Offset(0, ShiftY);
+  end;
+
+  // 5. Anchor Right (Don't go > Width)
+  // Only shift if it doesn't conflict with Left anchor (unless image is HUGE)
+  if Result.Right > Width then
+  begin
+    ShiftX := Width - Result.Right;
+    // If shifting left breaks the Left anchor, the image is wider than screen.
+    // In that case, we keep the Left anchor (0) and let it clip (VCL behavior).
+    if (Result.Left + ShiftX) >= 0 then
+      Result.Offset(ShiftX, 0);
+  end;
+
+  // 6. Anchor Bottom (Don't go > Height)
+  if Result.Bottom > Height then
+  begin
+    ShiftY := Height - Result.Bottom;
+    if (Result.Top + ShiftY) >= 0 then
+      Result.Offset(0, ShiftY);
+  end;
 end;
 
 function TSkFlowmotion.GetLoadingCount: Integer;
@@ -1799,6 +1850,51 @@ begin
     Result := TSkImage.MakeFromEncodedStream(MS);
   finally
     MS.Free;
+  end;
+end;
+
+function TSkFlowmotion.ResizeImageIfNeeded(const Source: ISkImage): ISkImage;
+var
+  Info: TSkImageInfo;
+  Surface: ISkSurface;
+  NewW, NewH: Integer;
+  Scale: Single;
+begin
+  Result := Source;
+
+  // 1. Safety checks
+  if not Assigned(Source) then
+    Exit;
+  if FMaxInternalPicSize <= 0 then
+    Exit; // 0 means "Keep Original"
+
+  // 2. Check if resizing is needed
+  if (Source.Width <= FMaxInternalPicSize) and (Source.Height <= FMaxInternalPicSize) then
+    Exit;
+
+  // 3. Calculate new dimensions preserving Aspect Ratio
+  if Source.Width > Source.Height then
+    Scale := FMaxInternalPicSize / Source.Width
+  else
+    Scale := FMaxInternalPicSize / Source.Height;
+
+  NewW := Round(Source.Width * Scale);
+  NewH := Round(Source.Height * Scale);
+
+  // 4. Create a temporary Surface to draw the scaled version
+  // We use RGBA8888 and Premul Alpha which is standard for FMX/Skia
+  Info := TSkImageInfo.Create(NewW, NewH, TSkColorType.RGBA8888, TSkAlphaType.Premul);
+  Surface := TSkSurface.MakeRaster(Info);
+
+  if Assigned(Surface) then
+  begin
+    Surface.Canvas.Clear(TAlphaColors.Null);
+    // High quality filter ensures the resized picture looks good
+    // Change to TSkSamplingOptions.Medium if loading is still too slow
+    Surface.Canvas.DrawImageRect(Source, RectF(0, 0, Source.Width, Source.Height), RectF(0, 0, NewW, NewH), TSkSamplingOptions.High);
+
+    // 5. Return the new, smaller image
+    Result := Surface.MakeImageSnapshot;
   end;
 end;
 
@@ -2377,14 +2473,29 @@ begin
 
   ACanvas.SaveLayer(LayerBounds, LayerPaint);
 
-  // ---------------------------------------------------------
+   // ---------------------------------------------------------
   // 2. PREPARE FILTER (Shadow/Glow/Ambient)
   // ---------------------------------------------------------
+
+  // === NEW: DYNAMIC SCALING ===
+  // We scale the shadow/blurriness based on how zoomed the image is.
+  // 1.0 = Normal Size
+  // 1.3 = Zoomed In = Bigger, softer shadow (Closer to viewer)
+  var ZoomFactor: Single;
+  ZoomFactor := ImageItem.FHotZoom;
+
   case FSurfaceEffect of
     sueShadow:
       begin
         // Standard Black Shadow with Offset
-        ShadowFilter := TSkImageFilter.MakeDropShadow(5, 5, 10.0, 10.0, TAlphaColors.Black, nil);
+        // (Offset * Zoom) -> Image lifts up, shadow moves away/gets larger
+        // (Sigma * Zoom) -> Image gets closer, light spreads out more
+        ShadowFilter := TSkImageFilter.MakeDropShadow(5.0 * ZoomFactor,  // DX
+          5.0 * ZoomFactor,  // DY
+          10.0 * ZoomFactor, // SigmaX (Blur Radius)
+          10.0 * ZoomFactor, // SigmaY (Blur Radius)
+          TAlphaColors.Black, nil);
+
         LPaint.ImageFilter := ShadowFilter;
         LPaint.Style := TSkPaintStyle.Fill;
         LPaint.Color := TAlphaColors.Black;
@@ -2394,7 +2505,8 @@ begin
     sueGlow:
       begin
         // Glow using FGlowColor
-        ShadowFilter := TSkImageFilter.MakeDropShadow(5, 5, 10.0, 10.0, FGlowColor, nil);
+        ShadowFilter := TSkImageFilter.MakeDropShadow(5.0 * ZoomFactor, 5.0 * ZoomFactor, 10.0 * ZoomFactor, 10.0 * ZoomFactor, FGlowColor, nil);
+
         LPaint.ImageFilter := ShadowFilter;
         LPaint.Style := TSkPaintStyle.Fill;
         LPaint.Color := FGlowColor;
@@ -2404,7 +2516,8 @@ begin
     sueAmbient:
       begin
         // Glow using Picture Color
-        ShadowFilter := TSkImageFilter.MakeDropShadow(5, 5, 10.0, 10.0, ImageItem.DominantColor, nil);
+        ShadowFilter := TSkImageFilter.MakeDropShadow(5.0 * ZoomFactor, 5.0 * ZoomFactor, 10.0 * ZoomFactor, 10.0 * ZoomFactor, ImageItem.DominantColor, nil);
+
         LPaint.ImageFilter := ShadowFilter;
         LPaint.Style := TSkPaintStyle.Fill;
         LPaint.Color := ImageItem.DominantColor;
@@ -2413,7 +2526,7 @@ begin
 
     sueNone:
       begin
-        // No Effect: Just Clear Filter
+        // No Effect
         LPaint.ImageFilter := nil;
         LPaint.Style := TSkPaintStyle.Fill;
         LPaint.Color := TAlphaColors.Black;
@@ -2774,21 +2887,14 @@ const
     if not Assigned(Item.SkImage) then
       Exit;
 
+    // ==========================================================
+    // Use GetVisualRect correctly for Wall Sliding
+    // ==========================================================
     VisRect := GetVisualRect(Item);
-    BaseRect := TRectF.Create(Item.CurrentRect);
-    ZF := Item.FHotZoom;
-    if Abs(ZF - 1.0) > 0.01 then
-    begin
-      Cx := (BaseRect.Left + BaseRect.Right) / 2;
-      Cy := (BaseRect.Top + BaseRect.Bottom) / 2;
-      BW := BaseRect.Width;
-      BH := BaseRect.Height;
-      NW := BW * ZF;
-      NH := BH * ZF;
-      VisRect := TRectF.Create(Cx - NW / 2, Cy - NH / 2, Cx + NW / 2, Cy + NH / 2);
-    end
-    else
-      VisRect := BaseRect;
+
+    // Calculate Center for Rotation based on the ALREADY CORRECTED VisualRect
+    Cx := (VisRect.Left + VisRect.Right) / 2;
+    Cy := (VisRect.Top + VisRect.Bottom) / 2;
 
     ACanvas.Save;
 
@@ -2821,7 +2927,7 @@ const
     // === DRAW EXTRAS (Borders / Tech Brackets / SmallPic / Caption) ===
     // ===========================================================
 
-    // <--- VCL LOGIC: CHECK IF ENTERING --->
+    // <--- CHECK IF ENTERING --->
     // A new image is "entering" (flying in) if:
     // Not hovered AND Not Selected AND Animation Progress < 99%
     // AND HotZoom < 99% AND Not actively hot-tracking (HotZoom vs Target)
@@ -2926,6 +3032,7 @@ begin
     else
       ACanvas.Clear(TAlphaColors.Black);
 
+
     // =========================================================================
     // 2. SORT IMAGES INTO Z-ORDER BUCKETS (VCL LOGIC UPDATED)
     // =========================================================================
@@ -2994,35 +3101,45 @@ begin
     if Assigned(FSelectedImage) and FSelectedImage.Visible then
     begin
       ImageItem := FSelectedImage;
-      BaseRect := TRectF.Create(ImageItem.CurrentRect);
-      ZoomFactor := ImageItem.FHotZoom;
 
-      if Abs(ZoomFactor - 1.0) > 0.01 then
-      begin
-        CenterX := (BaseRect.Left + BaseRect.Right) / 2;
-        CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
-        BaseW := BaseRect.Width;
-        BaseH := BaseRect.Height;
-        NewW := BaseW * ZoomFactor;
-        NewH := BaseH * ZoomFactor;
-        VisualRect := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
-      end
-      else
-        VisualRect := BaseRect;
+      // ==========================================================
+      // USE GetVisualRect FOR SELECTED IMAGE TOO
+      // This ensures the "Hit the Walls" sliding logic works
+      // for the breathing/zoomed selected image.
+      // ==========================================================
+      VisualRect := GetVisualRect(ImageItem);
+
+      // Recalculate Center for rotation logic based on the corrected VisualRect
+      CenterX := (VisualRect.Left + VisualRect.Right) / 2;
+      CenterY := (VisualRect.Top + VisualRect.Bottom) / 2;
+      BaseW := VisualRect.Width;
+      BaseH := VisualRect.Height;
+      // NewW and NewH are now effectively BaseW/BaseH (VisualRect handles the zoom scaling)
+
+      // === APPLY ZOOM FACTOR TO SHADOW ===
+      // This makes the shadow expand as the selected image breathes/zooms
+      var SelZoom: Single;
+      SelZoom := ImageItem.FHotZoom;
 
       if ImageItem.ActualRotation <> 0 then
       begin
         ShadowRad := -ImageItem.ActualRotation * (PI / 180);
-        ShadowDx := (SHADOW_OFFSET_X * Cos(ShadowRad)) - (SHADOW_OFFSET_Y * Sin(ShadowRad));
-        ShadowDy := (SHADOW_OFFSET_X * Sin(ShadowRad)) + (SHADOW_OFFSET_Y * Cos(ShadowRad));
+        // Multiply the constant offsets by SelZoom before rotation math (or multiply result)
+        // Multiplying result is safer here:
+        ShadowDx := ((SHADOW_OFFSET_X * Cos(ShadowRad)) - (SHADOW_OFFSET_Y * Sin(ShadowRad))) * SelZoom;
+        ShadowDy := ((SHADOW_OFFSET_X * Sin(ShadowRad)) + (SHADOW_OFFSET_Y * Cos(ShadowRad))) * SelZoom;
       end
       else
       begin
-        ShadowDx := SHADOW_OFFSET_X;
-        ShadowDy := SHADOW_OFFSET_Y;
+        ShadowDx := SHADOW_OFFSET_X * SelZoom;
+        ShadowDy := SHADOW_OFFSET_Y * SelZoom;
       end;
 
       ACanvas.Save;
+
+      ShadowFilter := TSkImageFilter.MakeDropShadow(ShadowDx, ShadowDy, 10.0 * SelZoom, // Dynamic Blur Radius
+        10.0 * SelZoom, // Dynamic Blur Radius
+        TAlphaColors.Black, nil);
 
       if ImageItem.ActualRotation <> 0 then
       begin
@@ -3187,7 +3304,7 @@ begin
   // Safety checks
   if not Assigned(FSelectedImage) then
     Exit;
-  if FInFallAnimation or FPageChangeInProgress then
+  if FInFallAnimation or FPageChangeInProgress or (FFlowLayout = flFreeFloat) then         //atm in freefloat buggy
     Exit;
 
   // ---------------------------------------------------------
@@ -3199,7 +3316,11 @@ begin
     // === RESTORE ROTATION ===
     // Set target back to the rotation we saved earlier
     FSelectedImage.FTargetRotation := FPreviousRotation;
-
+    FSelectedImage.TargetRect := FPrevRect;
+   { FSelectedImage.ZoomProgress := 0;
+    FSelectedImage.AnimationProgress := 0;
+    //back to nromal selected making problems atm so we unselect that works for now
+    FSelectedImage.Animating := True;    }
     DeselectZoomedImage;
   end
   // ---------------------------------------------------------
@@ -3208,7 +3329,7 @@ begin
   else
   begin
     FPreviousRotation := FSelectedImage.FTargetRotation;
-
+    FPrevRect := FSelectedImage.FCurrentRect;
     // 1. Calculate Full Screen Size (keep aspect ratio, add margin)
     if Assigned(FSelectedImage.SkImage) then
       ImageSize := GetOptimalSize(FSelectedImage.SkImage.Width, FSelectedImage.SkImage.Height, trunc(Width) - 40, trunc(Height) - 40)
@@ -3371,6 +3492,7 @@ begin
       SkImg := TSkImage.MakeFromEncodedFile(FileName);
       if Assigned(SkImg) then
       begin
+        SkImg := ResizeImageIfNeeded(SkImg);
         NewItem := TImageItem.Create;
         NewItem.SkImage := SkImg;
         NewItem.Caption := ACaption;
@@ -3512,6 +3634,7 @@ begin
       SkImg := TSkImage.MakeFromEncodedFile(FileNames[i]);
       if Assigned(SkImg) then
       begin
+        SkImg := ResizeImageIfNeeded(SkImg);
         NewItem := TImageItem.Create;
         NewItem.SkImage := SkImg;
         NewItem.Caption := Captions[i];
@@ -4036,10 +4159,17 @@ begin
     begin
       FDraggingImage := True;
       FDraggedImage := ImageItem;
-      FDragOffset.X := Round(X) - ((ImageItem.CurrentRect.Left + ImageItem.CurrentRect.Right) div 2);
-      FDragOffset.Y := Round(Y) - ((ImageItem.CurrentRect.Top + ImageItem.CurrentRect.Bottom) div 2);
+
+      // Use Visual Rect for drag offset
+      // Since GetVisualRect now slides the image away from walls,
+      // we must grab it where the user SEES it, not where the Logic Rect is.
+      var VisRect: TRectF;
+      VisRect := GetVisualRect(ImageItem);
+
+      FDragOffset.X := Round(X) - Round((VisRect.Left + VisRect.Right) / 2);
+      FDragOffset.Y := Round(Y) - Round((VisRect.Top + VisRect.Bottom) / 2);
       if ImageItem.FHotZoom >= 1.1 then
-        ImageItem.FHotZoom := ImageItem.FHotZoom - 0.02;
+        ImageItem.FHotZoomTarget := ImageItem.FHotZoom - 0.02;
       if FSelectedImage <> ImageItem then
       begin
         // === Use SetSelectedImage to trigger StartZoomAnimation ===
@@ -4063,7 +4193,7 @@ begin
             FWasSelectedItem := nil;
         end;
         if ImageItem.FHotZoom >= 1.1 then
-          ImageItem.FHotZoom := ImageItem.FHotZoom - 0.1;
+          ImageItem.FHotZoomTarget := ImageItem.FHotZoom - 0.1;
         SetSelectedImage(ImageItem, ItemIndex);
       end
       else if not FDraggingImage then
@@ -4201,7 +4331,7 @@ begin
         if Abs(ImageItem.FHotZoom - 1.0) > 0.01 then
         begin
           ImageItem.FHotZoomTarget := 1.0;
-          ImageItem.FHotZoom := 1.0; // Force reset
+          //ImageItem.FHotZoom := 1.0; // Force reset
         end;
       end;
     end;
@@ -4311,8 +4441,6 @@ begin
       Exit; // Stop processing
     end;
   end;
-  // ==========================================================
-  // EXISTING MOUSE UP LOGIC (Left Button Release)
   // ==========================================================
   // 1. Handle Rotation Stop (Left Button Release)
   if FIsRotating then
@@ -4577,7 +4705,7 @@ begin
     OldSelected.IsSelected := False;
     { Reset zoom for smooth exit }
     if OldSelected.FHotZoom >= 1 then
-      OldSelected.FHotZoom := 1.1;
+      OldSelected.FHotZoomTarget := 1.1;
   end;
   FWasSelectedItem := FSelectedImage;
   if FWasSelectedItem <> nil then
@@ -4603,7 +4731,7 @@ begin
     ImageItem.IsSelected := True;
     ImageItem.ZoomProgress := 0;
     if ImageItem.FHotZoom < 1 then
-      ImageItem.FHotZoom := 1.0;
+      ImageItem.FHotZoomTarget := 1.0;
     { === RESET BREATHING PHASE === }
     // We reset the phase to 0.0 so the new image "breathes in" from the bottom (1.0).
     // This prevents it from snapping to 1.3 immediately if the phase was at a peak.
@@ -5451,13 +5579,12 @@ begin
         ImageItem.FHotZoomTarget := 1.0;
         Continue; // Skip the standard logic below
       end;
-
       // === END OVERRIDE ===
+
       if (not FHotTrackZoom) and (ImageItem <> FSelectedImage) then
       begin
         if ImageItem.FHotZoom <> 1.0 then
         begin
-          ImageItem.FHotZoom := 1.0;
           ImageItem.FHotZoomTarget := 1.0;
           NeedRepaint := True;
         end;
@@ -5466,14 +5593,25 @@ begin
       if not ImageItem.Visible then
         Continue;
 
+      // Breathing Logic
+      // We disable breathing if we are currently dragging the image.
+      // This prevents the "Jitter/Flicker" effect caused by size changes while moving.
       if FBreathingEnabled and (ImageItem = FSelectedImage) and (ImageItem = FHotItem) then
-        TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0)
+      begin
+        // Check if we are dragging this specific image
+        if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
+          TargetZoom := 1.0 // Freeze to normal size while dragging
+        else
+          TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0); // Normal Breathing
+      end
       else if (ImageItem = FSelectedImage) then
         TargetZoom := 1.0
       else if (ImageItem = FHotItem) then
         TargetZoom := HOT_ZOOM_MAX_FACTOR
       else
         TargetZoom := 1.0;
+
+      //Hotzoom logic
       if ImageItem.FHotZoom < TargetZoom then
         Speed := HOT_ZOOM_IN_PER_SEC
       else
@@ -5594,6 +5732,13 @@ begin
     for i := 0 to FImages.Count - 1 do
     begin
       ImageItem := TImageItem(FImages[i]);
+      if FDraggingSelected and (ImageItem = FSelectedImage) then
+        Continue; // Skip layout for dragged selected image
+
+      if (FFlowLayout = flFreeFloat) and FDraggingImage and (ImageItem = FDraggedImage) then
+        Continue; // Skip layout for dragged freefloat image
+      // =================================================================
+
       // Include if (Not Selected) OR (Selected but Zooming In Place)
       if (not ImageItem.IsSelected) or (not FZoomSelectedtoCenter) then
         VisibleImages.Add(ImageItem);
