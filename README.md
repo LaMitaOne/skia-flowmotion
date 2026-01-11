@@ -1,7 +1,7 @@
 # skia-flowmotion
 Delphi RAD Studio Skia Flowmotion component alpha v0.41  
    
-  <img width="1141" height="1141" alt="Unbenannt" src="https://github.com/user-attachments/assets/2e468e07-efab-49ac-a824-2e7a090e4959" />
+<img width="1143" height="1142" alt="Unbenannt" src="https://github.com/user-attachments/assets/52582681-039b-496f-bf72-7d739735db78" />
    
      
 # Skia-FlowMotion    
