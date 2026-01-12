@@ -49,7 +49,7 @@ If you want to tip me a coffee.. :)
 </p>
     
  ----Latest Changes 
-   v 0.43 Day 6  
+   v 0.43 --- Day 6  
     - skFLM now automatically resizes large images   
     - Added MaxInternalPicSize property (default 720px)   
     - Implemented real-time collision avoidance   
@@ -62,36 +62,36 @@ If you want to tip me a coffee.. :)
     - Wall Sliding: Hotzoom and breathing effects now respect screen edges.   
       Images smoothly slide against borders.   
     - lots fine tuning and bugfixes   
-   v 0.42 Day 5  
+   v 0.42 --- Day 5  
     - Fixed some mem leaks at clear and showpage    
     - Added SurfaceEffects -> sueGlow, sueAmbient    
     - Added function RotateAllBy   
     - Added function ZoomSelectedToFull   
-   v 0.41 Day 5    
+   v 0.41 --- Day 5    
     - FKeepSpaceforZoomed now working   
       Layout keeps space free under centered Selected pic   
     - added onSmallpicclicked   
     - added techbracketwidth property   
-   v 0.4 Day 4   
+   v 0.4 --- Day 4   
     - added propertys RotateDotColor, FRotateDotHotColor, FRotateDotDownColor  
     - added property ShowSmallPicOnlyOnHover  
     - fixed Glowwidth, Hotwidth  
     - added internal TargetRotation  
     - added putalltoAngle function  
-   v 0.3 Day 3   
+   v 0.3 --- Day 3   
     - Added property smallpicmargin, effects rotatedot too   
     - middleclick on rotate now resets rotation   
     - rotate dot now changes color onmousedown   
     - added ResetAllRotations   
     - lot small improvements and bugfixes   
-   v 0.2 Day 2    
+   v 0.2 --- Day 2    
     - Caption & Smallimg working now   
     - Fixed last missing functions from vcl version   
     - Added TSurfaceEffect - sueNone, sueShadow   
     - Added property RoundEdges   
     - Added TPictureBorderType - btTech, btFull   
     - Added propertys AlphaStatic, AlphaHotPhase, AlphaHotSelected   
-   v 0.1 Day 1   
+   v 0.1 --- Day 1   
     - Ported basic VCL Flowmotion functionality to Skia.    
     - Added basic particle effects on click.    
     - Added corner dot for rotating images.    
