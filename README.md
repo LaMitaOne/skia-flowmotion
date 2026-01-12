@@ -64,7 +64,9 @@ If you want to tip me a coffee.. :)
 - Fixed live UI updates for SetCaption, SetHint, and SetSmallPicIndex.   
 - Added BreathRotationEnabled for subtle breathing rotation effects.   
 - Added Imageitem - FInfoText   
-- Added new ShowInfoPanel -> overlays more infos txt, animated slidein and look   
+- Added propertys FInfoFont, FInfoTextColor   
+- Added new ShowInfoPanel -> overlays more infos txt, animated slidein and look
+- Added property FInfoPanelWidthPercent  
 - Changed - MidMousebtn now shows/Hides infopanel and on rotatebtn reset angle   
 - Added TInfoAnimationStyle = (iasBlurEdge, iasStatic)   
 **v 0.43 – Day 6**    
