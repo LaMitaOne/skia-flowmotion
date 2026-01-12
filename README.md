@@ -41,6 +41,8 @@ Homepage: https://lamita.jimdosite.com/
 ### Try it!   
 Grab the repo, run the sample, and watch the magic.     
 Feedback, stars or ideas very welcome – happy to discuss code or add features!   
+  
+Tip: You can play memory on it now. Enable infopanel on some, unselect, and try recognize which all it was :D   
    
 **Sample video:**    
 (https://www.youtube.com/watch?v=R_yIg2XfF24)   
