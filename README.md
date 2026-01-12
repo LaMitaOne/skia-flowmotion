@@ -12,7 +12,7 @@ Started as a simple port of my D7 VCL Flowmotion component...
 **3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background, tech brackets...).   
 VCL Version: https://github.com/LaMitaOne/Flowmotion     
    
-From "just show some search result covers in my player" to **this beast** in about 3 months total 0->VCL->FMXsskia4delphi (with pauses).    
+From "just show some search result covers in my player" to **this beast** in about 3 months total 0->VCL->FMX-skia4delphi (with pauses).    
 No big deal to port old code when Skia is involved 😉 btw its even my first component and...playing with canvas at all... ^^      
    
 **Features at a glance (v0.43):**   
