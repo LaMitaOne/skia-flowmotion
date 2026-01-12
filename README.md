@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion component alpha v0.43**    
+**Delphi RAD Studio Skia Flowmotion component alpha v0.44**    
     
 <img width="1139" height="1137" alt="Unbenannt" src="https://github.com/user-attachments/assets/ed3f782e-1559-442f-b122-ad931a2ec215" />    
     
@@ -20,7 +20,7 @@ just learning by doing, and having fun doing it
 VCL Version: https://github.com/LaMitaOne/Flowmotion    
 Homepage: https://lamita.jimdosite.com/   
     
-### Features at a glance (v0.43)   
+### Features at a glance (v0.44)   
 - Pinterest-like masonry layout    
 - freefloat Layout with save/load positions    
 - Animated appearance (slide-in, “falling” effects, breathing)    
@@ -35,7 +35,8 @@ Homepage: https://lamita.jimdosite.com/
 - ZoomSelectedToFull, RotateAllBy, and more functions   
 - Holographic background (triple layer sine-wave refraction)    
 - HotZoom, Breathing, Glow, Captions, SmallPic overlays    
-- Full live editor in demo (colors, sizes, toggles)   
+- Full live editor in demo (colors, sizes, toggles)
+- InfoPanel with animated slidein on selected pic
     
 ### Try it!   
 Grab the repo, run the sample, and watch the magic.     
@@ -55,7 +56,18 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes   
-**v 0.43 – Day 6**  
+**v 0.44 – Day 7**   
+- Implemented Imageitem TargetAlpha for smooth fade alpha.   
+- Animated Clear method now runs in our physics thread + alpha fade-out.   
+- Fixed shadow perspective alignment for small rotated images too now.   
+- Fixed Z-order layering issues during un-zooming(from fullzoomed) and hot-tracking.   
+- Fixed live UI updates for SetCaption, SetHint, and SetSmallPicIndex.   
+- Added BreathRotationEnabled for subtle breathing rotation effects.   
+- Added Imageitem - FInfoText   
+- Added new ShowInfoPanel -> overlays more infos txt, animated slidein and look   
+- Changed - MidMousebtn now shows/Hides infopanel and on rotatebtn reset angle   
+- Added TInfoAnimationStyle = (iasBlurEdge, iasStatic)   
+**v 0.43 – Day 6**    
 - skFLM now automatically resizes large images  
 - Added MaxInternalPicSize property (default 720px)  
 - Implemented real-time collision avoidance  
