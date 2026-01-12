@@ -35,8 +35,8 @@ Homepage: https://lamita.jimdosite.com/
 - ZoomSelectedToFull, RotateAllBy, and more functions   
 - Holographic background (triple layer sine-wave refraction)    
 - HotZoom, Breathing, Glow, Captions, SmallPic overlays    
-- Full live editor in demo (colors, sizes, toggles)
 - InfoPanel with animated slidein on selected pic
+- Full live editor in demo (colors, sizes, toggles)   
     
 ### Try it!   
 Grab the repo, run the sample, and watch the magic.     
