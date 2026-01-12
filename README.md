@@ -10,6 +10,7 @@ Delphi RAD Studio Skia Flowmotion component alpha v0.43
     
 Started as a simple port of my D7 VCL Flowmotion component...  
 **3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background, tech brackets...).   
+VCL Version: https://github.com/LaMitaOne/Flowmotion     
    
 From "just show some search result covers in my player" to **this beast** in about 3 months total (with pauses).    
 No big deal to port old code when Skia is involved 😉 btw its even my first component and...playing with canvas at all... ^^      
@@ -35,6 +36,8 @@ No big deal to port old code when Skia is involved 😉 btw its even my first co
 Grab the repo, run the sample, and watch the magic.     
 Feedback, stars or ideas very welcome – happy to discuss code or add features!   
    
+Sample video: https://www.youtube.com/watch?v=R_yIg2XfF24   
+    
 **Let's make Delphi UIs awesome again!** 🚀     
      
     Zipped sample exe, that way its small enough for upload  
@@ -47,8 +50,27 @@ If you want to tip me a coffee.. :)
     <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="Donate with PayPal"/>
   </a>
 </p>
+   
+   
+Requirements    
     
- ----Latest Changes    
+Delphi 11+ or 12 (RAD Studio)    
+Skia4Delphi installed and enabled   
+   
+   
+**Current Status**  
+Alpha – everything from the old VCL version is implemented now, still lot to do, but getting usable slowly 😄   
+   
+If you find a bug: feel free to eat it yourself :D   
+I've already got a huge list of ideas and todos, so it's probably on my radar anyway...  
+Especially **full freefloat layout** is still making problems with some things,  
+but **normal layout** is getting very stable now – even with SelectedDraggable and not zoom to center.  
+Physics are running almost perfectly fine already.   
+     
+BUT: if you see how something quickly get fixed, I'd really appreciate any help / PR / issue report :)      
+       
+**----Latest Changes----**       
+      
    v 0.43 --- Day 6   
     - skFLM now automatically resizes large images   
     - Added MaxInternalPicSize property (default 720px)   
@@ -106,28 +128,7 @@ If you want to tip me a coffee.. :)
     - improved pos calculation of rotatecircle for mousedown   
     - added lots more of functions from vcl version    
 
-      
-[![Demo-Video](https://img.youtube.com/vi/R_yIg2XfF24/maxresdefault.jpg)](https://www.youtube.com/watch?v=R_yIg2XfF24)
         
-   
-Requirements    
-    
-Delphi 11+ or 12 (RAD Studio)    
-Skia4Delphi installed and enabled   
-   
-   
-**Current Status**  
-Alpha – everything from the old VCL version is implemented now, still lot to do, but getting usable slowly 😄   
-   
-If you find a bug: feel free to eat it yourself :P   
-I've already got a huge list of ideas and todos, so it's probably on my radar anyway...  
-Especially **full freefloat layout** is still making problems with some things,  
-but **normal layout** is getting very stable now – even with SelectedDraggable and not zoom to center.  
-Physics are running almost perfectly fine already.   
-   
-BUT: if you see how something quickly get fixed, I'd really appreciate any help / PR / issue report :)   
-    
-VCL Version: https://github.com/LaMitaOne/Flowmotion    
-   
+     
 Homepage https://lamita.jimdosite.com/  
    
