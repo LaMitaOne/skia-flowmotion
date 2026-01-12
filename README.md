@@ -68,9 +68,9 @@ If you want to tip me a coffee.. :)
 - Added new ShowInfoPanel -> overlays more infos txt, animated slidein and look
 - Added property FInfoPanelWidthPercent  
 - Changed - MidMousebtn now shows/Hides infopanel and on rotatebtn reset angle   
-- Added TInfoAnimationStyle = (iasBlurEdge, iasStatic)   
+- Added TInfoAnimationStyle = (iasBlurEdge, iasStatic)     
 **v 0.43 – Day 6**    
-- skFLM now automatically resizes large images  
+- skFLM now automatically resizes large images   
 - Added MaxInternalPicSize property (default 720px)  
 - Implemented real-time collision avoidance  
   Images now dynamically move out of the way when the selected is dragged across the screen  
