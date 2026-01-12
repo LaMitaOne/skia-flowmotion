@@ -8,9 +8,9 @@ uses
   FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Ani, FMX.Objects, ShellAPI,
   FMX.Layouts, FMX.Controls.Presentation, FMX.StdCtrls, FMX.Effects, System.Win.Registry,
   System.Skia, FMX.Skia, System.ImageList, FMX.ImgList, FMX.ListBox, FMX.Colors,
-  FMX.Edit, FMX.EditBox, FMX.SpinBox, windows, messages,
+  FMX.Edit, FMX.EditBox, FMX.SpinBox, windows, messages, FMX.Menus,
   //-----
-  uSkFlowmotion, FMX.Menus;
+  uSkFlowmotion;
 
 const
   HKEY_CLASSES_ROOT = $80000000;
@@ -89,9 +89,12 @@ type
     rbhotalpha: TRadioButton;
     rbalpha: TRadioButton;
     rbselectedalpha: TRadioButton;
+    CheckBox14: TCheckBox;
+    Button13: TButton;
     procedure Button10Click(Sender: TObject);
     procedure Button11Click(Sender: TObject);
     procedure Button12Click(Sender: TObject);
+    procedure Button13Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
@@ -105,6 +108,7 @@ type
     procedure CheckBox11Change(Sender: TObject);
     procedure CheckBox12Change(Sender: TObject);
     procedure CheckBox13Change(Sender: TObject);
+    procedure CheckBox14Change(Sender: TObject);
     procedure CheckBox1Change(Sender: TObject);
     procedure CheckBox2Change(Sender: TObject);
     procedure CheckBox3Change(Sender: TObject);
@@ -124,6 +128,7 @@ type
     procedure lytcontrolsResize(Sender: TObject);
     procedure rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton; Shift:
         TShiftState; X, Y: Single);
+    procedure Rectangle1DblClick(Sender: TObject);
     procedure SpinBox1Change(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
   private
@@ -167,6 +172,12 @@ end;
 procedure TfrmMain.Button12Click(Sender: TObject);
 begin
   skfmFlowGallery.ZoomSelectedToFull;
+end;
+
+procedure TfrmMain.Button13Click(Sender: TObject);
+begin
+if skfmFlowGallery.SelectedImage <> nil then
+  skfmFlowGallery.ShowInfoPanel(skfmFlowGallery.SelectedImage);
 end;
 
 procedure TfrmMain.Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
@@ -247,30 +258,34 @@ procedure TfrmMain.Button6Click(Sender: TObject);
 var
   AppDir: string;
   i: Integer;
-  IMList,Pathlist, Captionlist, Hintlist: TStringList;
+  IMList,Pathlist, Captionlist, Hintlist, InfosList: TStringList;
 begin
   AppDir := ExtractFilePath(ParamStr(0));
   IMList:= TStringList.create;
   Pathlist:= TStringList.create;
   Captionlist:= TStringList.create;
   Hintlist:= TStringList.create;
+  InfosList:= TStringList.create;
   try
    for i := 14 downto 0 do begin
      IMList.add(AppDir + inttostr(i) + '.jpg');
      Pathlist.add('Folder or whatever');
      Captionlist.add('Caption');
      Hintlist.Add('Hint');
+     InfosList.Add('Movie infos or whatever you want to show here | pipe used for new line |........... ......... ........... bit more to see if it works right....bla bla bla....');
    end;
    for i := 0 to 14 do begin
      IMList.add(AppDir + inttostr(i) + '.jpg');
      Pathlist.add('Folder or whatever');
      Captionlist.add('Caption');
      Hintlist.Add('Hint');
+     InfosList.Add('Movie infos or whatever you want to show here | pipe used for new line | ........... ......... ........... bit more to see if it works right....bla bla bla....');
    end;
 
   skfmFlowGallery.MaxZoomSize := trunc(Clientwidth / 4);
-  skfmFlowGallery.AddImagesAsync(IMList,Captionlist,Pathlist, Hintlist);
+  skfmFlowGallery.AddImagesAsync(IMList,Captionlist,Pathlist, Hintlist, InfosList);
   finally
+   InfosList.Free;
    IMList.Free;
    Pathlist.Free;
    Captionlist.Free;
@@ -308,6 +323,11 @@ end;
 procedure TfrmMain.CheckBox13Change(Sender: TObject);
 begin
  skfmFlowGallery.KeepSpaceforZoomed := CheckBox13.IsChecked;
+end;
+
+procedure TfrmMain.CheckBox14Change(Sender: TObject);
+begin
+  skfmFlowGallery.BreathRotationEnabled := CheckBox14.isChecked;
 end;
 
 procedure TfrmMain.CheckBox1Change(Sender: TObject);
@@ -453,7 +473,7 @@ begin
       SendNextToPlayer(Item.Path);
       skfmFlowGallery.DeselectZoomedImage; // Optional
       // Optional: Visuelles Feedback (z. B. Farbwechsel oder Message)
-      ShowMessage('Als Nächstes gesendet: ' + Item.Caption);
+     // ShowMessage('Als Nächstes gesendet: ' + Item.Caption);
     end;
   end;
 end;
@@ -466,14 +486,11 @@ var
 begin
   PlayerHandle := FindWindow('TMRMaster', 'MEDIA Revolution Master');
   if PlayerHandle = 0 then Exit;
-
   // Prefix für "Next" (wie du willst: MRXSKIAFLMNXT)
   Data := AnsiString('MRXSKIAFLMNXT' + FilePath);
-
   CopyData.dwData := 0;
   CopyData.cbData := Length(Data) + 1;
   CopyData.lpData := PAnsiChar(Data);
-
   SendMessage(PlayerHandle, WM_COPYDATA, 0, LPARAM(@CopyData));
 end;
 
@@ -482,24 +499,19 @@ var
   Data: string;
 begin
   inherited;
-
   if Message.CopyDataStruct.cbData > 0 then
   begin
     SetLength(Data, Message.CopyDataStruct.cbData);
     Move(Message.CopyDataStruct.lpData^, Data[1], Message.CopyDataStruct.cbData);
-
     while (Length(Data) > 0) and (Data[Length(Data)] = #0) do
       SetLength(Data, Length(Data) - 1);
-
     Data := Trim(Data);
-
     if FileExists(Data)  then
     begin
       skfmFlowGallery.Clear(True);
       LoadFromTxtFile(Data);
     end;
   end;
-
   Message.Result := 1;
 end;
 
@@ -512,9 +524,7 @@ begin
   PlayerHandle := FindWindow('TMRMaster', 'MEDIA Revolution Master');
   if PlayerHandle = 0 then
     Exit;
-
   Data := AnsiString('MRXSKIAFLM' + FilePath);
-
   CopyData.dwData := 0;
   CopyData.cbData := Length(Data) + 1;
   CopyData.lpData := PAnsiChar(Data);
@@ -556,7 +566,7 @@ var
   AppDir: string;
   FileName: string;
   i: Integer;
-  IMList,Pathlist, Captionlist, Hintlist: TStringList;
+  IMList,Pathlist, Captionlist, Hintlist,Infoslist: TStringList;
   smallimgindex: TList;
 begin
   AppDir := ExtractFilePath(ParamStr(0));
@@ -581,18 +591,28 @@ begin
   skfmFlowGallery.SmallPicImageList := Imagelist1;
   skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
   skfmFlowGallery.AddActivationZone('ActivationZone 1', Panel1.BoundsRect);
+    FileName := AppDir + 'back.jpg';
+  skfmFlowGallery.SetBackgroundpicture(FileName);
+  skfmFlowGallery.CaptionFont.Size := 14;
+  skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
+  skfmFlowGallery.HotTrackZoom := True;
+  skfmFlowGallery.Visible := True;
+  skfmFlowGallery.BringToFront;
+
 
   IMList:= TStringList.create;
   Pathlist:= TStringList.create;
   Captionlist:= TStringList.create;
   Hintlist:= TStringList.create;
   smallimgindex := TList.Create;
+  InfosList:= TStringList.create;
   try
    for i := 14 downto 0 do begin
      IMList.add(AppDir + inttostr(i) + '.jpg');
      Pathlist.add('Folder or whatever');
      Captionlist.add('Caption');
      Hintlist.Add('Hint');
+     InfosList.Add('Movie infos or whatever you want to show here  | pipe used for new line |........... ......... ...........  | pipe used for new line |bit more to see if it works right....bla bla bla....');
      smallimgindex.Add(Pointer(i));
    end;
    for i := 0 to 14 do begin
@@ -600,24 +620,21 @@ begin
      Pathlist.add('Folder or whatever');
      Captionlist.add('Caption');
      Hintlist.Add('Hint');
+     InfosList.Add('Movie infos or whatever you want to show here | pipe used for new line | ........... ......... ...........  | pipe used for new line |bit more to see if it works right....bla bla bla....');
      smallimgindex.Add(Pointer(i));
+
    end;
 
   skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
-  skfmFlowGallery.AddImages(IMList,Captionlist,Pathlist, Hintlist, smallimgindex);
+  skfmFlowGallery.AddImages(IMList,Captionlist,Pathlist, Hintlist, InfosList, smallimgindex);
   finally
+  InfosList.Free;
    IMList.Free;
    Pathlist.Free;
    Captionlist.Free;
    Hintlist.Free;
   end;
-  FileName := AppDir + 'back.jpg';
-  skfmFlowGallery.SetBackgroundpicture(FileName);
-  skfmFlowGallery.CaptionFont.Size := 14;
-  skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
-  skfmFlowGallery.HotTrackZoom := True;
-  skfmFlowGallery.Visible := True;
-  skfmFlowGallery.BringToFront;
+
 end;
 
 
@@ -691,7 +708,6 @@ begin
     begin
       Line := Trim(Lines[i]);
       if Line = '' then Continue;
-
       PosPipe := Pos('|', Line);
       if PosPipe > 0 then
       begin
@@ -712,7 +728,6 @@ begin
     Lines.Free;
   end;
 end;
-
 function TfrmMain.GetFirstImageInFolder(const Folder: string): string;
 var
   Files: TArray<string>;
@@ -720,7 +735,6 @@ begin
   Result := '';
   Files := TDirectory.GetFiles(Folder, '*.jpg', TSearchOption.soTopDirectoryOnly);
   if Length(Files) > 0 then Exit(Files[0]);
-
   Files := TDirectory.GetFiles(Folder, '*.png', TSearchOption.soTopDirectoryOnly);
   if Length(Files) > 0 then Exit(Files[0]);
 end;
@@ -738,6 +752,11 @@ procedure TfrmMain.rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton;
 begin
   if SpinBox1.Value < 50 then SpinBox1.Value := 50;
 
+end;
+
+procedure TfrmMain.Rectangle1DblClick(Sender: TObject);
+begin
+  ShowMessage(inttostr(skfmFlowGallery.ImageCount));
 end;
 
 procedure TfrmMain.saiAnimatedLogoAnimationFinished(Sender: TObject);
