@@ -48,8 +48,8 @@ If you want to tip me a coffee.. :)
   </a>
 </p>
     
- ----Latest Changes 
-   v 0.43 --- Day 6  
+ ----Latest Changes    
+   v 0.43 --- Day 6   
     - skFLM now automatically resizes large images   
     - Added MaxInternalPicSize property (default 720px)   
     - Implemented real-time collision avoidance   
