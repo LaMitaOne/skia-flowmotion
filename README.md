@@ -15,6 +15,7 @@ Started as a simple port of my D7 VCL Flowmotion component...
    
 No big deal to port old code when delphi & Skia4delphi is involved 😉     
 btw its even my first component and... playing with canvas at all... ^^    
+just learning by doing, and having fun doing it   
     
 VCL Version: https://github.com/LaMitaOne/Flowmotion    
 Homepage: https://lamita.jimdosite.com/   
