@@ -22,7 +22,7 @@ No big deal to port old code when Skia is involved 😉 btw its even my first co
 - HotTrack & HotZoom hover effects     
 - Dragging selected or all free floating     
 - Paging with falling animation    
-- ActivationZone -> move selected to defined areas and trigger even   
+- ActivationZone -> move selected to defined areas and trigger event   
 - Free rotation with corner handle   
 - Particle explosions on click   
 - Realistic drop shadows
@@ -36,9 +36,12 @@ Grab the repo, run the sample, and watch the magic.
 Feedback, stars or ideas very welcome – happy to discuss code or add features!   
    
 **Let's make Delphi UIs awesome again!** 🚀     
-      
-If you want to tip me a coffee.. :)   
-
+     
+    Zipped sample exe, that way its small enough for upload  
+    
+   
+If you want to tip me a coffee.. :)     
+   
 <p align="center">
   <a href="https://www.paypal.com/donate/?hosted_button_id=RX5KTTMXW497Q">
     <img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif" alt="Donate with PayPal"/>
@@ -102,10 +105,8 @@ If you want to tip me a coffee.. :)
     - fixed shadow perspective when rotated   
     - improved pos calculation of rotatecircle for mousedown   
     - added lots more of functions from vcl version    
-     
-    Zipped sample exe, that way its small enough for upload  
-    
 
+      
 [![Demo-Video](https://img.youtube.com/vi/R_yIg2XfF24/maxresdefault.jpg)](https://www.youtube.com/watch?v=R_yIg2XfF24)
         
    
@@ -115,10 +116,15 @@ Delphi 11+ or 12 (RAD Studio)
 Skia4Delphi installed and enabled   
    
    
-Current Status   
-Alpha, everything of vcl version implemented now, checking for bugs, but getting usable slowly  😄   
-
-VCL Version: https://github.com/LaMitaOne/Flowmotion   
+**Current Status**  
+Alpha – everything from the old VCL version is implemented now, still lot to do, but getting usable slowly 😄   
+   
+If you find a bug: feel free to eat it yourself :P   
+I've already got a huge list of ideas and bugs, so it's probably on my radar anyway...  
+   
+BUT: if you see how something quickly get fixed, I'd really appreciate any help / PR / issue report :)   
+    
+VCL Version: https://github.com/LaMitaOne/Flowmotion    
    
 Homepage https://lamita.jimdosite.com/  
    
