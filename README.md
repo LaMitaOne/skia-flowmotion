@@ -120,7 +120,7 @@ Skia4Delphi installed and enabled
 Alpha – everything from the old VCL version is implemented now, still lot to do, but getting usable slowly 😄   
    
 If you find a bug: feel free to eat it yourself :P   
-I've already got a huge list of ideas and bugs, so it's probably on my radar anyway...  
+I've already got a huge list of ideas and todos, so it's probably on my radar anyway...  
    
 BUT: if you see how something quickly get fixed, I'd really appreciate any help / PR / issue report :)   
     
