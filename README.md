@@ -17,6 +17,8 @@ Started as a simple port of my D7 VCL Flowmotion component...
 No big deal to port old code when delphi & Skia4delphi is involved 😉     
 btw its even my first component and... playing with canvas at all... ^^    
 just learning by doing, and having fun doing it   
+i have no idea if i am doing it "right", just do how i think it could be done  
+not looking at samples or anything   
 me & skia4delphi seem way better compatible than me & vcl canvas, where i am like totally useless   
   
 And yes, I am using some AI help since my eyes are broke at 20% eyesight ability – but only free ones,   
