@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion component alpha v0.44**    
+**Delphi RAD Studio Skia Flowmotion component alpha v0.45**    
     
 <img width="1139" height="1137" alt="Unbenannt" src="https://github.com/user-attachments/assets/ed3f782e-1559-442f-b122-ad931a2ec215" />    
     
@@ -34,22 +34,27 @@ Tip: Nice smooth radio stream without commercials, listening it all the time jus
 VCL Version: https://github.com/LaMitaOne/Flowmotion     
     
 ### Features at a glance (v0.44)   
-- Pinterest-like masonry layout    
-- freefloat Layout with save/load positions    
-- Animated appearance (slide-in, “falling” effects, breathing)    
-- Select / move or zoom it into a target rect    
-- HotTrack & HotZoom hover effects    
-- Dragging selected or all free floating    
-- Paging with falling animation    
-- ActivationZone → move selected to defined areas and trigger event    
-- Free rotation with corner handle    
-- Particle explosions on click    
-- Realistic drop shadows    
-- ZoomSelectedToFull, RotateAllBy, and more functions   
-- Holographic background (triple layer sine-wave refraction)    
-- HotZoom, Breathing, Glow, Captions, SmallPic overlays    
-- InfoPanel with animated slidein on selected pic
-- Full live editor in demo (colors, sizes, toggles)   
+   
+- **Pinterest-like masonry layout**   
+- **Freefloat layout** with save/load positions  
+- **Animated appearance** (slide-in, “falling” effects, breathing)  
+- **HotTrack & HotZoom** hover effects  
+- **Dragging** selected     
+- **Animated clear** into any direction or to position        
+- **Paging** with falling animation  
+- **ActivationZone** move selected to defined areas and trigger event  
+- **Free rotation** with corner handle  
+- **Particle explosions** on click  
+- **Realistic drop shadows** (dynamic scaling based on zoom/breath)  
+- **ZoomSelectedToFull**, RotateAllBy, PutAllToAngle and more functions  
+- **Holographic background** (triple layer sine-wave refraction)   
+- **InfoPanel** with animated slide-in on selected pic from any direction with different styles    
+- **HoverAlive** – gentle micro-hovering (floating around center)  
+- **Wall Sliding** physics (respect screen edges)  
+- **Collision avoidance** – images dynamically move out of the way   
+- **Full live editor** in demo (colors, sizes, toggles)  
+       
+...and many more...    
     
 ### Try it!   
 Grab the repo, run the sample, and watch the magic.     
@@ -71,8 +76,30 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes   
+   
+**v 0.45 – Day 8**   
+   
+- Added HoverAlive feature (Micro-Hovering).   
+  Images now gently float around their center position with customizable range and speed.   
+- Aded propertys -> HoverAliveRange, HoverAlive, HoverAliveSpeed   
+- Added new TInfoPanelDirection: ipdAuto, ipdTop, ipdBottom, ipdLeft, ipdRight   
+- Added property -> InfoPanelWidthPercent   
+- Added new InfoIndicator -> propertys FInfoIndicatorColor, FShowInfoIndicator   
+  shows arrows when info text in imageitem and on click show infos   
+- Added new TFullscreenAngle: fsa0, fsa90, fsa180, fsa270   
+- Improved shadow rendering: breathing selected now raises shadow more than hotzoomed   
+- Improved RotateDot: stops breathing on mouseover + larger clickable area   
+- Improved smallpic & rotatedot positioning with roundedges + smallpicmargin   
+- Added property RotateHandleSize   
+- New: Set OwnerForm Quality to HighPerformance by default   
+- Improved wall sliding physics – now calculates with rotation (commented out for now, more TODO)   
+- Split DrawFluidInfo into separate functions for easier extension: DrawFluidInfo_BlurEdge, DrawFluidInfo_Static   
+- Fixed: Info text now supports new line at '|'   
+- Added new TInfoAnimationStyle: iasTransparent (transparency tied to zoom factor)   
+- Added new properties: HotZoomMaxFactor, EnableParticlesOnMouseClick   
     
-**v 0.44 – Day 7**   
+**v 0.44 – Day 7**  
+   
 - Implemented Imageitem TargetAlpha for smooth fade alpha.   
 - Animated Clear method now runs in our physics thread + alpha fade-out.   
 - Fixed shadow perspective alignment for small rotated images too now.   
