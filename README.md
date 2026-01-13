@@ -17,6 +17,15 @@ No big deal to port old code when delphi & Skia4delphi is involved 😉
 btw its even my first component and... playing with canvas at all... ^^    
 just learning by doing, and having fun doing it   
 me & skia4delphi seem way better compatible than me & vcl canvas, where i am like totally useless   
+  
+And yes, I am using some AI help since my eyes are broke at 20% eyesight ability – but only free ones,   
+and only in browser, like coding with a friend (who makes always again the same errors lol but its really fun that way):      
+- At start mostly **Grok** (but no way anymore at that code size now to throw it all at one at it)    
+- ChatGPT was **totally useless** somehow    
+- **z.ai** helps me some (and it has no problems when you throw 12k lines at once at it   
+- not bad for free AI      
+   
+But mostly I am telling it **how it works** at the end – still, it speeds things up! 🚀i   
     
 VCL Version: https://github.com/LaMitaOne/Flowmotion    
 Homepage: https://lamita.jimdosite.com/   
