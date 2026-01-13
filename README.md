@@ -6,6 +6,7 @@
 # Skia-FlowMotion   
    
 **Animated Image Flow Gallery – Delphi FMX + Skia4Delphi (Google's Skia)**   
+[Skia4Delphi](https://github.com/skia4delphi/skia4delphi)  
     
 Started as a simple port of my D7 VCL Flowmotion component...     
 **From zero to this beast in ~3 months** (with pauses):     
