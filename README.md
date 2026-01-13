@@ -25,11 +25,13 @@ and only in browser, like coding with a friend (who makes always again the same 
 - ChatGPT was **totally useless** somehow    
 - **z.ai** helps me some (and it has no problems when you throw 12k lines at once at it   
 - not bad for free AI, not saw any daily limit so far too        
-   
-But mostly I am telling it **how it works** at the end – still, it speeds things up! 🚀i   
     
-VCL Version: https://github.com/LaMitaOne/Flowmotion    
-Homepage: https://lamita.jimdosite.com/   
+But mostly I am telling it **how it works** at the end – still, it speeds things up! 🚀i    
+    
+Tip: Nice smooth radio stream without commercials, listening it all the time just:   
+ [60 North Radio](https://60north.radio/)     
+    
+VCL Version: https://github.com/LaMitaOne/Flowmotion     
     
 ### Features at a glance (v0.44)   
 - Pinterest-like masonry layout    
