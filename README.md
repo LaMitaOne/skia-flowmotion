@@ -21,7 +21,7 @@ me & skia4delphi seem way better compatible than me & vcl canvas, where i am lik
   
 And yes, I am using some AI help since my eyes are broke at 20% eyesight ability – but only free ones,   
 and only in browser, like coding with a friend (who makes always again the same errors lol but its really fun that way):      
-- At start mostly **Grok** at vcl d7 version (but no way anymore at that code size now to throw it all at once at it + daily limity)    
+- At start mostly **Grok** at vcl d7 version (but no way anymore at that code size now to throw it all at once at it + daily limit)    
 - ChatGPT was **totally useless** somehow    
 - **z.ai** helps me some (and it has no problems when you throw 12k lines at once at it   
 - not bad for free AI, not saw any daily limit so far too        
