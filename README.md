@@ -38,7 +38,7 @@ Tip: Nice smooth radio stream without commercials, listening it all the time jus
     
 VCL Version: https://github.com/LaMitaOne/Flowmotion     
     
-### Features at a glance (v0.44)   
+### Features at a glance (v0.45)   
    
 - **Pinterest-like masonry layout**   
 - **Freefloat layout** with save/load positions  
