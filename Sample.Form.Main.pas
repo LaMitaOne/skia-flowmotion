@@ -38,7 +38,6 @@ type
     ImageList1: TImageList;
     CheckBox1: TCheckBox;
     Rectangle1: TRectangle;
-    CheckBox2: TCheckBox;
     Button9: TButton;
     Button10: TButton;
     Panel1: TPanel;
@@ -87,7 +86,6 @@ type
     rbhotalpha: TRadioButton;
     rbalpha: TRadioButton;
     rbselectedalpha: TRadioButton;
-    CheckBox14: TCheckBox;
     Button13: TButton;
     rbrotatesize: TRadioButton;
     rbsmlpcmrg: TRadioButton;
@@ -107,6 +105,12 @@ type
     ComboBox5: TComboBox;
     CheckBox15: TCheckBox;
     CheckBox16: TCheckBox;
+    ComboBox6: TComboBox;
+    CheckBox2: TCheckBox;
+    CheckBox14: TCheckBox;
+    rbifoarrow: TRadioButton;
+    Panel3: TPanel;
+    rbinfhot: TRadioButton;
     procedure Button10Click(Sender: TObject);
     procedure Button11Click(Sender: TObject);
     procedure Button12Click(Sender: TObject);
@@ -143,6 +147,7 @@ type
     procedure ComboBox3Change(Sender: TObject);
     procedure ComboBox4Change(Sender: TObject);
     procedure ComboBox5Change(Sender: TObject);
+    procedure ComboBox6Change(Sender: TObject);
     procedure fanFadeOutTransitionFinish(Sender: TObject);
     procedure saiAnimatedLogoAnimationFinished(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -169,6 +174,7 @@ type
     procedure Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
      protected
      procedure WMCopyData(var Message: TWMCopyData); message WM_COPYDATA;
+     procedure Onfullscreen(Sender: TObject; ImageItem: TImageItem; Index: Integer);
   public
     { Public declarations }
   end;
@@ -243,7 +249,7 @@ begin
   //skfmFlowGallery.AddImageAsync(ExtractFilePath(ParamStr(0)) + inttostr(random(13)+1) + '.jpg');
 
   skfmFlowGallery.ImageEntryStyle := iesFromPoint;
-  skfmFlowGallery.EntryPoint := Point(Round(Button5.Position.X), Round(Button5.Position.Y));
+  skfmFlowGallery.EntryPoint := Point(Round(Panel3.Position.X), Round(Panel3.Position.Y));
   skfmFlowGallery.AddImageAsync(ExtractFilePath(ParamStr(0)) + inttostr(random(13)+1) + '.jpg');
 end;
 
@@ -253,7 +259,7 @@ var
 begin
   // 1. SET ENTRY POINT (Where images fly from)
   // We use the button's screen center position as the target
-  skfmFlowGallery.EntryPoint := Point(Round(Button9.Position.X), Round(Button9.Position.Y));
+  skfmFlowGallery.EntryPoint := Point(Round(Panel3.Position.X), Round(Panel3.Position.Y));
   skfmFlowGallery.ImageEntryStyle := iesFromPoint;
   // 2. SHOW DIALOG
   // Ensure TOpenDialog1 has Options: [ofAllowMultiSelect] set in Object Inspector
@@ -436,7 +442,11 @@ if not Assigned(skfmFlowGallery) then Exit;
   else if rbrotatedotDown.IsChecked then
     skfmFlowGallery.RotateDotDownColor := ColorPicker1.Color
   else if rbparticle.IsChecked then
-    skfmFlowGallery.ParticleColor := ColorPicker1.Color;
+    skfmFlowGallery.ParticleColor := ColorPicker1.Color
+  else if rbifoarrow.IsChecked then
+    skfmFlowGallery.InfoIndicatorColor := ColorPicker1.Color
+  else if rbinfhot.IsChecked then
+    skfmFlowGallery.InfoIndicatorHotColor := ColorPicker1.Color;
 end;
 
 procedure TfrmMain.ComboBox1Change(Sender: TObject);
@@ -484,6 +494,14 @@ begin
     1: skfmFlowGallery.InfoPanelWidthPercent := 50 / 100;  // Becomes 0.50 (50%)
     2: skfmFlowGallery.InfoPanelWidthPercent := 75 / 100;  // Becomes 0.75 (75%)
   end;
+end;
+
+procedure TfrmMain.ComboBox6Change(Sender: TObject);
+begin
+   case Combobox6.ItemIndex of
+     0: skfmFlowGallery.BackgroundEffect := beRealMatrix;
+     1: skfmFlowGallery.BackgroundEffect := beHolographic;
+   end;
 end;
 
 
@@ -603,7 +621,7 @@ begin
   end;
   FileName := AppDir + 'back.jpg';
   skfmFlowGallery.SetBackgroundpicture(FileName);
-  //skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
+  skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
   skfmFlowGallery.AnimationSpeed := 3;
   skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
@@ -618,8 +636,7 @@ begin
   skfmFlowGallery.SmallPicImageList := Imagelist1;
   skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
   skfmFlowGallery.AddActivationZone('ActivationZone 1', Panel1.BoundsRect);
-
-
+  skfmFlowGallery.OnFullscreenEnter := Onfullscreen;
   skfmFlowGallery.CaptionFont.Size := 14;
   skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
   skfmFlowGallery.HotTrackZoom := True;
@@ -652,6 +669,7 @@ begin
 
   skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
   skfmFlowGallery.AddImages(IMList,Captionlist,Pathlist, Hintlist, InfosList, smallimgindex);
+  skfmFlowGallery.AnimatedBackground := True;
   finally
   InfosList.Free;
    IMList.Free;
@@ -692,6 +710,11 @@ end;
 procedure TfrmMain.FormShow(Sender: TObject);
 begin
  if Loadedwithparams then Timer1.Enabled := True;
+end;
+
+procedure TfrmMain.Onfullscreen(Sender: TObject; ImageItem: TImageItem; Index: Integer);
+begin
+   ShowMessage('Fullscreen arrived')
 end;
 
 procedure TfrmMain.LoadFromTxtFile(const TxtFilePath: string);
@@ -754,6 +777,9 @@ begin
     Lines.Free;
   end;
 end;
+
+
+
 function TfrmMain.GetFirstImageInFolder(const Folder: string): string;
 var
   Files: TArray<string>;
