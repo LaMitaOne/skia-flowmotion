@@ -11,7 +11,7 @@
     
 Started as a simple port of my D7 VCL Flowmotion component...     
 **From zero to this beast in ~3 months** (with pauses):     
-**0 → VCL → FMX/Skia4Delphi**     
+**0 → VCL → FMX/Skia4Delphi**      
    
 **3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background,    tech brackets...).   
    
@@ -52,7 +52,8 @@ VCL Version: https://github.com/LaMitaOne/Flowmotion
 - **Particle explosions** on click  
 - **Realistic drop shadows** (dynamic scaling based on zoom/breath)  
 - **ZoomSelectedToFull**, RotateAllBy, PutAllToAngle and more functions  
-- **Holographic background** (triple layer sine-wave refraction)   
+- **Holographic background** effect (triple layer sine-wave refraction)   
+- **RealMatrix background** effect (using live data of items)    
 - **InfoPanel** with animated slide-in on selected pic from any direction with different styles    
 - **HoverAlive** – gentle micro-hovering (floating around center)  
 - **Wall Sliding** physics (respect screen edges)  
