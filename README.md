@@ -1,8 +1,8 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion component alpha v0.45**    
+**Delphi RAD Studio Skia Flowmotion component alpha v0.46**    
     
- <img width="1259" height="1132" alt="Unbenannt" src="https://github.com/user-attachments/assets/f18f3f8d-a59f-4bc2-9764-5b9f0afa9303" />
-  
+   <img width="2560" height="1440" alt="Unbenannt" src="https://github.com/user-attachments/assets/f7ec5f3b-dbec-43a9-b057-da1e31ab6dfc" />
+
     
 # Skia-FlowMotion   
    
@@ -38,7 +38,7 @@ Tip: Nice smooth radio stream without commercials, listening it all the time jus
     
 VCL Version: https://github.com/LaMitaOne/Flowmotion     
     
-### Features at a glance (v0.45)   
+### Features at a glance (v0.46)   
    
 - **Pinterest-like masonry layout**   
 - **Freefloat layout** with save/load positions  
@@ -82,6 +82,21 @@ If you want to tip me a coffee.. :)
     
 ### Latest Changes   
    
+**v 0.46 – Day 9**     
+      
+- Added new TBackgroundEffect -> beHolographic, beRealMatrix    
+- beRealMatrix using live data of items (smallpics too but instable atm, commented out)    
+- New propertys -> MatrixFont, MatrixColor, MatrixHeadColor, MatrixSpeed, MatrixFontSize    
+- Fixed: Hoveralive not stops anymore at fullscreen    
+- some fine tuning, small bugfixes, code cleaning, remove var corpses...    
+- Improved InfoIndicator: stops breathing on mouseover    
+- Added propertys -> InfoIndicatorHotColor, ShowInfoOnMiddleClick    
+- Added OnFullscreenEnter event.    
+  Fires when the selected image animation finishes (is fully zoomed).    
+  Requires synchronization with Main Thread for UI safety.     
+- Added Swipe Gesture support for InfoPanel when SelectedMovable false or fullscreen    
+  Mouse Swipe (Left/Right/Up/Down) opens/closes the info panel depending on TInfoPanelDirection.    
+    
 **v 0.45 – Day 8**   
    
 - Added HoverAlive feature (Micro-Hovering).   
