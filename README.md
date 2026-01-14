@@ -88,7 +88,7 @@ If you want to tip me a coffee.. :)
   Images now gently float around their center position with customizable range and speed.   
 - Aded propertys -> HoverAliveRange, HoverAlive, HoverAliveSpeed   
 - Added new TInfoPanelDirection: ipdAuto, ipdTop, ipdBottom, ipdLeft, ipdRight   
-- Added property -> InfoPanelWidthPercent   
+- Fixed: InfoPanelWidthPercent now working   
 - Added new InfoIndicator -> propertys FInfoIndicatorColor, FShowInfoIndicator   
   shows arrows when info text in imageitem and on click show infos   
 - Added new TFullscreenAngle: fsa0, fsa90, fsa180, fsa270   
