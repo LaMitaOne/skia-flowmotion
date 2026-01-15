@@ -370,7 +370,6 @@ type
     //videoplayer
     FVideoPlayer: TMediaPlayerControl;
     FTestVideoFile: string;
-    FPendingVideoFile: string;
     FCaptureVideo: Boolean;
     FLastVideoRect: TRectF;  // Tracks last video position to avoid unnecessary updates
     FLastVideoAngle: Single; // Tracks last video angle
@@ -2404,41 +2403,23 @@ begin
   if not ImageItem.Visible then
     Exit;
 
-  // ==========================================================
-  // BYPASS WALL SLIDING DURING SPECIAL STATES
-  // ==========================================================
-  // 1. Clearing: No physics
+  // ==========================================
+  // IGNORE WALLS WHILE CLEARING
+  // ==========================================
   if FIsClearing then
   begin
     Result := TRectF.Create(ImageItem.CurrentRect);
     Exit;
   end;
 
-  // 2. Zoomed To Fill: Use target directly (Centered/Anchored logic handled in ZoomSelectedToFull)
-  if FIsZoomedToFill then
-  begin
-    Result := TRectF.Create(ImageItem.CurrentRect);
-
-    // === HOVER ALIVE CONTROL FOR FULLSCREEN ===
-    // If this is the Selected Image (Fullscreen) and HoverAliveOnFullscreen is OFF,
-    // we do NOT apply the hover offset (Image stays still).
-    if FHoverAlive then
-    begin
-      if (ImageItem = FSelectedImage) and (not FHoverAliveOnFullscreen) then
-        // Skip offset -> Selected Image stays perfectly still
-
-      else
-        // Apply offset -> Normal Hover (Background images or Enabled property)
-        Result.Offset(ImageItem.FHoverX, ImageItem.FHoverY);
-    end;
-    Exit;
-  end;
-
-  // ==========================================================
+  // ==========================================
   // 1. CALCULATE BASE DIMENSIONS
-  // ==========================================================
+  // ==========================================
+
+  // Determine if we should use CurrentRect (Animating) or TargetRect (Static/Idle)
   if (ImageItem.CurrentRect.Right > ImageItem.CurrentRect.Left) and (ImageItem.CurrentRect.Bottom > ImageItem.CurrentRect.Top) then
   begin
+    // Normal Case: CurrentRect is valid (has size)
     BaseRect := TRectF.Create(ImageItem.CurrentRect);
     CenterX := (BaseRect.Left + BaseRect.Right) / 2;
     CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
@@ -2447,11 +2428,26 @@ begin
   end
   else
   begin
-    BaseRect := TRectF.Create(ImageItem.TargetRect);
-    CenterX := (BaseRect.Left + BaseRect.Right) / 2;
-    CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
-    BaseW := BaseRect.Width;
-    BaseH := BaseRect.Height;
+    // Fallback Case
+    // FIX: If we are animating, we MUST use CurrentRect even if it's 0 size (e.g., Point start).
+    // Using TargetRect here causes the "Flash at Target" bug.
+    if ImageItem.Animating then
+    begin
+      BaseRect := TRectF.Create(ImageItem.CurrentRect);
+      CenterX := (BaseRect.Left + BaseRect.Right) / 2;
+      CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
+      BaseW := BaseRect.Width;
+      BaseH := BaseRect.Height;
+    end
+    else
+    begin
+      // Static Case: If CurrentRect is empty/invalid but not animating, use TargetRect
+      BaseRect := TRectF.Create(ImageItem.TargetRect);
+      CenterX := (BaseRect.Left + BaseRect.Right) / 2;
+      CenterY := (BaseRect.Top + BaseRect.Bottom) / 2;
+      BaseW := BaseRect.Right - BaseRect.Left;
+      BaseH := BaseRect.Bottom - BaseRect.Top;
+    end;
   end;
 
   // ==========================================================
@@ -2466,12 +2462,9 @@ begin
   // ==========================================================
   // RESTRICT MAX SIZE TO SCREEN
   // ==========================================================
-  // If the intended size is wider than screen, shrink ZoomFactor.
   if NewW > Self.Width then
     ZoomFactor := Self.Width / BaseW;
 
-  // If the intended size is taller than screen, shrink ZoomFactor.
-  // Also ensure we don't blow up Width while shrinking Height (Min logic).
   if NewH > Self.Height then
   begin
     ZoomFactor := Min(ZoomFactor, Self.Height / BaseH);
@@ -2487,10 +2480,6 @@ begin
   // ==========================================================
   // 3. WALL SLIDING / ANCHORING
   // ==========================================================
-  // Because NewW <= Width and NewH <= Height (due to fix above),
-  // we only need to check if the *position* (Center) places it off-screen.
-  // We shift it back inside.
-
   ShiftX := 0;
   ShiftY := 0;
 
@@ -2503,12 +2492,10 @@ begin
     ShiftY := -Result.Top;
 
   // Anchor Right (Don't go > Width)
-  // Only shift if it doesn't conflict with Left anchor
   if Result.Right > Self.Width then
     ShiftX := Self.Width - Result.Right;
 
   // Anchor Bottom (Don't go > Height)
-  // Only shift if it doesn't conflict with Top anchor
   if Result.Bottom > Self.Height then
     ShiftY := Self.Height - Result.Bottom;
 
@@ -4080,7 +4067,6 @@ var
   LSkFont: ISkFont;
   CharY: Single;
   CurrentChar: string;
-  Img: TImageItem;
   TargetIdx: Integer; // Helper var for safety check
 begin
   if not FAnimatedBackground then
@@ -4348,7 +4334,6 @@ end;
 procedure TSkFlowmotion.Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
 var
   VisRect: TRectF;
-  ClipRR: TSkRoundRect;
   i, MaxLineWidth, LineTextWidth, HandleSize, Margin: Integer;
   ImageItem: TImageItem;
   Paint: ISkPaint;
@@ -6299,10 +6284,10 @@ begin
           FAllSmallPicIndices.Delete(FSelectedImage.FImageIndex);
         end;
 
+        SpawnParticles(X, Y, 200, GetDominantColor(FSelectedImage.FSkImage));
+
         // Remove from Visual List (FImages)
         FImages.Delete(FImages.IndexOf(FSelectedImage));
-
-        SpawnParticles(X, Y, 200, FParticleColor);
 
         // Reset State (Clear Selection)
         FSelectedImage := nil;
@@ -6833,7 +6818,6 @@ var
   Item: TImageItem;
   VisualRect: TRectF;
   CenterX, CenterY: Single;
-  VisItem: TImageItem;
   CheckPt: TPointF; // Use TPointF (from System.Types)
   Dist, BestDist: Double;
 begin
@@ -8574,20 +8558,11 @@ end;
 // --------------------------------------------------------------
 procedure TSkFlowMotion.DoAnimateBoom(AImageItem: TImageItem; ASync: Boolean);
 var
-  i, ColsCount: Integer;
-  Item: TImageItem;
-  Timeout: Cardinal;
   TempRect: TRectF;
   SP: TSmallPicParticle;
-  CenterX, CenterY: Single;
   RandomDir: Integer;
-  SourceL, SourceT, SourceB, SourceR: Single;
   // Vars for Explosion logic
   ImageCX, ImageCY: Single;
-  TargetCX, TargetCY: Single;
-  RandomDist, ExpSpeed: Single;
-  AngleStep: Single;
-  AlphaStep: Single;
 begin
   RandomDir := Random(8) + 1; // 1..8 = 4 directions x 2 diagonals
     // 2. Calculate Center of deleted image
@@ -8698,11 +8673,7 @@ end;
 
 procedure TSkFlowmotion.CreateNewVideoSnapshot(AWidth, AHeight: Single);
 var
-  Surface: ISkSurface;
-  Pixmap: ISkPixmap;
-  Info: TSkImageInfo;
   Data: TBitmap;
-  Pixels: PByte;
   MS: TMemoryStream;
 begin
   if (not Assigned(FSelectedImage)) or (not Assigned(FVideoPlayer)) then
@@ -9093,6 +9064,7 @@ begin
       if (r >= 0) and (r < Length(Grid)) and (c >= 0) and (c < Length(Grid[0])) then
         Grid[r, c] := True;
 end;
+
 { - making some problems sometimes selected goign directly to old layout pos...
 function TSkFlowmotion.PlaceImage(ImageItem: TImageItem; var Grid: TBooleanGrid; Row, Col, SpanRows, SpanCols: Integer; BaseCellWidth, BaseCellHeight: Integer): Boolean;
 var
