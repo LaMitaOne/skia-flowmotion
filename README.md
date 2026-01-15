@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion component alpha v0.46**    
+**Delphi RAD Studio Skia Flowmotion component alpha v0.47**    
     
    <img width="2560" height="1440" alt="Unbenannt" src="https://github.com/user-attachments/assets/f7ec5f3b-dbec-43a9-b057-da1e31ab6dfc" />
 
@@ -24,7 +24,7 @@ me & skia4delphi seem way better compatible than me & vcl canvas
 **Disproven.**    
 few days. Done.   
       
-### Features at a glance (v0.46)   
+### Features at a glance (v0.47)   
    
 - **Pinterest-like masonry layout**   
 - **Freefloat layout** with save/load positions (not fully stable atm)    
@@ -67,10 +67,21 @@ If you want to tip me a coffee.. :)
   </a>
 </p>
     
-### Latest Changes   
-   
-**v 0.46 – Day 9**     
+### Latest Changes     
+     
+**v 0.47 – Day 10**     
       
+- Fixed Infoindicator showing again before panel outside   
+- Fixed sometimes selected getting directly back to gridposition and not animate to it when clickng like mad around and select others :D   
+- Fixed sometimes item from fullscreen animating back in line getting a moment invisible   
+- Added property HoverAliveOnFullscreen en/disables HoverAlive for selected only at fullscreen   
+- Implemented basic videoplayer inside of selected image (not working, but starting already, threadhopping works :D)    
+- Implemented base for smartnavigation (GetSpatialCandidate -> TSmartImageAction = (siaSelectNorth, siaSelectSouth, siaSelectWest, siaSelectEast) not finished   
+- Added property AlwaysShowInfo   
+- Added property DeleteClicked -> if active clicked pic gets destroyed   
+     
+**v 0.46 – Day 9**      
+       
 - Added new TBackgroundEffect -> beHolographic, beRealMatrix    
 - beRealMatrix using live data of items (smallpics too but instable atm, commented out)    
 - New propertys -> MatrixFont, MatrixColor, MatrixHeadColor, MatrixSpeed, MatrixFontSize    
