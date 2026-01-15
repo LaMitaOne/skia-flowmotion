@@ -22,26 +22,12 @@ me & skia4delphi seem way better compatible than me & vcl canvas
    
 **Delphi GUIs are boring and outdated?**    
 **Disproven.**    
-8 days. Done.   
-    
-And yes, I am using some AI help since my eyes are broke at 20% eyesight ability – but only free ones,   
-and only in browser, like coding with a friend (who makes always again the same errors lol but its really fun that way):      
-- At start mostly **Grok** at vcl d7 version (but no way anymore at that code size now to throw it all at once at it + daily limit)    
-- ChatGPT was **totally useless** somehow    
-- **z.ai** helps me some (and it has no problems when you throw 12k lines at once at it   
-- not bad for free AI, not saw any daily limit so far too        
-    
-But mostly I am telling it **how it works** at the end – still, it speeds things up! 🚀i    
-    
-Tip: Nice smooth radio stream without commercials, listening it all the time just:   
- [60 North Radio](https://60north.radio/)     
-    
-VCL Version: https://github.com/LaMitaOne/Flowmotion     
-    
+few days. Done.   
+      
 ### Features at a glance (v0.46)   
    
 - **Pinterest-like masonry layout**   
-- **Freefloat layout** with save/load positions  
+- **Freefloat layout** with save/load positions (not fully stable atm)    
 - **Animated appearance** (slide-in, “falling” effects, breathing)  
 - **HotTrack & HotZoom** hover effects  
 - **Dragging** selected     
@@ -191,7 +177,24 @@ If you want to tip me a coffee.. :)
   Layers are offset by Sine waves (WaveX, WaveY) to simulate liquid refraction or a heat haze over the entire picture.  
 - fixed shadow perspective when rotated  
 - improved pos calculation of rotatecircle for mousedown   
-- added lots more of functions from vcl version   
+- added lots more of functions from vcl version
+   
+   ------------------------      
+      
+And yes, I am using some AI help since my eyes are broke at 20% eyesight ability – but only free ones,   
+and only in browser, like coding with a friend (who makes always again the same errors lol but its really fun that way):      
+- At start mostly **Grok** at vcl d7 version (but no way anymore at that code size now to throw it all at once at it + daily limit)    
+- ChatGPT was **totally useless** somehow    
+- **z.ai** helps me some (and it has no problems when you throw 12k lines at once at it   
+- not bad for free AI, not saw any daily limit so far too        
+      
+But mostly I am telling it **how it works** at the end – still, it speeds things up! 🚀i    
+    
+Tip: Nice smooth radio stream without commercials, listening it all the time just:   
+ [60 North Radio](https://60north.radio/)     
+    
+VCL Version: https://github.com/LaMitaOne/Flowmotion     
+    
    
 ### Requirements   
 Delphi 11+ or 12 (RAD Studio)    
