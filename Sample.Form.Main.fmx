@@ -4043,7 +4043,7 @@ object frmMain: TfrmMain
     Size.Height = 1104.000000000000000000
     Size.PlatformDefault = False
     Visible = False
-    TabOrder = 21
+    TabOrder = 25
     object Panel1: TPanel
       Anchors = [akRight, akBottom]
       Position.X = 1038.000000000000000000
@@ -4109,7 +4109,7 @@ object frmMain: TfrmMain
         Size.Width = 120.000000000000000000
         Size.Height = 18.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 20
+        TabOrder = 21
         Text = 'selected movable'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4203,7 +4203,7 @@ object frmMain: TfrmMain
         Size.Width = 68.000000000000000000
         Size.Height = 137.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 23
+        TabOrder = 24
         OnMouseUp = ColorPicker1MouseUp
       end
       object rbselfontcol: TRadioButton
@@ -4213,7 +4213,7 @@ object frmMain: TfrmMain
         Size.Width = 76.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 52
+        TabOrder = 53
         Text = 'sel fontcolor'
         TextSettings.FontColor = claAliceblue
       end
@@ -4224,7 +4224,7 @@ object frmMain: TfrmMain
         Size.Width = 70.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 50
+        TabOrder = 51
         Text = 'fontcolor'
         TextSettings.FontColor = claAliceblue
       end
@@ -4235,7 +4235,7 @@ object frmMain: TfrmMain
         Size.Width = 84.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 47
+        TabOrder = 48
         Text = 'sel capback'
         TextSettings.FontColor = claAliceblue
       end
@@ -4246,7 +4246,7 @@ object frmMain: TfrmMain
         Size.Width = 70.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 45
+        TabOrder = 46
         Text = 'capback'
         TextSettings.FontColor = claAliceblue
       end
@@ -4257,7 +4257,7 @@ object frmMain: TfrmMain
         Size.Width = 76.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 43
+        TabOrder = 44
         Text = 'glowcolor'
         TextSettings.FontColor = claAliceblue
         object rbhotcol: TRadioButton
@@ -4278,7 +4278,7 @@ object frmMain: TfrmMain
         Size.Width = 70.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 41
+        TabOrder = 42
         Text = 'rotatedot'
         TextSettings.FontColor = claAliceblue
       end
@@ -4298,7 +4298,7 @@ object frmMain: TfrmMain
       end
       object SpinBox1: TSpinBox
         Touch.InteractiveGestures = [LongTap, DoubleTap]
-        TabOrder = 53
+        TabOrder = 54
         Cursor = crIBeam
         Max = 255.000000000000000000
         Value = 3.000000000000000000
@@ -4316,7 +4316,7 @@ object frmMain: TfrmMain
         Size.Width = 117.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 51
+        TabOrder = 52
         Text = 'animation speed'
         TextSettings.FontColor = claAliceblue
       end
@@ -4327,7 +4327,7 @@ object frmMain: TfrmMain
         Size.Width = 84.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 49
+        TabOrder = 50
         Text = 'Glow width'
         TextSettings.FontColor = claAliceblue
         object Rectangle2: TRectangle
@@ -4344,7 +4344,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 46
+        TabOrder = 47
         Text = 'Hot width'
         TextSettings.FontColor = claAliceblue
       end
@@ -4355,7 +4355,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 44
+        TabOrder = 45
         Text = 'Fontsize'
         TextSettings.FontColor = claAliceblue
       end
@@ -4366,7 +4366,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 42
+        TabOrder = 43
         Text = 'Caption Alpha'
         TextSettings.FontColor = claAliceblue
         object rbCaptionYOffset: TRadioButton
@@ -4387,7 +4387,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 36
+        TabOrder = 37
         Text = 'Page size'
         TextSettings.FontColor = claAliceblue
         OnMouseDown = rbPagesizeMouseDown
@@ -4400,7 +4400,7 @@ object frmMain: TfrmMain
         Size.Width = 75.000000000000000000
         Size.Height = 21.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 22
+        TabOrder = 23
         Text = 'Hotzoom'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4414,7 +4414,7 @@ object frmMain: TfrmMain
         Size.Width = 121.000000000000000000
         Size.Height = 21.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 21
+        TabOrder = 22
         Text = 'selected breathing'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4427,7 +4427,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 35
+        TabOrder = 36
         Text = 'Starting Angle'
         TextSettings.FontColor = claAliceblue
       end
@@ -4438,7 +4438,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 34
+        TabOrder = 35
         Text = 'Round edges'
         TextSettings.FontColor = claAliceblue
       end
@@ -4449,7 +4449,7 @@ object frmMain: TfrmMain
         Size.Width = 96.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 40
+        TabOrder = 41
         Text = 'rtdot hot'
         TextSettings.FontColor = claAliceblue
       end
@@ -4460,7 +4460,7 @@ object frmMain: TfrmMain
         Size.Width = 134.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 38
+        TabOrder = 39
         Text = 'rtdot down'
         TextSettings.FontColor = claAliceblue
         object rbinfhot: TRadioButton
@@ -4469,7 +4469,7 @@ object frmMain: TfrmMain
           Size.Width = 60.000000000000000000
           Size.Height = 19.000000000000000000
           Size.PlatformDefault = False
-          TabOrder = 38
+          TabOrder = 20
           Text = 'infohot'
           TextSettings.FontColor = claAliceblue
         end
@@ -4495,7 +4495,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 33
+        TabOrder = 34
         Text = 'PutAllToAngle'
         TextSettings.FontColor = claAliceblue
       end
@@ -4523,7 +4523,7 @@ object frmMain: TfrmMain
         Size.Width = 117.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 31
+        TabOrder = 32
         Text = 'techbracket width'
         TextSettings.FontColor = claAliceblue
       end
@@ -4545,7 +4545,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 32
+        TabOrder = 33
         Text = 'RotateAllBy'
         TextSettings.FontColor = claAliceblue
       end
@@ -4556,7 +4556,7 @@ object frmMain: TfrmMain
         Size.Width = 134.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 37
+        TabOrder = 38
         Text = 'particle color'
         TextSettings.FontColor = claAliceblue
       end
@@ -4577,7 +4577,7 @@ object frmMain: TfrmMain
         Size.Width = 117.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 30
+        TabOrder = 31
         Text = 'max internal picsize'
         TextSettings.FontColor = claAliceblue
       end
@@ -4588,7 +4588,7 @@ object frmMain: TfrmMain
         Size.Width = 70.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 29
+        TabOrder = 30
         Text = 'HotAlpha'
         TextSettings.FontColor = claAliceblue
       end
@@ -4599,7 +4599,7 @@ object frmMain: TfrmMain
         Size.Width = 61.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 28
+        TabOrder = 29
         Text = 'Alpha'
         TextSettings.FontColor = claAliceblue
       end
@@ -4610,7 +4610,7 @@ object frmMain: TfrmMain
         Size.Width = 120.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 24
+        TabOrder = 25
         Text = 'Selected Alpha'
         TextSettings.FontColor = claAliceblue
       end
@@ -4631,7 +4631,7 @@ object frmMain: TfrmMain
         Size.Width = 68.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 27
+        TabOrder = 28
         Text = 'rota size'
         TextSettings.FontColor = claAliceblue
       end
@@ -4642,7 +4642,7 @@ object frmMain: TfrmMain
         Size.Width = 90.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 25
+        TabOrder = 26
         Text = 'smlpc mrg'
         TextSettings.FontColor = claAliceblue
       end
@@ -4653,7 +4653,7 @@ object frmMain: TfrmMain
         Size.Width = 68.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 26
+        TabOrder = 27
         Text = 'max zoom'
         TextSettings.FontColor = claAliceblue
       end
@@ -4664,7 +4664,7 @@ object frmMain: TfrmMain
         Size.Width = 84.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 48
+        TabOrder = 49
         Text = 'max hzoom'
         TextSettings.FontColor = claAliceblue
         object Rectangle3: TRectangle
@@ -4681,7 +4681,7 @@ object frmMain: TfrmMain
         Size.Width = 111.000000000000000000
         Size.Height = 21.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 19
+        TabOrder = 20
         Text = 'breath rotate'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4694,30 +4694,23 @@ object frmMain: TfrmMain
         Size.Width = 60.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 39
+        TabOrder = 40
         Text = 'infoarw'
         TextSettings.FontColor = claAliceblue
       end
-    end
-    object Button1: TButton
-      Position.X = 8.000000000000000000
-      Position.Y = 8.000000000000000000
-      Size.Width = 33.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 4
-      Text = '<'
-      OnClick = Button1Click
-    end
-    object Button2: TButton
-      Position.X = 112.000000000000000000
-      Position.Y = 8.000000000000000000
-      Size.Width = 30.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 0
-      Text = '>'
-      OnClick = Button2Click
+      object CheckBox18: TCheckBox
+        StyledSettings = [Family, Size, Style]
+        Position.X = 8.000000000000000000
+        Position.Y = 303.000000000000000000
+        Size.Width = 111.000000000000000000
+        Size.Height = 21.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 19
+        Text = 'always show info'
+        TextSettings.FontColor = claDarkgray
+        TextSettings.WordWrap = True
+        OnChange = CheckBox18Change
+      end
     end
     object Button3: TButton
       Position.X = 49.000000000000000000
@@ -4765,7 +4758,7 @@ object frmMain: TfrmMain
       Size.Width = 134.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 5
+      TabOrder = 4
       Text = 'set background pic'
       OnClick = Button7Click
     end
@@ -4781,6 +4774,26 @@ object frmMain: TfrmMain
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
       OnChange = CheckBox1Change
+    end
+    object Button1: TButton
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      Size.Width = 33.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+      Text = '<'
+      OnClick = Button1Click
+    end
+    object Button2: TButton
+      Position.X = 112.000000000000000000
+      Position.Y = 8.000000000000000000
+      Size.Width = 30.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = '>'
+      OnClick = Button2Click
     end
   end
   object OpenDialog1: TOpenDialog
@@ -4808,7 +4821,7 @@ object frmMain: TfrmMain
       Position.Y = 8.000000000000000000
       TextSettings.FontColor = claAliceblue
       Text = 'Infopnl animation'
-      TabOrder = 15
+      TabOrder = 18
     end
     object ComboBox2: TComboBox
       Items.Strings = (
@@ -4821,7 +4834,7 @@ object frmMain: TfrmMain
       Size.Width = 89.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 9
+      TabOrder = 12
       OnChange = ComboBox2Change
     end
     object Label3: TLabel
@@ -4830,7 +4843,7 @@ object frmMain: TfrmMain
       Position.Y = 178.000000000000000000
       TextSettings.FontColor = claAliceblue
       Text = 'fullscreen direction'
-      TabOrder = 12
+      TabOrder = 15
     end
     object ComboBox3: TComboBox
       Items.Strings = (
@@ -4844,7 +4857,7 @@ object frmMain: TfrmMain
       Size.Width = 89.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 6
+      TabOrder = 9
       OnChange = ComboBox3Change
     end
     object ComboBox1: TComboBox
@@ -4853,20 +4866,20 @@ object frmMain: TfrmMain
         'free float')
       ItemIndex = 0
       Position.X = 8.000000000000000000
-      Position.Y = 260.000000000000000000
+      Position.Y = 776.000000000000000000
       Size.Width = 78.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 5
+      TabOrder = 8
       OnChange = ComboBox1Change
     end
     object Label1: TLabel
       StyledSettings = []
       Position.X = 8.000000000000000000
-      Position.Y = 239.000000000000000000
+      Position.Y = 751.000000000000000000
       TextSettings.FontColor = claAliceblue
       Text = 'Layout:'
-      TabOrder = 10
+      TabOrder = 13
     end
     object Label4: TLabel
       StyledSettings = []
@@ -4874,7 +4887,7 @@ object frmMain: TfrmMain
       Position.Y = 64.000000000000000000
       TextSettings.FontColor = claAliceblue
       Text = 'Infopnl direction'
-      TabOrder = 14
+      TabOrder = 17
     end
     object ComboBox4: TComboBox
       Items.Strings = (
@@ -4889,7 +4902,7 @@ object frmMain: TfrmMain
       Size.Width = 89.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 8
+      TabOrder = 11
       OnChange = ComboBox4Change
     end
     object Label5: TLabel
@@ -4898,7 +4911,7 @@ object frmMain: TfrmMain
       Position.Y = 119.000000000000000000
       TextSettings.FontColor = claAliceblue
       Text = 'Infopnl size %'
-      TabOrder = 13
+      TabOrder = 16
     end
     object ComboBox5: TComboBox
       Items.Strings = (
@@ -4911,18 +4924,18 @@ object frmMain: TfrmMain
       Size.Width = 89.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 7
+      TabOrder = 10
       OnChange = ComboBox5Change
     end
     object CheckBox15: TCheckBox
       StyledSettings = [Family, Size, Style]
       IsChecked = True
       Position.X = 8.000000000000000000
-      Position.Y = 458.000000000000000000
+      Position.Y = 302.000000000000000000
       Size.Width = 102.000000000000000000
       Size.Height = 21.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 23
+      TabOrder = 28
       Text = 'Hover alive'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
@@ -4932,11 +4945,11 @@ object frmMain: TfrmMain
       StyledSettings = [Family, Size, Style]
       IsChecked = True
       Position.X = 8.000000000000000000
-      Position.Y = 487.000000000000000000
+      Position.Y = 343.000000000000000000
       Size.Width = 103.000000000000000000
       Size.Height = 34.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 22
+      TabOrder = 26
       Text = 'Show InfoIndicator'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
@@ -4948,26 +4961,107 @@ object frmMain: TfrmMain
         'Holographic')
       ItemIndex = 0
       Position.X = 8.000000000000000000
-      Position.Y = 380.000000000000000000
+      Position.Y = 272.000000000000000000
       Size.Width = 102.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 4
+      TabOrder = 6
       OnChange = ComboBox6Change
     end
     object CheckBox2: TCheckBox
       StyledSettings = [Family, Size, Style]
-      IsChecked = True
       Position.X = 8.000000000000000000
-      Position.Y = 341.000000000000000000
+      Position.Y = 233.000000000000000000
       Size.Width = 120.000000000000000000
       Size.Height = 41.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 21
+      TabOrder = 24
       Text = 'Background animated'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
       OnChange = CheckBox2Change
+    end
+    object CheckBox17: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      IsChecked = True
+      Position.X = 24.000000000000000000
+      Position.Y = 323.000000000000000000
+      Size.Width = 102.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 27
+      Text = 'at fullscreen'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      OnChange = CheckBox17Change
+    end
+    object Button14: TButton
+      Position.X = 16.000000000000000000
+      Position.Y = 596.000000000000000000
+      TabOrder = 29
+      Text = 'test video'
+      OnClick = Button14Click
+    end
+    object Button15: TButton
+      Position.X = 8.000000000000000000
+      Position.Y = 673.000000000000000000
+      Size.Width = 33.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 7
+      Text = '<'
+      OnClick = Button15Click
+    end
+    object Button16: TButton
+      Position.X = 80.000000000000000000
+      Position.Y = 673.000000000000000000
+      Size.Width = 30.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Text = '>'
+      OnClick = Button16Click
+    end
+    object Button17: TButton
+      Position.X = 48.000000000000000000
+      Position.Y = 643.000000000000000000
+      Size.Width = 30.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Text = '^'
+      OnClick = Button17Click
+    end
+    object Button18: TButton
+      Position.X = 48.000000000000000000
+      Position.Y = 703.000000000000000000
+      Size.Width = 30.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Text = 'v'
+      OnClick = Button18Click
+    end
+    object Label6: TLabel
+      StyledSettings = [Family, Size, Style]
+      Position.X = 9.000000000000000000
+      Position.Y = 568.000000000000000000
+      TextSettings.FontColor = claAqua
+      Text = 'better not try  :D'
+      TabOrder = 30
+    end
+    object CheckBox19: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      Position.X = 8.000000000000000000
+      Position.Y = 385.000000000000000000
+      Size.Width = 103.000000000000000000
+      Size.Height = 34.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 25
+      Text = 'Delete clicked'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      OnChange = CheckBox19Change
     end
   end
   object Panel3: TPanel
@@ -5041,10 +5135,10 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              007449444154384FED93B70D80500C44CF948485988B30214C404FC502603704
+              007449444154384FED93B70D80500C44CF948491D88AB01FAC404FC502603704
               1B3ED051104B9EE4A0936CB9F001AA099AA68799DD0A37A39A12445AF87E8427
               8830A128A6A525C4316DEA45CAD2966CB49EF3026FAF8FF917FC0B1C1FBC3273
-              87200837F526CCE2EC9CA1AE87835DCFA2AA46A8E6331135783BF8F453720000
+              87200837F526CCE2EC9CA1AE87835DCFA2AA46A8E633F99E782F206435520000
               000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
@@ -5081,18 +5175,18 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              016149444154384F8553B14EC330103D27595091BA317782A11BAA10EAC0A700
-              0B620321B1940F4062E1039840FC084B8B84C4D80196766669AAD282D4E4CCBB
-              0B06D74D94275D7CB6EFDEBDB31D226B6312309FC14ED4B7368145EAD740824C
-              E1D226197347797EAD336358896AE057B1FA8DA21E489EA1661B24D9AF1A5764
-              0D3E411194A6DF14C71D5A2C5E4172A82412E75A0DB0DE679A26341CE6341E6F
-              20F90189F758153F2F6BA9FCA0DAED98A6D3082452FD88B24CD474CA5B72ACCC
-              57F02D8D464B1D9DB9B98CCC171AEB11942BF0D16A25341830CDE7060A6E91FC
-              04DBD23D10D51384C8F3959C7A0239876E37A246435ABAA4243980920FDD3306
-              575F7506FD3EFFF9CBE53BF6F7342E38C47205728DCD266BFFCC8FA8BA8B07F6
-              A2C968A2A8EC102A984CBE749CCD3E311EEB9EFC17150FC927E869A25871EF3B
-              BA1E480EE1B7E0826EF094F721F94D93E5F1AC480EF1AFE01C76AABEC8AD94EC
-              83E807B13DDEEC955717910000000049454E44AE426082}
+              016149444154384F8553B14EC330103D275950993A307782A11BAA104BF91460
+              416C202496F201482C7C0013881F41ED8084C4D80196766668239516A42667DE
+              5D30B86EA23CE9E2B37DF7EE9DED10591B9380F90C76A2BEB5092C52BF061264
+              0A9736C9983BCAF36B9D19C34A5403BF8AD56F14F540F20C35DB20C97ED5B822
+              6BF0098AA034FDA638EED062F10A9243259138D76A80F53ED334A1E130A7F178
+              03C90F48BCC7AAF879594BE507D56EC73499442091EA479465A2A653DE926365
+              BE826F69345AEAE8CCCD6564BED0588FA05C818F562BA1C180693E3750708BE4
+              27D896EE81A89E20449EAFE4D413C83974BB11351AD2D22525C901947CE89E31
+              B8FAAA33E8F7F9CF5F2EDFB1BFA771C121962B906B6C3659FB677E44D55D3CB0
+              174D461345658750C174FAA5E36CF689F158F7E4BFA878483E414F13C58A7BDF
+              D1F5407208BF05177483A7BC0FC96F9A2C8F674572887F05E7B053F5456EA564
+              1F443F9C88DEE68F6DCF120000000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\ICONS Circle\Media-Play-16x.ico'
@@ -5577,7 +5671,7 @@ object frmMain: TfrmMain
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
               017649444154384FB552BB4AC45010CDDDCD0A9255703168250A561616829FA1
-              1FE007D8DA58C95AF80D3616FE86AE859DB6E902DA898F6D1695B0924DC8EB7A
+              1FE007D8DA58C95AF80D3616FE86AE859D56A903DA898F6D1695B0924DC8EB7A
               CE65AE645756B470E070CECC9C3B4926D7F997D05A2B725555F344BDF6AB80B9
               452ECBF21C38ABD726A3213C2D660553636C009ED214DEC3AB6F427E10D0DBAC
               49CF786C4CBE81CDAB2CCBAE61DE00B6A07B4AA991F4BEBF354C0D3B999A8CA7
@@ -5587,7 +5681,7 @@ object frmMain: TfrmMain
               6B1C2E07EC77AFA2F704BCC07BC73351148D1C240F4C8220A8C2302CA831A00B
               78902B8236F223F6E8A1971AC31EB9A84B262896640675BFDFCFEA98EC93B90B
               2E687F30189C7A9E97417FDD772C6BECC2B8AE5B8A747027741CC733BEEF1FD8
-              2D77506C81B5787E0C78792607BD9BFF29F53F87D65A7D0203AEA78AF7D49C1A
+              2D77506C81B5787E0C78792607BD9BFF29F53F87D65A7D02CEF5A75459945B50
               0000000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
@@ -5663,17 +5757,18 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              014A49444154384F85534B4E844010A55192092770072B3573088D1BC7510F30
-              EA893C9389B760CD8A10121208E03F80EF95D5383A03BCA453AFBBEA55571785
-              3387BEEF0F68BBAEDB800BA228EA94F6123407C4B9B44872FF23FB4D62246206
-              88F38C315F48709EA6E95359968738EEB024F12420B64F58E779FECE5B9BA6A9
-              8BA2782397A031C06F4BBFB482388E59C9857D8E04EEC396F8B8AEEB86C1AC00
-              FB1B0900C0EF94FE05C558437FDAB67D640208AEB907F51823CEFFA003CB58AB
-              670BAC53E5D21342F8CE01809B4EC0177A26C9944FDEEA9143BC02EF59B63801
-              6C87243B8060A394FCCA76BBAAAA17185BF67E31C160081FB0CE9224F9E45EBB
-              BD56FFB898A00093F5CAE120CFB2EC03E25BF50DFD1983E14CC3CA58FABEDF06
-              41B0725DF71962195F899A80BB5C2EF9A9A4CC300C39E347E440AB761A2C9BD8
-              FE45F104692CE8CC131CE71B40495B6A6D07AD7E0000000049454E44AE426082}
+              014B49444154384F85534B4E844010A5714866C3DE1DACD40D57D0B8711CF500
+              A39EC83399CC21B8002B42482010C07F00DF2BBB7174067849A55E51F5AAAB2B
+              8D3587BEEF8FE8BBAEDB800BC230EC34EDA5680EA8B3E9D1E4E147F6DB4449C5
+              0C50E728A5BED0E0224992E73CCF17B66D23ECA4F124203657586759F6CE539B
+              A6A98BA2782397A231206F46BF3282288A38C9254CAE238587B0233EA9EBBA61
+              3127407C2B0500F8BDA67F41316CD84FDBB64F6C00C10D6350873592FC0F2660
+              CA78FD6D093BD35C764208DFFB00E0A453F0A5FE26CD349F3CD521877805DE73
+              6C49020887267B8060A329F9B5D97655552F7066ECC36282C5103EC2CEE338FE
+              64ACB7BDD6F9713141415996AF7C1CE4699A7E407CA773C37EC6A0F8A6CDB374
+              5DB7F53C6F85780BB13C5F5D370A3B0802453103DFF71770C7E440ABFD343836
+              B1FB8BA2A12C1674E60A96F50D6E7A644906B485590000000049454E44AE4260
+              82}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\Popup\Aspect.png'
@@ -5765,21 +5860,21 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              01B149444154384F9592BB2F444114C6F745448388848242243A156AF1A8FC01
-              0A0D9D52A29178844A42FC0DD4740A955EA7DB7A355B5C965DBB7BEDC3EE1DBF
-              6F32B37B37B6F125E77EE77CE79C99337726D10FC698B4388AA28576BB7D1F86
-              6119CDD46AB54FE8167D2E5ED703C49498A2AD62B1585363A552A9369BCDD752
-              A9F4AD1894B075DB1007A26F5ECEE5723FD96C16373AC1C6C965B04926BA864D
-              BD5E7F479FB78D1E7E018DAD220A0E9C6E478DE52F95876F145B10271D8FE8AC
-              D8877CA7F905328E67F2F97C535328B640F4E34FE39B56ABF5E274BBB0E07D78
-              48FF4475B6C9C138E6A78755C69B223F9C4C26E3759689C7D87D02F74B7107BE
-              90E6477531CDAED3D39856F24739C4843BC51D200C8869DC50B65C2E87D00EE6
-              1B07C9EDFB1CFEA27425B4BA4C57B522CD170A9C37CF3F796E341A816277BDDB
-              F166FB77118F5500EFB9788DE33CC51F14F103FA92F248697D7CF3A98A822068
-              8889575D510A5F0F69161B759A36ED5E00054708A65028D4C5E04C3AAC23F5BC
-              77C53D1A235D20183D0C31F1B974DCCE0EF87647B193BAE03EDF4858E818D270
-              B5F3DFE27EA06953BBB3F395E27F352712895F1FC30F70D881D90F0000000049
-              454E44AE426082}
+              01B249444154384F95923D2F44411486F78B88061109058548742AD4E2A3F203
+              141A3AA54423F1112A09F11BA8E9142ABD4EB17F60355B5C965DBB7BED87DD3B
+              9E7732B37B37B6F126E7BEE7BCE79C99337726D10FC698B4388AA28576BB7D1F
+              866119CDD46AB54FE8167D2E5ED703C49498A2AD62B1585363A552A9369BCDD7
+              52A9F4AD1894B075DB1007A26F5ECEE5723FD96C16373AC1C6C965B04926BA86
+              4DBD5E7F479FB78D1E7E018DAD220A0E9C6E478DE52F95876F145B10271D8FE8
+              ACD8877CA7F905328E67F2F97C535328B640F4E34FE39B56ABF5E274BBB0E07D
+              7848FF4475B6C9C138E6A78755C69B223F9C4C26E3759689C7D87D02F74B7107
+              BE90E6477531CDAED3D39856F24739C4843BC51D200C8869DC50B65C2E87D00E
+              E61B07C9EDFB1CFEA27425B4BA4C57B522CD170A9C37CF3F796E341A816277BD
+              DBF166FB77118F5500EFB9788DE33CC51F14F103FA92F248697D7CF3A98A8220
+              688889575D510A5F0F69161B759A36ED5E00054708A65028D4C5E04C3AAC23F5
+              BC77C53D1A235D20183D0C31F1B974DCCE0EF87647B193BAE03EDF4858E818D2
+              70B5F3DFE27EA06953BBB3F395E27F352712895FF2AB0F5E84CFD7A100000000
+              49454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\Popup\lupe.png'
@@ -5868,21 +5963,21 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              01BD49444154384FA5923B4B03511085737793A845A245042B0B837FC0C6C658
-              D80916FE02C5D2CA4AC4C642442C6CC546ED2CAD157C140AFE02ABA410121421
-              BE50175DB20FBFB3DC0D3158E981C3CC9D39337766EF66FE0B1386E13AB61FBA
-              3056B0038E31E6C8719C8B388EE54736DE8653AFD757B105F805434B095F299A
-              8433F88263ED4F209070D8FAC6DAAC6C14456B4CB8D319EB86A956AB41B95C3E
-              C7FF8412690D35F28220A864B3D943D7759769902316C00CABB45735242610EE
-              215AE17C0FF33015A8E0966FD0D4749D8529D46080314F102DE06F122B42156A
-              0AE57BB16953B107ED1CBC21E718F62CC04B0E05D8C7C8B3DCF48EAF571122DD
-              0C3481CFB4C74CBB685FC6D5D378042A70015F2F71071FE133E727F882FF6A29
-              3F2496BE88A3D69C4DCC1483AC72C50443D81AC94F9AFE7877349AA4C8EDF3ED
-              1594D02834091154E0068553C4C649F528DF05FD27BA55DFE3236D90FC65B6C1
-              16DDF79BCDE66EA954BA26D7FDFEAA5171BED1688C25113590A57894F14F5BAD
-              560D7BD6994BC139B914EDA0EFFB0FC92105C97495699A1CE472B96DC27D4A25
-              020BAB297A9EB7D4DD2059053B826091D06FDF40509D3EF05B72FA3B32996FD2
-              291309EFACC9850000000049454E44AE426082}
+              01BE49444154384FA5923B4B03511085737793A845A245042B0BC1FC001B1B63
+              612758F80B144B2B2B111B0B11B1B0151BB5B3B456F05128F80B841429840445
+              882FD44597ECC3EF2C77430C567AE0307367CECC9DD9BB99FFC28461B88EED87
+              2E8C15EC80638C39721CE7228E63F9918DB7E1D4EBF5556C017EC1D052C2578A
+              26E10CBEE058FB1308241CB6BEB1362B1B45D11A13EE74C6BA61AAD56A502E97
+              CFF13FA1445A438DBC20082AD96CF6D075DD651AE4880530C32AED550D890984
+              7B885638DFC33C4C052AB8E51B34355D67610A351860CC13440BF89BC48A5085
+              9A42F95E6CDA54EC413B076FC839863D0BF0924301F631F22C37BDE3EB558448
+              37034DE033ED31D32EDA9771F5341E810A5CC0D74BDCC147F8CCF909BEE0BF5A
+              CA0F89A52FE2A835671333C520AB5C31C110B646F293A63FDE1D8D262972FB7C
+              7B0525340A4D420415B841E114B171523DCA7741FF896ED5F7F8481B247F996D
+              B045F7FD66B3B95B2A95AEC975BFBF6A549C6F341A6349440D64291E65FCD356
+              AB55C39E75E652704E2E453BE8FBFE43724841325D659A2607B95C6E9B709F52
+              89C0C26A8A9EE72D75374856C18E205824F4DB371054A70FFC969CFE8E4CE61B
+              D20513099FF7C0B20000000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\Popup\tree.png'
@@ -5897,22 +5992,22 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              01E349444154384F85923F4B634114C5F35EDC902585B20B0B922A8DD88A85B0
-              8DBD2888ACD56A69A1D8AC8D6861A58558B98D888D1FC0DA2FB08DB0955B26B8
-              B11031A02692175F5EF2FEF83B2F334B08863D70B977EE3D73E6DE9971E238FE
-              E838CE49A5525929140A71A7D371324390CBE59256ABE5964AA56A369B5D755D
-              F72A1345D16902CAE57224FF3F585EB7DBFDCBE19F9D20086A287F09C3F016D5
-              43BA6953773930E99DFB0FCAF9D417F1CB4AC0FB96F17DFF598AA86D99E488FC
-              20C8A7A3C11B678C17B3E7BB54EDCCBEF123121934E57BE54C48A781891D379F
-              CF0F5E5A489BA911C758644CB1E021D032F1B33A180A44B4C97619D349969BF7
-              1198235E22BE7C5780629A67C6095EE91AFB45AE88A03A1116C81D51DF16B981
-              E942D65521B4334B604F358157FA83CB93DBED6592A4DD6E3F0E13B01D4C799E
-              D7545DE0ED6F1A8DC6ABFD0B74F1B35F60C3087C30DE8ACCB321C4626DAC56AB
-              5DF1C1B9EAFA0775ADDEEB009F93D7BCE2D4EB755F9EEF7E871B554D024F4A42
-              BA40A4403886F58F31DB6C363D71FA3B807F9C0A7039BF6D5197A28E285E9ACD
-              13F600816FFF50ABD5028DA335BC7D916628DC2B2111797D5523B0A3B5C00596
-              597F62D38149F55EC1108BD81AB689FDC0BE2A0F675AAF60669E4CC900913309
-              445174FC06F3AF447F7AAC496E0000000049454E44AE426082}
+              01E849444154384F8592BF4B5B5114C7F35E343C11A2542814D7105C8B43C1A5
+              BBB450A49DD4D141E9A28BB443271D8A935D4A71E91FD0D97FA04BA1535D120A
+              6D1CA418D0244D5E7C79C9FBE1E7FB72AF8460F0C0E19CFB3DDFFBBDE7DC7B9D
+              2449661CC7F95CAD56378AC562D2EFF79DDC042B140A69BBDD764BA5522D9FCF
+              6FBAAEFB2317C7F19714AB542AB1E243667983C1E02F872F386118D6517E1C45
+              D139AA1FE9A647DDE5C07478EE9D090BA8BF22BE1100EF752E0882861451DB33
+              E094E2B88167A3C17BD2ED76FF9B3DEB52B53307264E4964DC850FCBB9884E43
+              933BAEE779E39716D166E6E4091E1B572EF311E89ABCA10E261A22DA64BB4CE8
+              24CFCD0708AC92AF919FDE2B4031C399B1CC2BFDC2BF832D22A84E642FC18EA8
+              EF8BDCC27521DBAA90DA9925F0413519AF7446F0C0DE0F9134EDF57A5793046C
+              074F7DDFEFA82EE3EDFFB45AAD1BFB17E8E2D3A8C08E119836D18ABC60438427
+              DA58ABD506E2635F55D73F686A755F07C482A2E615A7D96C068A7CF70BC29C6A
+              12B81608E91B22B3A4F3F8E818CF3B9D8E2FCE6807F08F33012EE7A72DEA52D4
+              11C553B3B96C0F90F1ED2FEBF57AA871B4867720D2330AFF044844515FD508BC
+              D35AC605FE66FD884D87061ABE82212EE25BF85B7C175F110E6759AF60665ECA
+              C81822271288E3F8F8166718442529CD2D150000000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\Popup\del2.png'
@@ -5929,21 +6024,21 @@ object frmMain: TfrmMain
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
               020F49444154384F4593BD6B535118C66FBD31A5A8F80FA81DFC5AC551415014
               5C944EA54E5207B176525C7411DC9CA4281D3A38044A75108B60454511C54571
-              2914C10C113143304A104262BEAEBFDFCD39C98127CFFB3EEFF39E8F7B721247
-              9665DB0217C0E55EAFF7BEDBED56881B72BFDF7F3E180C4E462F9830CE07492A
-              633848E3A7609E05D3E07AA7D3F98E56AA542A5D780D6D57E81B4F8278B8DD6E
-              D7E14BE614B707FD0A7146E35BEABF9C84453EA2EF08BEE124885F10178DE129
-              3019E2734E60639868193C048FAC2315345D73EB2361C813E837E106C86AB5DA
-              3F99C6BB50CAB17E503F61ECEA9B149EDA8878009C225FB2A15C2EF7C0C0B8D5
-              6AFDA176541FF515B04A7E2CB1A0816401ECA1F0CA3C6EBB5EAFB7656AB76D76
-              10CFE35B070F92687470655F295E20DC079F25DF1A56F2ED6F404527808F505F
-              F0C3BB83DF1AE24A18EF07530A8AE44BFE173C377983BC44F314FC58BFE77963
-              50AD563B32F93327C03449EA9FA6080AE8AF99E427F169E27B70C6F7FBACF1A2
-              891F2C1E07ED6A98C495EE08E243E038F1BA1E07F99CBED12E3C06F10685FDE0
-              3C5BFF963BB3EC1DFA72DCA583FAE8A3BAD25E6F03D38A39FC4453DC955719AF
-              D3BF36FE597DA4A93FF94342F40A5F8255B419CEF7C1061B9BCDE65FF41778E6
-              91768E9AE320C95F98C03407168977C337603F6C29F8BC197DE3E638109D243E
-              EB94E6F81ECE805B41F746C6AF304992FF0813DF7BCA054E5B0000000049454E
+              2914834B44CC108C12849098AFEBEF77734E72E0C9F3BECFFBBCE7E39E9CC491
+              65D9B6C00570B9D7EBBDEF76BB15E286DCEFF79F0F068393D10B268CF34192CA
+              180ED2F8299867C134B8DEE974BEA3952A954A175E43DB15FAC693201E6EB7DB
+              75F89239C5ED41BF429CD1F896FA2F2761918FE83B826F3809E217C44563780A
+              4C86F89C13D818265A060FC123EB48054DD7DCFA4818F204FA4DB801B25AADF6
+              4FA6F12E9472AC1FD44F18BBFA2685A736221E00A7C8976C2897CB3D30306EB5
+              5A7FA81DD5477D05AC921F4B2C682059007B28BC328FDBAED7EB6D99DA6D9B1D
+              C4F3F8D6C183241A1D5CD9578A1708F7C167C9B786957CFB1B50D109E023D417
+              FCF0EEE0B786B812C6FBC1948222F992FF05CF4DDE202FD13C053FD6EF79DE18
+              54ABD58E4CFECC09304D92FAA7298202FA6B26F9497C9AF81E9CF1FD3E6BBC68
+              E2078BC741BB1A2671A53B82F810384EBCAEC7413EA76FB40B8F41BC41613F38
+              CFD6BFE5CE2C7B87BE1C77E9A03EFAA8AEB4D7DBC0B4620E3FD11477E555C6EB
+              F4AF8D7F561F69EA4FFE9010BDC29760156D86F37DB0C1C666B3F917FD059E79
+              A49DA3E63848F2172630CD8145E2DDF00DD80F5B0A3E6F46DFB8390E442789CF
+              3AA539BE8733E056D0BD91F12B4C92E43FAD6BDF3C23088DA30000000049454E
               44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
@@ -6001,82 +6096,82 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D4948445200000020000000200806000000737A7A
               F4000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              0950494441545847B5577B8C5D4519FF66E63CEF6BEF3EEEEEDE7D75BB5BB6DD
-              2DDBD28214748B450A22A818FE20A0319A101FD85463A218629060403136D188
-              C8A389F141136342208620F119D3146C042AD842ED5ABAAFEEFB71F7DEBDF79E
-              D7CCF83B77B7B5C5A602C15FEE9C393377E6FBBEF99E73E83D83A01BC84ADCBC
-              36FABF6200CD5D7D3D0F1D2CD57060EDFD6D83AFF517824B86FD45F4C9D5610D
-              CDC4F92EF4291CF9D6D5A9B32833C7D982BE6775F8F67031012262E4190D1D8F
-              81E93D58FA0532ACBB48A9C33C9DBB9148CEAFADEB40BBD66EDFF033565C69C5
-              DAA73066641857E3FD36BC67E245EF1A667EFD278D6C6E8999C94912D6AF3065
-              199D7D77A1EF456B25C667D1C2E4BA81905B09CD4C731A9ADB4B425C87FF0DB4
-              8BE2621AA8219C3A55152DDDC44C23CF381B25269EE032BA03276CC3E493CC74
-              72C9FE2B0DADA5C19389511D46FB29F29FB1122DE3CC493F0C537D788DD405F1
-              BF0410C4D8D6747B4796734176B6699159765A16E687CCE6F5BF668E7B9D916D
-              26339321BD42BE21C4DDCC30B63137B957259D7DDA2BDD0753FD718DD619D4A3
-              5DC8896B88ED25F0BB6575485D38B16FB6F7C974DFA0B69ADA0E38B9FC907033
-              3275D935D2EABA54272FBB4E8B54A33673DD3F705B3BAFE0A61BA5B76CAD62EF
-              87D0E0ACB4010D3457C14CFB01E266EC1B35BC4503FC763C4C66BBB1A7C752AE
-              C096429696983293A42296F3E6A60E91ED8E50E8716BDD26F2468E9136F8DFC2
-              B991EF879EFF0DA32E2BFC91150D13FD024EBB0CFF380E3AFBD0AE71BAFA3F2D
-              32B90E52E1418C6B385F00C14688EC0E2DA3A7CC96AEA7C934D711A9496E584C
-              2A4E8AC916AC62C2761F0F8B253252299CC82155AD9EC07C8931B6DBE9192469
-              06AE59DFD90ECD70A3A943A407AFFA52A267EB7310F2916861623FD64EC5EC62
-              9C2F80947F80DFEEA6C81B89E64F9F7052BD2FD8EDED790D26DCCD8061D31666
-              255F0966469ED25ABF50397E84202831C34CD8ED1B2F57C2CA1A6D3D6434E4C9
-              DDB495527D0364A753BA327CCCF4A64E25349993080CBDC6AD86B3B6011A895B
-              BFE3A67DAD8E22C604DFA8A2955E26C94EF4F66BA77F3B2355B361AB62C6B5BA
-              347B9F26F629157A9A19F62BA46486D5E576E95281C299510AA7C7A6A3C2E211
-              1578870467CF4BBF7A44CB7001140CD2F21FE017C44C0599CE1D2299DD63649B
-              F6088BF52BCFEF12E96C87309D47CC8C7B0F98D6870B8B797F7C3815791592A5
-              05126EAA4571BE914A851C34C128081833AD9D30419A21074573632FA94A6197
-              AA961EE566FA64E8AD5CAA43CF85907BC0FC2412D4E748EB71F05F6678EC409B
-              43AB9AF9EEFD4653DB4EB6BC900997172366583F0F164E7F13FF15EDAEFE0FA8
-              50DD4491B94756262D96AC27B93CAD78B29EAB952538B643F6E61D144E0CCF45
-              93C337B81D7DDDAAB8FCEDD05FD90C669A35E44658181C51A17C5515677F099A
-              D3687E2CC0B96884D71EB3BB36B524BA7BA9F4EA61381E1D54E5D22884D9C0D2
-              4D52FB4B7DBA1AE48860000B81C23869BF4C22DB4A3AF066A9B274AFC8B4DCAE
-              65B0CBCDB7319648286F6664319838FD10C208CE2A42ECC57E150B017D9D0F68
-              90BF44C2DC6E776EA2C4C0765A3EF81C09274106B261B4384972A520353704C9
-              90985D075A0A022C8379B5CC993058A6D116A93A4A6CDA46B2EA5330394AC138
-              42B55A7E9674F879F0381B018073AE13AE41FF058156AFAAE54BA3D2327307AE
-              24BB730305A74F4268302B2D4A304586E4F0D90424C61C84E176D2826D4924EB
-              B899EB22EFF8CB607C82ECF61E52C5455241A50FB4AF468BEB09B450034E7206
-              425C0F5BC519AC406EFA98D9D2F6092785A317E759F55F47511BFDBF860BA7BF
-              C7534D57B174435215E1364CE3505ECD04104293B2CA5AC8E3D1CCE409555DFC
-              271C53CB85A986E4C641D2918CB58710D48F83875FE309AA670448837985A71B
-              769B8D1D579A75991BA3A9B19D51A1C064B53AC564F8E3B030FD98C8B53FC82D
-              B74B156608BE1FF16496EB4A917826472C0A193703B88C7D8033FD13555AF8A1
-              F6569E36520DF5E1CCC4A05597252BBBCE24AE33888E3F83679C69B79DF1818F
-              427DDBA1E247F1BE8402F4201CCC4158BDA8BCF2F3982B322B71D0EE1E7C3FA2
-              8298AFC6B4CDCA148497505091643648D1944DA8728178228BC2B448AC129698
-              259F51FECA1310A24387E1BD61B5DC2F92A982E46242FBFE51ED950F9DEB8430
-              A8789871034EA2DB522D1D6FF841B0594BD9092B7732665C62AF1FA0B05820B9
-              707A9FB6934382F31D48344C2E4C7C4BD4B77F19C5AA89A7D26477F55234FABA
-              AA0CBFC65410481DF8CF6AAD9EE56EFA6BCA2F491CF40EF08B93D179993024C1
-              2BCC10FB10723B22DFBBDE696ADE22EA9B7B985BD7C8DC1439BD03E40FBF8A95
-              DEFDBABCFC31E48696D80105925BB438F559B93237A4AA959C2C97C99B1A6356
-              436B45289745DE3C36E9031002154D7E1DBC86D16A29F9FC5AA0F526449861B7
-              E5AB76D786C05B2E316FFC2432DB04E10E406C11EA0F8269599C7B0917909170
-              FA142536BF0FC7E0BBACC6E6BCF6AB1F048D08B72224DA2A55478FCE792BE3B7
-              59ADEB2F21CB82B6F99FC025D6BAACF103CE1500C197DFCEDCEC77AA274FDC50
-              39FECA43A85C242B45199566678D142B975E7B115B83BF63AD87E29493D51222
-              C0273395804B4ADC1BA98AE02F0803C9290A5039441B04F97D30357D0B13D69D
-              24FDA388B6F8E27A0198CE6D643977E3AD797582700C4239A6366CBAD959D757
-              46AC7B8693DA6937777FD74837E9D4153769B37DA34E6DDDA9442253B5520DFD
-              562E7F38DD7FB9E6E9265C6A797C5227260672DBF1884DDE591BAEE13F3EA0A2
-              619271AAA499D589B8F6D1325A6076F4ED0926DE4434A8C8486587E1543F4A0E
-              6C23EFD4718A966751851323E1E2544E333E2A1C771A7564C8A84F2A5928ECC5
-              FEC33131EC8D33606CF7626DB886739D30967665F5F52C76A0FEDF2F4B85FD50
-              FDCBB0EF06C3497EC6CCB5B444482CFEE49B70C8F0B72AF47F6A64B38E2C2E85
-              14857925D5A0D9900FA3C599AF82C6D22AA9770F1BEA1B24D3BE9325328798E9
-              EAD4FA41A4525E848ADFC0FFFD686D6EDFD63DE8D3B8BAEF87D091D9D01A18F9
-              9EA198C0C5F0963BE17F210BFBEF26A13A29F47F0387AA085B542AF393AF43A5
-              7B5113E26F410861BBFEF85884771361C6919E1F080BF35F614ADD0A813E52A3
-              F31EA1CF686C1F437FF9EA700D427C1CCF2164D3F8EE90AFCDAD02F7B8DAE75D
-              6275F81E80A59A9E4477A12F9EF81B32FE707D4738D709DF1E146EC64AC69E1C
-              7F1BC23F6AC2C40E1C97D8F866F50E40F46F2E6BE8FDB1066E75000000004945
-              4E44AE426082}
+              0951494441545847B5577B8C5D4519FF66E63CEF6BEF3EEEEEDE7D75BB5BB6DD
+              2DDBD28214B4C5220511540C7F10D0184D880F6CAA31510C314830A0189B6844
+              E4D1C4F8A0893121104390F88C690A3602156CA1762DDD57F7D9BD7BF7DEBDF7
+              9ED7CCF83B77B7B5C5A602C15FEE9C393377E6FBBEF99E73E83D83A01BC84ADC
+              BC3AFABF6208CD5D793D0F5D2CD5B47FF5FD6D83AFF617824B86FD45F4C99561
+              1DADC4F94EF4291CF9D695A9B3A830C7D984BE6F65F8F67031012262E4194D5D
+              8F81E93D58FA0532ACBB48A9433C9DBB91489E5E5DD78576ADDDB9EE67ACB4DC
+              8EB54F61CCC830AEC6FB6D78CFC48BDE35CCFCDA4F1AD9DC2233935324AC5F61
+              CA32BA07EE42DF8FD64E8CCFA185C935EB436E253433CD19686E0F09711DFE37
+              D02E8A8B69A08E70FA644DB4F512338D3CE36C8C987882CBE80E9CB003934F32
+              D3C92507AF34B426832713633A8CF651E43F6325DA2698937E18A6FAF02AA90B
+              E27F092088B1CDE9CEAE2CE782EC6C4B8159765A164F6F375BD7FE9A39EE7546
+              B695CC4C86F432F986107733C3D8C2DCE41E9574F66AAF7C1F4CF5C7555A67D0
+              88762127AE23B697C0EF969521F5E0C4BED93920D303C3DA6AE9D8EFE4F2DB85
+              9B91A9CBAE9156CFA53A79D9755AA49AB599EBFD81DBDE7D0537DD28BD69730D
+              7B3F840667A57568A0B90266DA0F103763DFA8E32D1AE0B7E36132DB8D3D3D96
+              7219B614B2BCC894992415B19C373F7D906C7794428F5B6B3690377A94B4C1FF
+              16CE8F7E3FF4FC6F180D59E18F2EC320C62FE0B44BF08F63A0B317ED1AA767F0
+              D32293EB22151EC0B88EF305106C94C8EED2327ACA6CEB799A4C730D919AE286
+              C5A4E2A4986CC32A266CF7F1B054262395C2891C52B5DA71CC971963BB9CBE61
+              9266E09A8DDD9DD00C375ABA447AF8AA2F25FA363F07211F891626F761ED74CC
+              2EC6F90248F907F8ED2E8ABCD1E8F4A9E34EA2FF05BBB333AFC184BB19306CD9
+              C4ACE42BC1ECE8535AEB17AAC70E130425669809BB73FDE54A5859A3A38F8CA6
+              3CB91B36536A6088EC744A57478E9ADEF4C98426730A81A157B9D571D6364033
+              71EB77DCB4AFD551C498E0EB955CEE6792EC44FFA07606B73252751BB62B665C
+              ABCB73F769629F52A1A79961BF424A6658436EA72E17299C1DA370667C262A16
+              0EABC03B28387B5EFAB5C35A860BA0609096FF00BF20662AC874EE10C9EC6E23
+              DBB25B586C50797E8F4867BB84E93C6266DC7BC0B4315C28E4FD899154E45549
+              961748B8A936C5F97A2A1773D004A32060CCB476C00469861C14CD8FBFA4AAC5
+              9DAA567E949BE913A1B77CA90E3D1742EE06F31348509F23AD27C07F89E1B10D
+              6D1EAD66E67BF7192D1D3BD8D242265C2A44CCB07E1E2C9CFA26FE2BD93D831F
+              50A1BA892273B7AC4E592CD948726946F1642357CB8B706C87EC8DDB289C1C99
+              8FA6466E70BB067A5569E9DBA1BFBC11CC346BCA8DB23038AC42F9AA2ACDFD12
+              3467D0FC588073D10CAF3D6AF76C684BF4F653F9D543703C3AA02AE53108B38E
+              A55BA4F61707742DC811C10016028571D27E8544B69D74E0CD5175F15E9169BB
+              5DCB60A79BEF602C9150DEEC6821983CF510C208CE2A42ECC57E150B017D9D0F
+              6890BF44C2DC6A776FA0C4D0565A3AF01C09274106B261549822B95C949A1B82
+              6448CC6E002D050196C0BC56E14C182CD36C8B540325366C2159F329981AA360
+              02A15AAB3C4B3AFC3C789C8D00C039D70957A1FF82406B54B5CAA5517989B943
+              5792DDBD8E825327203498950B124C9121397C360189310761B89DB4605B12C9
+              066EE67AC83BF632181F27BBB38F54A9402AA80E80F6D568713D8116EAC049CE
+              4088EB61AB388315C94D1F35DB3A3EE1A4CC04951658ED5F47501BFDBF860BA7
+              BEC7532D57B174535295E0364CE3505EDD04104293B22A5AC863D1ECD471552B
+              FC138EA9E5C2745372FD30E948C6DA4308EAC7C1C3AFF304D53302A4C1BCCAD3
+              4DBBCCE6AE2BCD86CC8DD1F4F88EA8B8C464AD36CD64F8E3B038F398C8753EC8
+              2DB747156709BE1FF16496EB6A897826472C0A193703B88CBD9F33FD13555EF8
+              A1F6969F36524D8DE1ECE4B0D590252BBBC624AE33888E3F83679C69B79CF181
+              8F427D5BA1E247F1BE8802F4201CCC4158BDA8BCCAF3982B312B71C0EE1D7E3F
+              A28298AFC6B5CD2A148497505095643649D1924DA84A9178228BC25420560DCB
+              CC92CF287FF90908D1A5C3F0DEB0561914C954517231A97DFF88F62A07CF7542
+              18543CCCB80127D11DA9B6AE37FC20D8A8A5EC8695BB19332EB1D70E51582A92
+              5C38B557DBC9ED82F36D48344C2E4C7E4B34767E19C5AA85A7D264F7F45334F6
+              BAAA8EBCC65410481DF8CF6AAD9EE56EFA6BCA2F4B1CF40EF08B93D179993024
+              C1ABCC107B1172DB22DFBBDE6969DD241A5BFB98DBD0CCDC1439FD43E48FBC8A
+              95DEFDBAB2F431E486B6D80105925B5498FEAC5C9EDFAE6AD59CAC54C89B1E67
+              56537B55289745DE696CD2FB21042A9AFC3A788DA0D553F2F9B540EB0D8830C3
+              EEC8D7EC9E7581B75466DEC40964B649C21D805801EA0F8219599A7F496B391A
+              CE9CA4C4C6F7E1187CA7D5DC9AD77EED83A011E15684445BA3DAD891796F79E2
+              36AB7DED256459D036FF13B8C45A97757EC0B90220F8F25B999BFD4EEDC4F11B
+              AAC75E7908958B64B524A3F2DC9C916295F26B2F626BF077ACF5509C72B25646
+              04F864A6127049897B23D510FC4561203945012A87E88020BF0FA6676E61C2BA
+              93A47F04D1165F5C2F00D3B98D2CE76EBCB5AE4C108E4128C7D4814D373B6B06
+              2A8875CF70523BECD6DEEF1AE9169DBAE2266D76AED7A9CD3B9448646A56AA69
+              D0CAE50FA5072FD73CDD824B2D8F4FEAC4C4406E2B1EB1C9BBEBC355FCC70754
+              3442324E9534BB3211D73E5A420BCCAE81DDC1E49B88061519A9EC089CEA47C9
+              A12DE49D3C46D1D21CAA7062342C4CE734E363C271675047B61B8D49258BC53D
+              D87F282686BD71068CED5EAA0F5771AE13C6D22EAFBC9EC536D4FFFB65B9B80F
+              AA7F19F65D6738C9CF98B9B6B60889C59F7A130E19FE5685FE4F8D6CD691A5C5
+              90A230AFA41A369BF2615498FD2A682CAE907AF7B0A1BE6132ED3B5922739099
+              AE4EAD19422AE525A8F80DFC3F88D6E10E6CDE8D3E8DABFB3E081D994DED8191
+              EFDB1E13B818DE7227FC2F6461FF5D24543785FE6FE05055618B6AB530FB3A54
+              BA073521FE168410B6EB4F8C47783711661CE9F981B078FA2B4CA95B21D047EA
+              74DE230C18CD9DE3E82F5F19AE42888FE3B91DD934BE3BE4EB732BC03DAEFE79
+              975819BE0760A99627D15DE88B27FE868C3F5CDF11CE75C2B707859BB192B127
+              C7DF86F08FBA30B103C72536BE59BD0310FD1BC623E7FBFA611ACC0000000049
+              454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\tray_sidebar.ico'
