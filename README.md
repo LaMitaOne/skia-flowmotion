@@ -204,7 +204,7 @@ Skia4Delphi installed and enabled
 Alpha – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
    
 If you find a bug: feel free to eat it yourself :P   
-I've already got a huge list of ideas and todos, so it's probably on my radar anyway...  
+I've already got a huge list of ideas and todos, so it's probably on my radar anyway... ecept u have solution directly then i am in :D   
    
 Especially **full freefloat layout** is still making problems with some things,  
 but **normal layout** is getting very stable now – even with SelectedDraggable and not zoom to center.   
