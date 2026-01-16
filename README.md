@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion component alpha v0.47**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.47**    
     
 <img width="1754" height="1140" alt="Unbenannt" src="https://github.com/user-attachments/assets/b72cbf28-2220-4781-8913-47eb0a9154ea" />
 
@@ -53,6 +53,26 @@ Grab the repo, run the sample, and watch the magic.
 Feedback, stars or ideas very welcome – happy to discuss code or add features!   
   
 Tip: You can play memory on it now. Enable infopanel on some, unselect, and try recognize which all it was :D   
+   
+### Current Development Status & Platform   
+   
+Alpha – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
+     
+Especially **full freefloat layout** is still making problems with some things,  
+but **normal layout** is getting very stable now – even with SelectedDraggable and not zoom to center.   
+Physics are running almost perfectly fine already.   
+   
+Right now everything is being built and tested **only on Windows** (Delphi 11/12, FMX + Skia4Delphi).    
+I have **no idea yet** how well (or if at all) it already runs on Android, iOS, macOS or Linux – simply because I haven't tried it there.   
+   
+This is my **first real longer project** in the newer Delphi versions (after years mostly in D7/2009), so I'm taking it step by step:  
+1. Get it first on Windows 100 % stable, smooth and fun   
+2. Then look at other platforms, learn the quirks, fix what breaks     
+   
+If someone wants to try it on another OS right now and finds issues (or even gets it running) – feel free!  
+If you know **where** it breaks and **why**, or even send a PR/fix – that would be awesome and super helpful :)   
+   
+No pressure though – Windows is the main focus for now.     
    
 **Sample video:**    
 (https://www.youtube.com/watch?v=R_yIg2XfF24)   
@@ -211,17 +231,6 @@ VCL Version: https://github.com/LaMitaOne/Flowmotion
 Delphi 11+ or 12 (RAD Studio)    
 Skia4Delphi installed and enabled   
    
-### Current Status    
-Alpha – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
-   
-If you find a bug: feel free to eat it yourself :P   
-I've already got a huge list of ideas and todos, so it's probably on my radar anyway... except u have solution directly, then i am in :D   
-   
-Especially **full freefloat layout** is still making problems with some things,  
-but **normal layout** is getting very stable now – even with SelectedDraggable and not zoom to center.   
-Physics are running almost perfectly fine already.   
-   
-BUT: if you see how something quickly gets fixed, I'd really appreciate any help / PR / issue report :)   
    
 VCL Version: https://github.com/LaMitaOne/Flowmotion   
 Homepage: https://lamita.jimdosite.com/   
