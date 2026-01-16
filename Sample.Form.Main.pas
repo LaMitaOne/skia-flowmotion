@@ -11,14 +11,7 @@ uses
   FMX.ImgList, FMX.ListBox, FMX.Colors, FMX.Edit, FMX.EditBox, FMX.SpinBox,
   windows, messages, FMX.Menus,
   //-----
-  uSkFlowmotion;
-
-const
-  HKEY_CLASSES_ROOT = $80000000;
-  HKEY_CURRENT_USER = $80000001;
-  HKEY_LOCAL_MACHINE = $80000002;
-  HKEY_USERS = $80000003;
-  HKEY_CURRENT_CONFIG = $80000005;
+  uSkFlowmotion, uSkFlowEffects;
 
 type
   { TfrmMain }
@@ -112,7 +105,6 @@ type
     rbinfhot: TRadioButton;
     CheckBox17: TCheckBox;
     Button14: TButton;
-    CheckBox18: TCheckBox;
     Button1: TButton;
     Button2: TButton;
     Button15: TButton;
@@ -121,6 +113,8 @@ type
     Button18: TButton;
     Label6: TLabel;
     CheckBox19: TCheckBox;
+    CheckBox18: TCheckBox;
+    rbborder: TRadioButton;
     procedure Button10Click(Sender: TObject);
     procedure Button11Click(Sender: TObject);
     procedure Button12Click(Sender: TObject);
@@ -203,7 +197,7 @@ implementation
 
 procedure TfrmMain.Button10Click(Sender: TObject);
 begin
-  skfmFlowGallery.Clear(true, true, Panel1.BoundsRect.Round, Panel1.BoundsRect.Round, iesFromPoint, true);
+  skfmFlowGallery.Clear(true, true, Panel1.BoundsRect.Round, Panel1.BoundsRect.Round, iesFromPoint);
 end;
 
 procedure TfrmMain.Button11Click(Sender: TObject);
@@ -512,7 +506,9 @@ begin
   else if rbifoarrow.IsChecked then
     skfmFlowGallery.InfoIndicatorColor := ColorPicker1.Color
   else if rbinfhot.IsChecked then
-    skfmFlowGallery.InfoIndicatorHotColor := ColorPicker1.Color;
+    skfmFlowGallery.InfoIndicatorHotColor := ColorPicker1.Color
+  else if rbborder.IsChecked then
+    skfmFlowGallery.ItemBorderColor := ColorPicker1.Color;
 end;
 
 procedure TfrmMain.ComboBox1Change(Sender: TObject);
@@ -581,7 +577,7 @@ end;
 
 procedure TfrmMain.ComboBox6Change(Sender: TObject);
 begin
-  case Combobox6.ItemIndex of
+ case Combobox6.ItemIndex of
     0:
       skfmFlowGallery.BackgroundEffect := beRealMatrix;
     1:

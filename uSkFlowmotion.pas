@@ -1,5 +1,4 @@
-{                                                                              }
-{ Skia-Flowmotion v0.47 alpha                                                  }
+﻿{ Skia-Flowmotion v0.48 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -10,6 +9,15 @@
 
 {
  ----Latest Changes
+   v 0.48
+    - Added Skia v7.01 binaries (libSkia.dll) to sample folder.
+    - Important: Updated from godknows how much older version yesterday.
+    - (Discovered i need it this morning via "runtime error shock" on my little dual-core Zenbook UX305CA)
+    - switched to MIT license, sounds cooler :D
+    - Started some code refactoring across multiple functions
+    - Moved background effects into new unit -> uSkFlowEffects
+    - Added property ItemBorderColor
+    - Fixed av at threaded clear, using a local reference to FImages list
    v 0.47
     - Fixed Infoindicator showing again before panel outside
     - Fixed sometimes selected getting directly back to gridposition and not animate to it when clickng like mad around and select others :D
@@ -88,7 +96,9 @@ uses
   { FMX }
   FMX.Types, FMX.Controls, FMX.Graphics, FMX.Forms, FMX.ImgList, FMX.Media,
   { Skia }
-  System.Skia, FMX.Skia;
+  System.Skia, FMX.Skia,
+  { skflm }
+  uSkFlowEffects;
 
 const
   TARGET_FPS = 30;
@@ -122,8 +132,6 @@ type
 
   TSurfaceEffect = (sueNone, sueShadow, sueGlow, sueAmbient);
 
-  TBackgroundEffect = (beHolographic, beRealMatrix);
-
   TPictureBorderType = (btTech, btFull);
 
   TImageEntryStyle = (iesRandom, iesFromTop, iesFromBottom, iesFromLeft, iesFromRight, iesFromTopLeft, iesFromTopRight, iesFromBottomLeft, iesFromBottomRight, iesFromCenter, iesFromPoint, iesExplode);
@@ -135,32 +143,6 @@ type
   TZoomAnimationType = (zatSlide, zatFade, zatZoom, zatBounce);
 
   TSmartImageAction = (siaSelectNorth, siaSelectSouth, siaSelectWest, siaSelectEast);
-
-  TMatrixColumn = record
-    X: Single;        // X Position on screen
-    Y: Single;        // Y Position (Top of the stream)
-    Speed: Single;    // Falling speed
-    Length: Integer;   // How long the stream is (number of chars)
-    Chars: string;     // The random string of characters
-    TargetImageIndex: Integer;
-  end;
-
-  TParticle = record
-    X, Y: Single;
-    VX, VY: Single;
-    Life: Single; // 1.0 down to 0
-    Color: TAlphaColor;
-    Size: Single;
-  end;
-
-  TSmallPicParticle = record
-    Index: Integer;   // Index in FSmallPicImageList
-    X, Y: Single;   // Position
-    VX, VY: Single;   // Velocity
-    Life: Single;    // 1.0 down to 0.0
-    Angle: Single;    // Rotation
-    VAngle: Single;   // Rotation Velocity
-  end;
 
   TSmallPicPosition = (spTopLeft, spTopRight, spBottomLeft, spBottomRight);
 
@@ -200,8 +182,6 @@ type
     FHotZoomTarget: Double;
     FHint: string;
     FSmallPicIndex: Integer;
-    DriftRangeX: Single;
-    DriftRangeY: Single;
     OriginalTargetRect: TRect;
     FActualRotation: Single;
     FTargetRotation: Single;
@@ -362,7 +342,6 @@ type
     FMaxRows: Integer;
     FSorted: Boolean;
     FLoadedPositions: TImagePositions;
-    FFreeFloatDrift: Boolean;
     FDragOffset: TPoint;
     FIsZoomedToFill: Boolean;
     FPreviousRotation: Single;
@@ -387,6 +366,7 @@ type
     FZoomSelectedtoCenter: Boolean;
     FGlowColor: TAlphaColor;
     FGlowWidth: Integer;
+    FItemBorderColor: TAlphaColor;
     FCaptionFont: TFont;
     FCaptionColor: TAlphaColor;
     FCaptionBackground: TAlphaColor;
@@ -401,7 +381,8 @@ type
     FCornerRadius: Single;
     FRotationAllowed: Boolean;
     FAnimatedBackground: Boolean;
-    FParticles: TList<TParticle>;
+    FParticles: TList<uSkFlowEffects.TParticle>;
+    FSmallPicParticles: TList<uSkFlowEffects.TSmallPicParticle>;
     FEnableParticlesOnMouseClick: Boolean;
     FIsRotating: Boolean;
     FRotatingImage: TImageItem;
@@ -427,13 +408,12 @@ type
     FInfoIndicatorColor: TAlphaColor;
     FShowInfoIndicator: Boolean;
     FBackgroundEffect: TBackgroundEffect;
-    FMatrixCols: array of TMatrixColumn;
+    FMatrixCols: TArray<uSkFlowEffects.TMatrixColumn>;
     FMatrixFont: TFont;
     FMatrixColor: TAlphaColor;
     FMatrixHeadColor: TAlphaColor;
     FMatrixSpeed: Single;
     FMatrixFontSize: Single;
-    FSmallPicParticles: TList<TSmallPicParticle>;
     FSpawningSmallPics: Boolean;
     FInfoIndicatorHotColor: TAlphaColor;
 
@@ -458,6 +438,8 @@ type
     FOnFullscreenEnterFired: Boolean;
     FGestureStartPos: TPointF;
     FGestureActive: Boolean;
+    FIsGestureZoomed: Boolean;
+    FGestureZoomFactor: Single;
     FAlwaysShowInfo: Boolean;
     FDeleteClicked: Boolean;
 
@@ -518,13 +500,13 @@ type
     procedure MarkAreaOccupied(var Grid: TBooleanGrid; Row, Col, SpanRows, SpanCols: Integer);
     function PlaceImage(ImageItem: TImageItem; var Grid: TBooleanGrid; Row, Col, SpanRows, SpanCols: Integer; BaseCellWidth, BaseCellHeight: Integer): Boolean;
     function GetOptimalSize(const OriginalWidth, OriginalHeight: Integer; const MaxWidth, MaxHeight: Double): TSize;
+    procedure DrawBackgroundEffects(const ACanvas: ISkCanvas; const ADest: TRectF; const Paint: ISkPaint);
     procedure InitMatrix;
     function GetLiveImageDataString(ImgIdx: Integer): string;
-    procedure DrawBackgroundEffects(const ACanvas: ISkCanvas; const ADest: TRectF; const Paint: ISkPaint);
-    procedure DrawMatrixBackground(const ACanvas: ISkCanvas);
     procedure CreateNewVideoSnapshot(AWidth, AHeight: Single);
-    procedure DoAnimateBoom(AImageItem: TImageItem; ASync: Boolean);
-    procedure DrawSmallPicParticles(ACanvas: ISkCanvas);   //atm instable
+    procedure DrawSmallPicOverlay(const Item: TImageItem; const BaseRect: TRectF; ACanvas: ISkCanvas; Paint: ISkPaint);
+    //procedure DoAnimateBoom(AImageItem: TImageItem; ASync: Boolean);
+    procedure DrawAndAnimateParticles(const ACanvas: ISkCanvas);
 
     //videoplayer
     procedure SetVideoFileSync;
@@ -590,7 +572,6 @@ type
     procedure SetSelectedCaptionBackground(Value: TAlphaColor);
     procedure SetKeepAreaFreeRect(const Value: TRect);
     procedure SetAutoScrollPageForNewAdded(Value: Boolean);
-    procedure SetFreeFloatDrift(Value: Boolean);
     procedure SetInfoPanelDirection(const Value: TInfoPanelDirection);
     procedure SetSmallPicVisible(const Value: Boolean);
     procedure SetEnableParticlesOnMouseClick(const Value: Boolean);
@@ -600,7 +581,6 @@ type
     procedure SetCornerRadius(const Value: Single);
     procedure SetRotationAllowed(const Value: Boolean);
     procedure SetAnimatedBackground(const Value: Boolean);
-    procedure SpawnParticles(X, Y: Single; Count: Integer; Color: TAlphaColor);
     procedure SetShowInfoIndicator(const Value: Boolean);
     procedure SetInfoIndicatorColor(const Value: TAlphaColor);
     procedure SetBackgroundEffect(const Value: TBackgroundEffect);
@@ -628,6 +608,7 @@ type
     procedure SetCaptureVideo(const Value: Boolean);
     procedure SetAlwaysShowInfo(const Value: Boolean);
     procedure SetDeleteClicked(const Value: Boolean);
+    procedure SetItemBorderColor(const Value: TAlphaColor);
   protected
     procedure Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single); override;
     procedure Resize; override;
@@ -661,7 +642,7 @@ type
     procedure SetImage(Index: Integer; Bitmap: TBitmap);
     procedure RemoveImage(Index: Integer; Animated: Boolean = True); overload;
     procedure RemoveImage(Index: Integer; Animated: Boolean; FallingTargetPos: TRect; FallingStyle: TImageEntryStyle); overload;
-    procedure Clear(animated: Boolean; ZoominSelected: Boolean; SelectedTargetPos, FallingTargetPos: TRect; FallingStyle: TImageEntryStyle = iesFromBottom; AndFree: Boolean = true); overload;
+    procedure Clear(animated: Boolean; ZoominSelected: Boolean; SelectedTargetPos, FallingTargetPos: TRect; FallingStyle: TImageEntryStyle = iesFromBottom); overload;
     procedure Clear(animated: Boolean; ZoominSelected: Boolean = false); overload;
     procedure MoveImageToPos(RelIndexFrom, RelIndexTo: Integer);
 
@@ -697,6 +678,7 @@ type
     property HotTrackColor: TAlphaColor read FHotTrackColor write SetHotTrackColor;
     property GlowColor: TAlphaColor read FGlowColor write SetGlowColor;
     property GlowWidth: Integer read FGlowWidth write SetGlowWidth;
+    property ItemBorderColor: TAlphaColor read FItemBorderColor write SetItemBorderColor;
     property HotTrackWidth: Integer read FHotTrackWidth write SetHotTrackWidth;
     property ShowSmallPicOnlyOnHover: Boolean read FShowSmallPicOnlyOnHover write SetShowSmallPicOnlyOnHover default True;
     property CaptionOnHoverOnly: Boolean read FCaptionOnHoverOnly write SetCaptionOnHoverOnly default True;
@@ -710,6 +692,8 @@ type
     property AllImageItems[Index: Integer]: TFlowMasterItem read GetMasterItem;
     property TechBracketWidth: Integer read FTechBracketWidth write SetTechBracketWidth;
     property DeleteClicked: Boolean read FDeleteClicked write SetDeleteClicked;
+    property GestureZoomFactor: Single read FGestureZoomFactor write FGestureZoomFactor;
+
   published
     property FlowLayout: TFlowLayout read FFlowLayout write SetFlowLayout;
     property AnimationSpeed: Integer read FAnimationSpeed write SetAnimationSpeed default DEFAULT_ANIMATION_SPEED;
@@ -759,7 +743,6 @@ type
     property OnImageLoadFailed: TImageLoadFailedEvent read FOnImageLoadFailed write FOnImageLoadFailed;
     property OnImageMouseEnter: TImageHoverEvent read FOnImageMouseEnter write FOnImageMouseEnter;
     property OnImageMouseLeave: TImageHoverEvent read FOnImageMouseLeave write FOnImageMouseLeave;
-    property FreeFloatDrift: Boolean read FFreeFloatDrift write SetFreeFloatDrift default False;
     property SmallPicImageList: TImageList read FSmallPicImageList write FSmallPicImageList;
     property SmallPicPosition: TSmallPicPosition read FSmallPicPosition write FSmallPicPosition;
     property SmallpicMargin: Integer read FSmallpicMargin write FSmallpicMargin;
@@ -790,7 +773,7 @@ type
     property HoverAliveSpeed: Single read FHoverAliveSpeed write FHoverAliveSpeed;
     property InfoIndicatorColor: TAlphaColor read FInfoIndicatorColor write SetInfoIndicatorColor;
     property ShowInfoIndicator: Boolean read FShowInfoIndicator write SetShowInfoIndicator;
-    property BackgroundEffect: TBackgroundEffect read FBackgroundEffect write SetBackgroundEffect;
+    property BackgroundEffect: uSkFlowEffects.TBackgroundEffect read FBackgroundEffect write SetBackgroundEffect;
     property MatrixFont: TFont read FMatrixFont write FMatrixFont;
     property MatrixColor: TAlphaColor read FMatrixColor write SetMatrixColor;
     property MatrixHeadColor: TAlphaColor read FMatrixHeadColor write SetMatrixHeadColor;
@@ -1035,8 +1018,6 @@ begin
   FHotZoom := 1;
   FHotZoomTarget := 1;
   { Initial Drift Parameters }
-  DriftRangeX := 10 + Random(20);
-  DriftRangeY := 8 + Random(15);
   FIsInfoShowing := False;
   FInfoProgress := 0.0;
   // === INIT HOVER MOVEMENT ===
@@ -1245,7 +1226,6 @@ begin
   { --- Defaults - State --- }
   FNextLoaderCoreIndex := 0;
   FisClearing := False;
-  FFreeFloatDrift := false;
   FBreathingPhase := 0.0;
   FBreathRotationEnabled := False;
   FAnimationThread := nil;
@@ -1275,6 +1255,7 @@ begin
   FShowInfoIndicator := True;
   FEnableParticlesOnMouseClick := True;
   FGlowColor := TAlphaColors.Aqua;
+  FItemBorderColor := TAlphaColor($FF373737);
   FGlowWidth := DEFAULT_GLOW_WIDTH;
   FHotTrackWidth := DEFAULT_HOTTRACK_WIDTH;
   FParticles := TList<TParticle>.Create;
@@ -1320,6 +1301,8 @@ begin
   FAnimationEasing := True;
   FLoadingCount := 0;
   FDeleteClicked := False;
+  FIsGestureZoomed := False;
+  FGestureZoomFactor := 3.0;
   { --- Defaults - Paging --- }
   FPageSize := 1000;
   FCurrentPage := 0;
@@ -1338,13 +1321,17 @@ begin
   // CREATE VIDEO PLAYER (Initialize at Startup)
   // ==========================================================
   FCaptureVideo := False;
-  FVideoPlayer := TMediaPlayerControl.Create(Self);
-  FVideoPlayer.Parent := Self;
-  FVideoPlayer.SetBounds(10, 10, 100, 100); // Start off-screen
-  FVideoPlayer.Visible := True; // Keep it hidden initially
-  FVideoPlayer.HitTest := False; // Pass mouse clicks to Skia
-  FVideoPlayer.MediaPlayer := TMediaPlayer.Create(Self);
-  FVideoPlayer.MediaPlayer.Volume := 100;
+  try
+    FVideoPlayer := TMediaPlayerControl.Create(Self);
+    FVideoPlayer.Parent := Self;
+    FVideoPlayer.SetBounds(10, 10, 100, 100); // Start off-screen
+    FVideoPlayer.Visible := True; // Keep it hidden initially
+    FVideoPlayer.HitTest := False; // Pass mouse clicks to Skia
+    FVideoPlayer.MediaPlayer := TMediaPlayer.Create(Self);
+    FVideoPlayer.MediaPlayer.Volume := 100;
+  except
+    //maybe windows and no windows mediaplayer installed or something
+  end;
 end;
 
 destructor TSkFlowmotion.destroy;
@@ -1471,6 +1458,15 @@ end;
 // INTERNAL METHODS: PROPERTY SETTERS
 // -----------------------------------------------------------------------------
 
+procedure TSkFlowmotion.SetItemBorderColor(const Value: TAlphaColor);
+begin
+  if FItemBorderColor <> Value then
+  begin
+    FItemBorderColor := Value;
+    Repaint;
+  end;
+end;
+
 procedure TSkFlowmotion.SetDeleteClicked(const Value: Boolean);
 begin
   if FDeleteClicked <> Value then
@@ -1533,12 +1529,12 @@ begin
   end;
 end;
 
-procedure TSkFlowmotion.SetBackgroundEffect(const Value: TBackgroundEffect);
+procedure TSkFlowmotion.SetBackgroundEffect(const Value: uSkFlowEffects.TBackgroundEffect);
 begin
   if FBackgroundEffect <> Value then
   begin
     FBackgroundEffect := Value;
-    if FBackgroundEffect = beRealMatrix then
+    if FBackgroundEffect = uSkFlowEffects.beRealMatrix then
       InitMatrix;
     Repaint;
   end;
@@ -1606,7 +1602,6 @@ begin
   begin
     FHoverAlive := Value;
     // Reset positions if turned off so they snap back cleanly?
-    // Optional: Resetting offsets makes it look sharper when stopping.
     if not Value then
     begin
       var i: Integer;
@@ -2081,15 +2076,6 @@ begin
   FAutoScrollPageForNewAdded := Value;
 end;
 
-procedure TSkFlowmotion.SetFreeFloatDrift(Value: Boolean);
-begin
-  if FFreeFloatDrift <> Value then
-  begin
-    FFreeFloatDrift := Value;
-    Repaint;
-  end;
-end;
-
 procedure TSkFlowmotion.SetSmallPicVisible(const Value: Boolean);
 begin
   if FSmallPicVisible <> Value then
@@ -2402,7 +2388,6 @@ var
 begin
   if not ImageItem.Visible then
     Exit;
-
   // ==========================================
   // IGNORE WALLS WHILE CLEARING
   // ==========================================
@@ -2411,11 +2396,9 @@ begin
     Result := TRectF.Create(ImageItem.CurrentRect);
     Exit;
   end;
-
   // ==========================================
   // 1. CALCULATE BASE DIMENSIONS
   // ==========================================
-
   // Determine if we should use CurrentRect (Animating) or TargetRect (Static/Idle)
   if (ImageItem.CurrentRect.Right > ImageItem.CurrentRect.Left) and (ImageItem.CurrentRect.Bottom > ImageItem.CurrentRect.Top) then
   begin
@@ -2429,8 +2412,8 @@ begin
   else
   begin
     // Fallback Case
-    // FIX: If we are animating, we MUST use CurrentRect even if it's 0 size (e.g., Point start).
-    // Using TargetRect here causes the "Flash at Target" bug.
+    // If we are animating, we MUST use CurrentRect even if it's 0 size (e.g., Point start).
+    // Using TargetRect here causes "Flash at Target" bug.
     if ImageItem.Animating then
     begin
       BaseRect := TRectF.Create(ImageItem.CurrentRect);
@@ -2449,7 +2432,6 @@ begin
       BaseH := BaseRect.Bottom - BaseRect.Top;
     end;
   end;
-
   // ==========================================================
   // 2. CALCULATE ZOOM FACTOR & STRICT FITTING
   // ==========================================================
@@ -2458,51 +2440,40 @@ begin
   // Calculate intended size
   NewW := BaseW * ZoomFactor;
   NewH := BaseH * ZoomFactor;
-
   // ==========================================================
   // RESTRICT MAX SIZE TO SCREEN
   // ==========================================================
   if NewW > Self.Width then
     ZoomFactor := Self.Width / BaseW;
-
   if NewH > Self.Height then
   begin
     ZoomFactor := Min(ZoomFactor, Self.Height / BaseH);
   end;
-
   // Recalculate strict size
   NewW := BaseW * ZoomFactor;
   NewH := BaseH * ZoomFactor;
-
   // Create Unbounded Rect
   Result := TRectF.Create(CenterX - NewW / 2, CenterY - NewH / 2, CenterX + NewW / 2, CenterY + NewH / 2);
-
   // ==========================================================
   // 3. WALL SLIDING / ANCHORING
   // ==========================================================
   ShiftX := 0;
   ShiftY := 0;
-
   // Anchor Left (Don't go < 0)
   if Result.Left < 0 then
     ShiftX := -Result.Left;
-
   // Anchor Top (Don't go < 0)
   if Result.Top < 0 then
     ShiftY := -Result.Top;
-
   // Anchor Right (Don't go > Width)
   if Result.Right > Self.Width then
     ShiftX := Self.Width - Result.Right;
-
   // Anchor Bottom (Don't go > Height)
   if Result.Bottom > Self.Height then
     ShiftY := Self.Height - Result.Bottom;
-
   // Apply calculated shifts
   if (ShiftX <> 0) or (ShiftY <> 0) then
     Result.Offset(ShiftX, ShiftY);
-
   // ==========================================================
   // APPLY HOVER OFFSET (Micro-Movement)
   // ==========================================================
@@ -2872,6 +2843,7 @@ var
 begin
   FisClearing := True;
   try
+
     { Free Visual Items }
     for i := 0 to FImages.Count - 1 do
       TImageItem(FImages[i]).Free;
@@ -2898,6 +2870,7 @@ begin
     FDraggingImage := False;
     FDraggingSelected := False;
     FIsMouseOverHandle := False;
+    FMatrixCols := nil;
   finally
     FisClearing := False;
     FInFallAnimation := False;
@@ -3051,7 +3024,6 @@ procedure TSkFlowmotion.StartZoomAnimation(ImageItem: TImageItem; ZoomIn: Boolea
 var
   CenterX, CenterY: Integer;
   ImageSize: TSize;
-  // NEW: Vars for Dynamic Clamping
   DynMaxW, DynMaxH: Integer;
   MaxLimitW, MaxLimitH: Integer;
 begin
@@ -3061,6 +3033,8 @@ begin
   ImageItem.Animating := True;
   ImageItem.StartRect := ImageItem.CurrentRect;
 
+  if FBreathingEnabled then
+    FBreathingPhase := 0.0;
   // ==========================================================
   // DYNAMIC SIZE LIMITING (80% Screen Rule)
   // ==========================================================
@@ -3151,7 +3125,7 @@ begin
 
   if Zoom1 <> Zoom2 then
   begin
-    // Higher zoom wins → return positive if Img1 is more zoomed
+    // Higher zoom wins ? return positive if Img1 is more zoomed
     Result := IfThen(Zoom1 > Zoom2, 1, -1);
     Exit;
   end;
@@ -3196,7 +3170,7 @@ begin
     Exit;
   end;
 
-  // Equal in all criteria → same Z-order
+  // Equal in all criteria ? same Z-order
   Result := 0;
 end;
 
@@ -3844,7 +3818,6 @@ begin
   if (AItem.InfoText = '') then
     Exit;
 
-  // === FIXED VISIBILITY LOGIC ===
   // 1. If panel is OPEN (State = True), don't draw.
   if AItem.FIsInfoShowing then
     Exit;
@@ -3965,57 +3938,16 @@ end;
 
 procedure TSkFlowmotion.InitMatrix;
 var
-  i, j, ColsCount: Integer;
-  SourceData: string;
+  DataCallback: uSkFlowEffects.TGetMatrixDataFunc;
 begin
-  // >>> EXIT IF NO IMAGES <<<
-  if (Width <= 0) or (FImages.Count = 0) then
-    Exit;
-
-  if FMatrixFontSize <= 0 then
-    ColsCount := Trunc(Width / 10)
-  else
-    ColsCount := Trunc(Width / (FMatrixFontSize * 0.6));
-
-  if ColsCount < 1 then
-    ColsCount := 1;
-  if ColsCount > 300 then
-    ColsCount := 300;
-
-  SetLength(FMatrixCols, ColsCount);
-
-  for i := 0 to ColsCount - 1 do
-  begin
-    FMatrixCols[i].X := i * (FMatrixFontSize * 0.6);
-    FMatrixCols[i].Y := -Random(Trunc(Height * 2));
-    FMatrixCols[i].Speed := 5.0 + Random(15);
-
-    // >>> SAFE INDEX <<<
-    // Only pick from valid range. Use Count - 1 as max index.
-    if FImages.Count > 1 then
-      FMatrixCols[i].TargetImageIndex := Random(FImages.Count - 1)
-    else
-      FMatrixCols[i].TargetImageIndex := 0;
-
-    // <--- GET REAL LIVE DATA --->
-    SourceData := GetLiveImageDataString(FMatrixCols[i].TargetImageIndex);
-
-    // Determine Length based on data string (capped for visual sanity)
-    FMatrixCols[i].Length := Length(SourceData);
-    if FMatrixCols[i].Length > 30 then
-      FMatrixCols[i].Length := 30; // Cap max length
-
-    // Seed column with data
-    FMatrixCols[i].Chars := '';
-    for j := 1 to FMatrixCols[i].Length do
+  // Create the callback wrapper
+  DataCallback :=
+    function(Idx: Integer): string
     begin
-      // Fill initial string with data
-      if j <= Length(SourceData) then
-        FMatrixCols[i].Chars := FMatrixCols[i].Chars + SourceData[j]
-      else
-        FMatrixCols[i].Chars := FMatrixCols[i].Chars + ' '; // Pad with space
+      Result := Self.GetLiveImageDataString(Idx);
     end;
-  end;
+
+  uSkFlowEffects.InitMatrix(FMatrixCols, Width, Height, FMatrixFontSize, FImages.Count, DataCallback);
 end;
 
 function TSkFlowmotion.GetLiveImageDataString(ImgIdx: Integer): string;
@@ -4060,124 +3992,66 @@ begin
     '|A:' + IntToStr(Img.Alpha) + '|' + CapStr;
 end;
 
-procedure TSkFlowmotion.DrawMatrixBackground(const ACanvas: ISkCanvas);
+procedure TSkFlowmotion.DrawSmallPicOverlay(const Item: TImageItem; const BaseRect: TRectF; ACanvas: ISkCanvas; Paint: ISkPaint);
 var
-  i, j: Integer;
-  LPaint: ISkPaint;
-  LSkFont: ISkFont;
-  CharY: Single;
-  CurrentChar: string;
-  TargetIdx: Integer; // Helper var for safety check
+  IconBmp: TBitmap;
+  IconSkImg: ISkImage;
+  IconRect: TRectF;
+  Margin: Integer;
 begin
-  if not FAnimatedBackground then
+  // Visibility Checks
+  if FShowSmallPicOnlyOnHover and (Item <> FHotItem) and (Item <> FSelectedImage) then
     Exit;
-  if (Length(FMatrixCols) = 0) and (FBackgroundEffect = beRealMatrix) then
-    InitMatrix;
-  if Length(FMatrixCols) = 0 then
+  if not FSmallPicVisible then
+    Exit;
+  if (Item.SmallPicIndex < 0) or (FSmallPicImageList = nil) then
+    Exit;
+  if (Item.SmallPicIndex >= FSmallPicImageList.Count) then
     Exit;
 
-  // Setup Paint
-  LPaint := TSkPaint.Create;
-  LPaint.AntiAlias := True;
-  LPaint.Style := TSkPaintStyle.Fill;
+  // Get Bitmap
+  IconBmp := GetSmallPicBitmap(Item.SmallPicIndex);
+  if not Assigned(IconBmp) then
+    Exit;
 
-  // Setup Font
-  LSkFont := TSkFont.Create(TSkTypeface.MakeFromName(FMatrixFont.Family, TSkFontStyle.Normal), FMatrixFontSize);
+  // Convert to Skia
+  IconSkImg := BitmapToSkImage(IconBmp);
+  if not Assigned(IconSkImg) then
+    Exit;
 
-  // <--- ADD TRY/EXCEPT BLOCK --->
-  try
-    // Loop through every column
-    for i := 0 to High(FMatrixCols) do
-    begin
-      // >>> VALIDATE INDEX BEFORE DRAWING <<<
-      // Check if the stored index is within the valid range of FImages
-      TargetIdx := FMatrixCols[i].TargetImageIndex;
-      if (TargetIdx < 0) or (TargetIdx >= FImages.Count) then
-        Continue; // Skip this column if index is invalid
+  // Calculate Position
+  Margin := FSmallpicMargin;
+  // Raise matching to round edges (same as before)
+  if FRoundEdges > 0 then
+    Margin := Margin + Round(FRoundEdges * 0.7);
 
-      // Draw characters Vertically
-      for j := 1 to Length(FMatrixCols[i].Chars) do
-      begin
-        // Calculate Y position for this specific character
-        CharY := FMatrixCols[i].Y + ((j - 1) * FMatrixFontSize);
+  IconRect := TRectF.Create(0, 0, IconSkImg.Width, IconSkImg.Height);
 
-        // Optimization: Only draw if roughly on screen
-        if (CharY > -FMatrixFontSize) and (CharY < Height + FMatrixFontSize) then
-        begin
-          CurrentChar := FMatrixCols[i].Chars[j];
-
-          // CHECK: Is this the "Head" (The last character/bottom of stream)?
-          if j = Length(FMatrixCols[i].Chars) then
-          begin
-            // HEAD: Bright Color, Full Opacity
-            LPaint.Color := FMatrixHeadColor;
-            LPaint.AlphaF := 1.0;
-          end
-          else
-          begin
-            // BODY: Dimmer Color, Some Transparency
-            LPaint.Color := FMatrixColor;
-            LPaint.AlphaF := 0.6;
-          end;
-
-          // Draw single character
-          ACanvas.DrawSimpleText(CurrentChar, FMatrixCols[i].X, CharY, LSkFont, LPaint);
-        end;
-      end;
-    end;
-  except
-    // --- CATCH ERROR ---
-    // If anything crashes inside this specific column/drawing operation, we catch it here.
-    // This prevents a crash from affecting the main images drawing.
+  // Set Offset based on Position Property
+  case FSmallPicPosition of
+    spTopLeft:
+      IconRect.Offset(BaseRect.Left + Margin, BaseRect.Top + Margin);
+    spTopRight:
+      IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Top + Margin);
+    spBottomLeft:
+      IconRect.Offset(BaseRect.Left + Margin, BaseRect.Bottom - Margin - IconRect.Height);
+    spBottomRight:
+      IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Bottom - Margin - IconRect.Height);
   end;
+
+  // Draw
+  ACanvas.DrawImageRect(IconSkImg, IconRect, TSkSamplingOptions.High, Paint);
 end;
 
 procedure TSkFlowmotion.DrawBackgroundEffects(const ACanvas: ISkCanvas; const ADest: TRectF; const Paint: ISkPaint);
-var
-  WaveX, WaveY: Single;
-  RRect: TRectF;
 begin
   case FBackgroundEffect of
-
-    beHolographic:
+    uSkFlowEffects.beHolographic:
       begin
-        if Assigned(FBackgroundSkImage) then
-        begin
-          if FAnimatedBackground then
-          begin
-            Paint.Style := TSkPaintStyle.Fill;
-            Paint.ImageFilter := nil;
-            Paint.Alpha := 255;
-            FGridOffsetY := FGridOffsetY + 1.0;
-            if FGridOffsetY > 1000 then
-              FGridOffsetY := 0;
-            WaveX := Sin(FGridOffsetY * 0.02) * 10;
-            WaveY := Sin(FGridOffsetY * 0.03) * 10;
-
-            // LAYER 1 (Base)
-            ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
-
-            // LAYER 2 (Offset 1)
-            Paint.Alpha := 100;
-            RRect := ADest;
-            OffsetRect(RRect, WaveX, WaveY);
-            ACanvas.DrawImageRect(FBackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
-
-            // LAYER 3 (Offset 2)
-            Paint.Alpha := 40;
-            RRect := ADest;
-            OffsetRect(RRect, -WaveX, -WaveY);
-            ACanvas.DrawImageRect(FBackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
-          end
-          else
-          begin
-            // Static fallback if animation disabled
-            ACanvas.DrawImageRect(FBackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
-          end;
-        end;
+        uSkFlowEffects.DrawHolographicBackground(ACanvas, ADest, Paint, FBackgroundSkImage, FGridOffsetY, FAnimatedBackground);
       end;
 
-    beRealMatrix:
+    uSkFlowEffects.beRealMatrix:
       begin
         // 1. Draw static background image (Always visible)
         if Assigned(FBackgroundSkImage) then
@@ -4192,7 +4066,7 @@ begin
         if FAnimatedBackground then
         begin
           // Draw Matrix on top
-          DrawMatrixBackground(ACanvas);
+          uSkFlowEffects.DrawMatrixBackground(ACanvas, FMatrixCols, FMatrixFont, FMatrixColor, FMatrixHeadColor, FMatrixFontSize, FMatrixSpeed, Height, FAnimatedBackground);
         end;
       end;
   end;
@@ -4341,7 +4215,6 @@ var
   CenterX, CenterY: Single;
   HandleRect: TRectF;
   VisualRect: TRectF;
-  P: TParticle;
   ShadowRad, ShadowDx, ShadowDy: Single;
   // Z-Ordering Lists
   StaticImages: TList;
@@ -4515,123 +4388,8 @@ const
     end;
   end;
 
-  procedure DrawSmallPicOverlay(const Item: TImageItem; const BaseRect: TRectF);
-  var
-    IconBmp: TBitmap;
-    IconSkImg: ISkImage;
-    IconRect: TRectF;
-    Margin: Integer;
-  begin
-    if FShowSmallPicOnlyOnHover and (Item <> FHotItem) and (Item <> FSelectedImage) then
-      Exit;
-    if not FSmallPicVisible then
-      Exit;
-    if (Item.SmallPicIndex < 0) or (FSmallPicImageList = nil) then
-      Exit;
-    if (Item.SmallPicIndex >= FSmallPicImageList.Count) then
-      Exit;
-    IconBmp := GetSmallPicBitmap(Item.SmallPicIndex);
-    if not Assigned(IconBmp) then
-      Exit;
-    IconSkImg := BitmapToSkImage(IconBmp);
-    if not Assigned(IconSkImg) then
-      Exit;
-    Margin := FSmallpicMargin;
-    //raise matching to round edges
-    if FRoundEdges > 0 then
-      Margin := Margin + Round(FRoundEdges * 0.7);
-    IconRect := TRectF.Create(0, 0, IconSkImg.Width, IconSkImg.Height);
-    case FSmallPicPosition of
-      spTopLeft:
-        IconRect.Offset(BaseRect.Left + Margin, BaseRect.Top + Margin);
-      spTopRight:
-        IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Top + Margin);
-      spBottomLeft:
-        IconRect.Offset(BaseRect.Left + Margin, BaseRect.Bottom - Margin - IconRect.Height);
-      spBottomRight:
-        IconRect.Offset(BaseRect.Right - Margin - IconRect.Width, BaseRect.Bottom - Margin - IconRect.Height);
-    end;
-    ACanvas.DrawImageRect(IconSkImg, IconRect, TSkSamplingOptions.High, Paint);
-  end;
 
-  procedure DrawTechBrackets(const R: TRectF; const P: ISkPaint; const Item: TImageItem);
-  var
-    Len: Single;
-    L, T, Rgt, B: Single;
-    ImageAlpha: Byte; // Used to match the image's pulsing/fading alpha
-  begin
-    // === USE PROPERTY FOR LENGTH (ARMS) ===
-    // We use the property here so you can choose how long the arms are.
-    Len := FTechBracketWidth;
-    L := R.Left;
-    T := R.Top;
-    Rgt := R.Right;
-    B := R.Bottom;
-    // === DETERMINE ALPHA BASED ON STATE ===
-    // Selected images use HotSelected alpha.
-    // Hot/Animating images use HotPhase alpha.
-    // Others use Static alpha.
-    if Item = FSelectedImage then
-      ImageAlpha := FAlphaHotSelected
-    else if (Item = FHotItem) or Item.Animating then
-      ImageAlpha := FAlphaHotPhase
-    else
-      ImageAlpha := FAlphaStatic;
-    Paint.Style := TSkPaintStyle.Stroke;
-    Paint.ImageFilter := nil;
-    Paint.AntiAlias := True;
-    Paint.Alpha := ImageAlpha; // Apply calculated alpha
-    // === COLOR BASED ON STATE ===
-    // Selected items use Glow Color.
-    // Other items (Hot/Static) use Hot Track Color.
-    if Item.IsSelected then
-      Paint.Color := FGlowColor
-    else
-      Paint.Color := FHotTrackColor;
-    // === THICKNESS BASED ON STATE ===
-    // Selected items use GlowWidth (Thicker).
-    // Other items (Hot/Static) use HotTrackWidth (Thinner).
-    if Item.IsSelected then
-      Paint.StrokeWidth := FGlowWidth
-    else
-      Paint.StrokeWidth := FHotTrackWidth;
-    // === DRAW BRACKET LINES (Standard [] Shape) ===
-    ACanvas.DrawLine(L, T, L + Len, T, P);
-    ACanvas.DrawLine(L, T, L, T + Len, P);
-    ACanvas.DrawLine(Rgt - Len, T, Rgt, T, P);
-    ACanvas.DrawLine(Rgt, T, Rgt, T + Len, P);
-    ACanvas.DrawLine(L, B - Len, L, B, P);
-    ACanvas.DrawLine(L, B, L + Len, B, P);
-    ACanvas.DrawLine(Rgt - Len, B, Rgt, B, P);
-    ACanvas.DrawLine(Rgt, B, Rgt, B - Len, P);
-  end;
-
-  procedure DrawAndAnimateParticles;
-  var
-    PPaint: ISkPaint;
-    i: Integer;
-  begin
-    if FParticles.Count = 0 then
-      Exit;
-    PPaint := TSkPaint.Create;
-    PPaint.Style := TSkPaintStyle.Fill;
-    for i := FParticles.Count - 1 downto 0 do
-    begin
-      P := FParticles[i];
-      P.X := P.X + P.VX;
-      P.Y := P.Y + P.VY;
-      P.Life := P.Life - 0.05;
-      PPaint.Color := P.Color;
-      PPaint.AlphaF := P.Life;
-      ACanvas.DrawRect(TRectF.Create(P.X, P.Y, P.X + P.Size, P.Y + P.Size), PPaint);
-      if P.Life <= 0 then
-        FParticles.Delete(i)
-      else
-        FParticles[i] := P;
-    end;
-  end;
   // Core Drawing Logic for an item (Returns Visual Rect for hit checks)
-
   function ProcessItem(Item: TImageItem; UseGlow: Boolean): TRectF;
   var
     VisRect: TRectF;
@@ -4710,7 +4468,7 @@ const
       begin
         // === NORMAL IMAGE: Subtle Border ===
         Paint.Style := TSkPaintStyle.Stroke;
-        Paint.Color := TAlphaColor($FF373737);
+        Paint.Color := FItemBorderColor;
         Paint.Alpha := FAlphaStatic;
         Paint.StrokeWidth := 1;
         Paint.ImageFilter := nil;
@@ -4733,7 +4491,7 @@ const
 
         case FPictureBorderType of
           btTech:
-            DrawTechBrackets(VisRect, Paint, Item);
+            uSkFlowEffects.DrawTechBrackets(ACanvas, VisRect, Paint, FTechBracketWidth, ImageAlpha, Item.IsSelected, FGlowColor, FHotTrackColor, FGlowWidth, FHotTrackWidth);
           btFull:
             begin
               if FRoundEdges > 0 then
@@ -4748,7 +4506,7 @@ const
       DrawCaption(Item, VisRect);
 
       // Draw SmallPic
-      DrawSmallPicOverlay(Item, VisRect);
+      DrawSmallPicOverlay(Item, VisRect, ACanvas, Paint);
     end;
     // === END OF ENTERING CHECK ===
 
@@ -4779,7 +4537,7 @@ begin
   // We pass the Paint object we just created to reuse it
     DrawBackgroundEffects(ACanvas, ADest, Paint);
      // <--- DRAW FALLING SMALL PICS --->
-   // DrawSmallPicParticles(ACanvas);
+   //uSkFlowEffects.DrawSmallPicParticles(ACanvas, FSmallPicParticles, SmallPicDrawCallback);
 
     // =========================================================================
     // 2. SORT IMAGES INTO Z-ORDER BUCKETS
@@ -5023,7 +4781,7 @@ begin
 
       DrawCaption(FSelectedImage, VisualRect);
 
-      DrawSmallPicOverlay(FSelectedImage, VisualRect);
+      DrawSmallPicOverlay(FSelectedImage, VisualRect, ACanvas, Paint);
 
       // === CLIP PANEL TO ROUNDED CORNERS ===
       if FRoundEdges > 0 then
@@ -5070,7 +4828,7 @@ begin
       end;
       case FPictureBorderType of
         btTech:
-          DrawTechBrackets(VisualRect, Paint, ImageItem);
+          uSkFlowEffects.DrawTechBrackets(ACanvas, VisualRect, Paint, FTechBracketWidth, ImageItem.Alpha, ImageItem.IsSelected, FGlowColor, FHotTrackColor, FGlowWidth, FHotTrackWidth);
         btFull:
           begin
             if FRoundEdges > 0 then
@@ -5122,86 +4880,32 @@ begin
     EnteringImages.Free;
   end;
 
-  DrawAndAnimateParticles;
+  DrawAndAnimateParticles(ACanvas);
 end;
 
-// -----------------------------------------------------------------
-// DrawSmallPicParticles
-// Renders the falling small pic debris
-// -----------------------------------------------------------------
-
- //atm instable
-
-procedure TSkFlowmotion.DrawSmallPicParticles(ACanvas: ISkCanvas);
+procedure TSkFlowMotion.DrawAndAnimateParticles(const ACanvas: ISkCanvas);
 var
-  i, Count: Integer;
-  IconBmp: TBitmap;
-  IconSkImg: ISkImage;
-  Paint: ISkPaint;
-  SP: TSmallPicParticle;
-  ScaleW, ScaleH: Single;
-  // LOCAL SNAPSHOT TO AVOID RACE CONDITION
-  LocalParticles: TArray<TSmallPicParticle>;
+  i: Integer;
+  PPaint: ISkPaint;
+  P: uSkFlowEffects.TParticle;
 begin
-  if not FAnimatedBackground then
+  if FParticles.Count = 0 then
     Exit;
-  if not Assigned(FSmallPicParticles) or (FSmallPicParticles.Count = 0) then
-    Exit;
-  if not FSmallPicVisible then
-    Exit;
-  if FSmallPicImageList = nil then
-    Exit;
-  Paint := TSkPaint.Create;
-  Paint.Style := TSkPaintStyle.Fill;
-  Paint.AntiAlias := True;
-  // ==========================================================
-  // STEP 1: CREATE SNAPSHOT (Thread Safe Copy)
-  // ==========================================================
-  // We copy the list to a local array. This allows the Physics thread
-  // to modify/delete items from FSmallPicParticles safely while we are drawing.
-  // Without this, "List index out of bounds" or "Access Violation" crashes occur.
-  Count := FSmallPicParticles.Count;
-  SetLength(LocalParticles, Count);
-  for i := 0 to Count - 1 do
-    LocalParticles[i] := FSmallPicParticles[i];
-  // ==========================================================
-  // STEP 2: DRAW FROM SNAPSHOT
-  // ==========================================================
-  // We iterate the local copy. Even if the main list is cleared now,
-  // this local copy remains valid for the duration of this function.
-  for i := 0 to Count - 1 do
+  PPaint := TSkPaint.Create;
+  PPaint.Style := TSkPaintStyle.Fill;
+  for i := FParticles.Count - 1 downto 0 do
   begin
-    SP := LocalParticles[i];
-    // Safety Checks
-    if (SP.Index < 0) or (SP.Index >= FSmallPicImageList.Count) then
-      Continue;
-    IconBmp := GetSmallPicBitmap(SP.Index);
-    if not Assigned(IconBmp) then
-      Continue;
-    IconSkImg := BitmapToSkImage(IconBmp);
-    if not Assigned(IconSkImg) then
-      Continue;
-    // Alpha (Fade out)
-    Paint.AlphaF := Max(0, SP.Life) * 0.5;
-    // ==========================================================
-    // SAFE TRANSFORM CHAIN (Uses Canvas State Stack)
-    // ==========================================================
-    ACanvas.Save;
-    // 1. Move to particle position (X, Y)
-    ACanvas.Translate(SP.X, SP.Y);
-    // 2. Scale (Shrink) logic
-    ScaleW := Max(0.2, SP.Life);
-    ScaleH := Max(0.2, SP.Life);
-    ACanvas.Translate(IconSkImg.Width / 2, IconSkImg.Height / 2);
-    ACanvas.Scale(ScaleW, ScaleH);
-    ACanvas.Translate(-IconSkImg.Width / 2, -IconSkImg.Height / 2);
-    // 3. Rotate logic
-    ACanvas.Translate(IconSkImg.Width / 2, IconSkImg.Height / 2);
-    ACanvas.Rotate(SP.Angle);
-    ACanvas.Translate(-IconSkImg.Width / 2, -IconSkImg.Height / 2);
-    // Draw at (0,0) relative to current transformation
-    ACanvas.DrawImageRect(IconSkImg, TRectF.Create(0, 0, IconSkImg.Width, IconSkImg.Height), TSkSamplingOptions.High, Paint);
-    ACanvas.Restore;
+    P := FParticles[i];
+    P.X := P.X + P.VX;
+    P.Y := P.Y + P.VY;
+    P.Life := P.Life - 0.05;
+    PPaint.Color := P.Color;
+    PPaint.AlphaF := P.Life;
+    ACanvas.DrawRect(TRectF.Create(P.X, P.Y, P.X + P.Size, P.Y + P.Size), PPaint);
+    if P.Life <= 0 then
+      FParticles.Delete(i)
+    else
+      FParticles[i] := P;
   end;
 end;
 
@@ -5318,7 +5022,7 @@ begin
       // When we force a full screen zoom, we want it static.
       // We set Target to 1.0 explicitly.
     FSelectedImage.FHotZoomTarget := 1.0;
-    FSelectedImage.FHotZoom := 1.0; // Snap immediately
+    //FSelectedImage.FHotZoom := 1.0; // Snap immediately
 
     // 5. ANCHOR ANIMATION: Set Start to where image is NOW
     FSelectedImage.StartRect := FSelectedImage.CurrentRect;
@@ -5760,7 +5464,7 @@ begin
   Clear(animated, ZoominSelected, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), iesFromBottom);
 end;
 
-procedure TSkFlowmotion.Clear(animated: Boolean; ZoominSelected: Boolean; SelectedTargetPos, FallingTargetPos: TRect; FallingStyle: TImageEntryStyle = iesFromBottom; AndFree: Boolean = true);
+procedure TSkFlowmotion.Clear(animated: Boolean; ZoominSelected: Boolean; SelectedTargetPos, FallingTargetPos: TRect; FallingStyle: TImageEntryStyle = iesFromBottom);
 var
   i: Integer;
   ImageItem: TImageItem;
@@ -5773,17 +5477,23 @@ begin
     Exit;
   if not animated then
   begin
-    FreeAllImagesAndClearLists;
+    TThread.Synchronize(nil,
+      procedure
+      begin
+        FreeAllImagesAndClearLists;
+      end);
     Exit;
   end;
 
   // 2. Stop any other interfering processes
- // StopAnimationThread; // Keep commented out if you don't want AV
+
+  StopAnimationThread;
+
 
   // 3. Setup Clearing State
   FIsClearing := True;
 
-  FSpawningSmallPics := False;    //atm buggy
+  FSpawningSmallPics := False;
 
   FClearingStyle := FallingStyle;
   FClearingTargetPos := Point(FallingTargetPos.Left, FallingTargetPos.Top);
@@ -5796,10 +5506,10 @@ begin
     ImageItem.AnimationProgress := 0.0;
     ImageItem.Animating := True;
     // --- ALPHA SETUP ---
-    ImageItem.Alpha := ImageItem.Alpha; // Keep current alpha to start
     ImageItem.TargetAlpha := 0;       // Target is 0 (Invisible)
     // --- POSITION TARGETS ---
     ImageItem.StartRect := ImageItem.CurrentRect;
+
     // Calculate where this specific image should go
     TargetRect := CalculateClearingTarget(ImageItem, FallingTargetPos, FallingStyle, ZoominSelected, SelectedTargetPos, i);
     ImageItem.TargetRect := TargetRect;
@@ -5960,7 +5670,8 @@ begin
     if FSelectedImage <> nil then
       SetSelectedImage(nil, -1);
     if FEnableParticlesOnMouseClick then
-      SpawnParticles(X, Y, 20, FParticleColor);
+      uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
+
     Exit;
   end;
 
@@ -5992,7 +5703,7 @@ begin
       FRotatingImage := FSelectedImage;
       FLastMouseAngle := ArcTan2(Y - ((VisualRect.Top + VisualRect.Bottom) / 2), X - ((VisualRect.Left + VisualRect.Right) / 2)) * (180 / Pi);
       if FEnableParticlesOnMouseClick then
-        SpawnParticles(X, Y, 20, FParticleColor);
+        uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
       Exit;
     end;
   end;
@@ -6043,7 +5754,7 @@ begin
       if PtInRect(InfoRectInt, Point(Round(LocalPt.X), Round(LocalPt.Y))) then
       begin
         if FEnableParticlesOnMouseClick then
-          SpawnParticles(X, Y, 20, FParticleColor);
+          uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
         ShowInfoPanel(FSelectedImage); // Toggle (Hide)
         Exit;
       end;
@@ -6097,7 +5808,7 @@ begin
             Exit; // Clicked in Top-Left/Top-Right corner zones
         end;
         if FEnableParticlesOnMouseClick then
-          SpawnParticles(X, Y, 20, FParticleColor);
+          uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
         ShowInfoPanel(FSelectedImage); // Toggle (Show)
         Exit;
       end;
@@ -6121,7 +5832,7 @@ begin
         if Assigned(FOnCaptionClick) then
           FOnCaptionClick(Self, ImageItem, ItemIndex);
         if FEnableParticlesOnMouseClick then
-          SpawnParticles(X, Y, 20, FParticleColor);
+          uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
         Exit;
       end;
     end;
@@ -6187,7 +5898,7 @@ begin
             if Assigned(FOnSmallPicClick) then
               FOnSmallPicClick(Self, ImageItem, ItemIndex);
             if FEnableParticlesOnMouseClick then
-              SpawnParticles(X, Y, 20, FParticleColor);
+              uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
             Exit;
           end;
         end;
@@ -6208,7 +5919,7 @@ begin
         FOnSelectedImageDblClick(Self, ImageItem, ItemIndex);
     end;
     if FEnableParticlesOnMouseClick then
-      SpawnParticles(X, Y, 20, FParticleColor);
+      uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
     Exit;
   end;
 
@@ -6232,7 +5943,7 @@ begin
       if FSelectedImage <> ImageItem then
         SetSelectedImage(ImageItem, ItemIndex);
       if FEnableParticlesOnMouseClick then
-        SpawnParticles(X, Y, 20, FParticleColor);
+        uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
       Exit;
     end
     else // SORTED LAYOUT MODE
@@ -6284,7 +5995,7 @@ begin
           FAllSmallPicIndices.Delete(FSelectedImage.FImageIndex);
         end;
 
-        SpawnParticles(X, Y, 200, GetDominantColor(FSelectedImage.FSkImage));
+        uSkFlowEffects.SpawnParticles(FParticles, X, Y, 200, GetDominantColor(FSelectedImage.FSkImage));
 
         // Remove from Visual List (FImages)
         FImages.Delete(FImages.IndexOf(FSelectedImage));
@@ -6310,7 +6021,7 @@ begin
   // ==========================================================
   if FEnableParticlesOnMouseClick then
     if (Button = TMouseButton.mbLeft) and (ImageItem <> nil) then
-      SpawnParticles(X, Y, 20, FParticleColor);
+      uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
 
   inherited MouseDown(Button, Shift, X, Y);
 end;
@@ -6369,7 +6080,7 @@ begin
             TargetAngle := 0;
           FSelectedImage.FTargetRotation := TargetAngle;
           if FEnableParticlesOnMouseClick then
-            SpawnParticles(X, Y, 20, FParticleColor);
+            uSkFlowEffects.SpawnParticles(FParticles, X, Y, 20, FParticleColor);
           Exit;
         end;
 
@@ -6399,7 +6110,8 @@ begin
     begin
       FSelectedImage.FGlitchIntensity := 1.0;
       if FEnableParticlesOnMouseClick then
-        SpawnParticles(X, Y, 50, TAlphaColors.Red);
+        uSkFlowEffects.SpawnParticles(FParticles, X, Y, 50, TAlphaColors.Red);
+
     end;
     Exit;
   end;
@@ -6481,9 +6193,11 @@ begin
     var SwipeDist: Single;
     var ActualDir: TInfoPanelDirection;
     var TriggerPanel: Boolean;
+    var TriggerZoom: Boolean;
 
     SwipeDist := 200.0; // How many pixels to swipe
     TriggerPanel := False;
+    TriggerZoom := False;
 
     // Resolve Auto Direction (Portrait vs Landscape)
     ActualDir := FInfoPanelDirection;
@@ -6496,33 +6210,78 @@ begin
     end;
 
     // Check Swipes based on Direction
-    // Logic: We check the delta (Difference) from Start Point
+    // Logic: We check to delta (Difference) from Start Point
     case ActualDir of
-      ipdLeft:   // Panel Left.  Swipe Right (X Increases) to open.
-        if (X - FGestureStartPos.X) > SwipeDist then
-          TriggerPanel := True;
+      ipdLeft:
+        begin  // Panel Left.  Swipe Right (X Increases) to open.
+          if (X - FGestureStartPos.X) > SwipeDist then
+            TriggerPanel := True;
 
-      ipdRight:  // Panel Right. Swipe Left (X Decreases) to open.
-        if (FGestureStartPos.X - X) > SwipeDist then
-          TriggerPanel := True;
 
-      ipdTop:    // Panel Top.   Swipe Down (Y Increases) to open.
-        if (Y - FGestureStartPos.Y) > SwipeDist then
-          TriggerPanel := True;
 
-      ipdBottom: // Panel Bottom. Swipe Up (Y Decreases) to open.
-        if (FGestureStartPos.Y - Y) > SwipeDist then
-          TriggerPanel := True;
+      // Check Secondary Axis (Vertical) for Zoom
+      // Swipe UP to Zoom In, Swipe DOWN to Zoom Out
+          if (FGestureStartPos.Y - Y) > SwipeDist then
+          begin
+            FIsGestureZoomed := not FIsGestureZoomed; // Toggle Zoom
+            TriggerZoom := True;
+          end;
+        end;
+      ipdRight:
+        begin // Panel Right. Swipe Left (X Decreases) to open.
+          if (FGestureStartPos.X - X) > SwipeDist then
+            TriggerPanel := True;
+
+      // Secondary Axis (Vertical) for Zoom
+          if (FGestureStartPos.Y - Y) > SwipeDist then
+          begin
+            FIsGestureZoomed := not FIsGestureZoomed;
+            TriggerZoom := True;
+          end;
+        end;
+      ipdTop:
+        begin// Panel Top.   Swipe Down (Y Increases) to open.
+          if (Y - FGestureStartPos.Y) > SwipeDist then
+            TriggerPanel := True;
+
+      // Secondary Axis (Horizontal) for Zoom
+      // Swipe RIGHT to Zoom In
+          if (X - FGestureStartPos.X) > SwipeDist then
+          begin
+            FIsGestureZoomed := not FIsGestureZoomed;
+            TriggerZoom := True;
+          end;
+        end;
+      ipdBottom:
+        begin // Panel Bottom. Swipe Up (Y Decreases) to open.
+          if (FGestureStartPos.Y - Y) > SwipeDist then
+            TriggerPanel := True;
+
+      // Secondary Axis (Horizontal) for Zoom
+          if (X - FGestureStartPos.X) > SwipeDist then
+          begin
+            FIsGestureZoomed := not FIsGestureZoomed;
+            TriggerZoom := True;
+          end;
+        end;
     end;
 
-    // If Valid Swipe Detected -> Toggle Panel
+    // Handle Actions
     if TriggerPanel then
     begin
       ShowInfoPanel(FSelectedImage);
       if FEnableParticlesOnMouseClick then
-        SpawnParticles(X, Y, 50, TAlphaColors.Red);
-      // Stop tracking until next click
-      FGestureActive := False;
+        uSkFlowEffects.SpawnParticles(FParticles, X, Y, 50, TAlphaColors.Red);
+
+      FGestureActive := False; // Stop tracking
+    end
+    else if TriggerZoom then
+    begin
+      // If Zoomed, Spawn particles (Optional, adds juice!)
+      if FIsGestureZoomed and FEnableParticlesOnMouseClick then
+        uSkFlowEffects.SpawnParticles(FParticles, X, Y, 30, TAlphaColors.White);
+
+      FGestureActive := False; // Stop tracking
     end;
   end;
 
@@ -7090,6 +6849,7 @@ begin
   begin
     FCurrentSelectedIndex := -1;
     FHotItem := nil;
+    FBreathingPhase := 0;
     FIsZoomedToFill := False;
   end
   else
@@ -7112,6 +6872,7 @@ begin
     begin
       FBreathingPhase := 0;
       // Force target to 1.0 to ensure smooth Zoom In animation starts correctly.
+      FSelectedImage.FHotZoomTarget := 1.0;
       ImageItem.FHotZoomTarget := 1.0;
       FHotItem := ImageItem;
     end
@@ -7630,8 +7391,8 @@ begin
           // Apply Position (TargetRect handles animation)
           LoadedItem.TargetRect := Rect(FLoadedPositions[i].Left, FLoadedPositions[i].Top, FLoadedPositions[i].Left + FLoadedPositions[i].Width, FLoadedPositions[i].Top + FLoadedPositions[i].Height);
 
-          // Force update to CurrentRect to snap immediately (optional, but usually desired on load)
-          LoadedItem.CurrentRect := LoadedItem.TargetRect;
+          // Force update to CurrentRect to snap immediately
+          //LoadedItem.CurrentRect := LoadedItem.TargetRect;
 
           // Apply Hint
           LoadedItem.Hint := FLoadedPositions[i].Hint;
@@ -7785,6 +7546,9 @@ begin
   // -----------------------------------------------------------------------
   // Early exit conditions
   // -----------------------------------------------------------------------
+
+  if (FImages.Count = 0) then
+    Exit;
   if (not Visible) then
     Exit;
 
@@ -7807,142 +7571,142 @@ begin
     if not Assigned(FSmallPicParticles) then
       FSmallPicParticles := TList<TSmallPicParticle>.Create;
 
-    // Loop through all current images to spawn particles
-    for i := 0 to FImages.Count - 1 do
-    begin
-      ImgItem := TImageItem(FImages[i]);
+    // SAFE LOOP: Use local reference to FImages
+    var SpawnList: TList;
+    SpawnList := nil;
+    try
+      if Assigned(FImages) then
+        SpawnList := FImages;
 
-      // Check if this image has a valid smallpic
-      if (ImgItem.SmallPicIndex >= 0) and (FSmallPicImageList <> nil) and (ImgItem.SmallPicIndex < FSmallPicImageList.Count) then
+      if (SpawnList <> nil) and (SpawnList.Count > 0) then
       begin
-        VisRect := GetVisualRect(ImgItem);
+        for i := 0 to SpawnList.Count - 1 do
+        begin
+          ImgItem := TImageItem(SpawnList[i]);
 
-        // Calculate current smallpic position (Visual Rect + Margin)
-        // We copy logic from DrawSmallPicOverlay to find exact center
-        Margin := FSmallpicMargin;
-        if FRoundEdges > 0 then
-          Margin := Margin + Round(FRoundEdges * 0.7);
-
-        // We determine the visual center of the smallpic
-        case FSmallPicPosition of
-          spTopLeft:
-            begin
-              SPP.X := (VisRect.Left + Margin + 8); // +8 is half of default 16x16 icon
-              SPP.Y := (VisRect.Top + Margin + 8);
-            end;
-          spTopRight:
-            begin
-              SPP.X := VisRect.Right - Margin - 8;
-              SPP.Y := VisRect.Top + Margin + 8;
-            end;
-          spBottomLeft:
-            begin
-              SPP.X := VisRect.Left + Margin + 8;
-              SPP.Y := VisRect.Bottom - Margin - 8;
-            end;
-          spBottomRight:
-            begin
-              SPP.X := VisRect.Right - Margin - 8;
-              SPP.Y := VisRect.Bottom - Margin - 8;
-            end;
-        end;
-
-        // Set Properties
-        SPP.Index := ImgItem.SmallPicIndex;
-        SPP.Life := 1.0;
-        SPP.Angle := 0;
-        SPP.VAngle := (Random - 0.5) * 10.0; // Random rotation speed
-
-        // Calculate Velocity based on FallingStyle
-        case FClearingStyle of
-          iesFromTop:
-            begin
-              SPP.VX := (Random - 0.5) * 5.0; // Random X
-              SPP.VY := 5.0 + Random * 5.0;     // Down (Positive Y in Skia)
-            end;
-          iesFromBottom:
-            begin
-              SPP.VX := (Random - 0.5) * 5.0;
-              SPP.VY := -(5.0 + Random * 5.0); // Up (Negative Y)
-            end;
-          iesFromLeft:
-            begin
-              SPP.VX := 5.0 + Random * 5.0;
-              SPP.VY := (Random - 0.5) * 5.0;
-            end;
-          iesFromRight:
-            begin
-              SPP.VX := -(5.0 + Random * 5.0);
-              SPP.VY := (Random - 0.5) * 5.0;
-            end;
-          iesRandom:
-            begin
-              SPP.VX := (Random - 0.5) * 10.0;
-              SPP.VY := (Random - 0.5) * 10.0;
-            end;
-          iesExplode:
-            begin
-              // High speed outward from center
-              // We use random high speed
-              SPP.VX := (Random - 0.5) * 20.0;
-              SPP.VY := (Random - 0.5) * 20.0;
-            end;
-        else
+          // Check if this image has a valid smallpic
+          if (ImgItem.SmallPicIndex >= 0) and (FSmallPicImageList <> nil) and (ImgItem.SmallPicIndex < FSmallPicImageList.Count) then
           begin
-            SPP.VX := 0;
-            SPP.VY := 5.0; // Default down
+            VisRect := GetVisualRect(ImgItem);
+
+            // Calculate current smallpic position (Visual Rect + Margin)
+            // We copy logic from DrawSmallPicOverlay to find exact center
+            Margin := FSmallpicMargin;
+            if FRoundEdges > 0 then
+              Margin := Margin + Round(FRoundEdges * 0.7);
+
+            // We determine visual center of smallpic
+            case FSmallPicPosition of
+              spTopLeft:
+                begin
+                  SPP.X := (VisRect.Left + Margin + 8); // +8 is half of default 16x16 icon
+                  SPP.Y := (VisRect.Top + Margin + 8);
+                end;
+              spTopRight:
+                begin
+                  SPP.X := VisRect.Right - Margin - 8;
+                  SPP.Y := VisRect.Top + Margin + 8;
+                end;
+              spBottomLeft:
+                begin
+                  SPP.X := VisRect.Left + Margin + 8;
+                  SPP.Y := VisRect.Bottom - Margin - 8;
+                end;
+              spBottomRight:
+                begin
+                  SPP.X := VisRect.Right - Margin - 8;
+                  SPP.Y := VisRect.Bottom - Margin - 8;
+                end;
+            end;
+
+            // Set Properties
+            SPP.Index := ImgItem.SmallPicIndex;
+            SPP.Life := 1.0;
+            SPP.Angle := 0;
+            SPP.VAngle := (Random - 0.5) * 10.0; // Random rotation speed
+
+            // Calculate Velocity based on FallingStyle
+            case FClearingStyle of
+              iesFromTop:
+                begin
+                  SPP.VX := (Random - 0.5) * 5.0; // Random X
+                  SPP.VY := 5.0 + Random * 5.0;     // Down (Positive Y in Skia)
+                end;
+              iesFromBottom:
+                begin
+                  SPP.VX := (Random - 0.5) * 5.0;
+                  SPP.VY := -(5.0 + Random * 5.0); // Up (Negative Y)
+                end;
+              iesFromLeft:
+                begin
+                  SPP.VX := 5.0 + Random * 5.0;
+                  SPP.VY := (Random - 0.5) * 5.0;
+                end;
+              iesFromRight:
+                begin
+                  SPP.VX := -(5.0 + Random * 5.0);
+                  SPP.VY := (Random - 0.5) * 5.0;
+                end;
+              iesRandom:
+                begin
+                  SPP.VX := (Random - 0.5) * 10.0;
+                  SPP.VY := (Random - 0.5) * 10.0;
+                end;
+              iesExplode:
+                begin
+                  // High speed outward from center
+                  SPP.VX := (Random - 0.5) * 20.0;
+                  SPP.VY := (Random - 0.5) * 20.0;
+                end;
+            else
+              begin
+                SPP.VX := 0;
+                SPP.VY := 5.0; // Default down
+              end;
+            end;
+
+            FSmallPicParticles.Add(SPP);
           end;
         end;
-
-        FSmallPicParticles.Add(SPP);
       end;
+    finally
+      // Local reference cleanup
     end;
 
     // Turn off spawner so we only spawn once per clear
-    FSpawningSmallPics := False;            //ATM off, works but sometimes after a while can crash
+    FSpawningSmallPics := False;
   end;
 
   // B. UPDATE PHYSICS (If particles exist) - PROTECTED
   if Assigned(FSmallPicParticles) and (FSmallPicParticles.Count > 0) then
   begin
     try
-      // Use a local index variable so we can react to list size changes
       i := FSmallPicParticles.Count - 1;
       while i >= 0 do
       begin
-        // Safety: check if index is still valid
         if (i < 0) or (i >= FSmallPicParticles.Count) then
         begin
           Dec(i);
           Continue;
         end;
         SPP := FSmallPicParticles[i];
-        // ==========================================================
-        // If particle goes below screen, force Life to 0
-        // ==========================================================
         if (SPP.Y > Self.Height) or (SPP.Y < -50) then
           SPP.Life := 0;
-        // Move
         SPP.X := SPP.X + (SPP.VX * DeltaTime * 10.0);
         SPP.Y := SPP.Y + (SPP.VY * DeltaTime * 10.0);
-        // Rotate
         SPP.Angle := SPP.Angle + (SPP.VAngle * DeltaTime);
-        // Decay
         SPP.Life := SPP.Life - (DeltaTime * 0.8);
-        // Delete if Dead
         if SPP.Life <= 0 then
           FSmallPicParticles.Delete(i)
         else
         begin
-          FSmallPicParticles[i] := SPP; // Update
+          FSmallPicParticles[i] := SPP;
           NeedRepaint := True;
         end;
-        // Decrement index safely
         Dec(i);
       end;
     except
-      // Catches any Access Violation from thread conflict.
-      // The thread continues running ("doesn't get stuck").
+      // Catches AV from particle list modification
     end;
   end;
 
@@ -7950,83 +7714,25 @@ begin
   // Determine initial animation state
   // -----------------------------------------------------------------------
   NeedRepaint := False;
-
-  // Global time for drift (shared by all items)
   DriftTime := GetTickCount / 1000.0;
 
-  // ==========================================================
+ // ==========================================================
   // PHASE -1: MATRIX BACKGROUND PHYSICS (REAL DATA)
   // ==========================================================
-  if FBackgroundEffect = beRealMatrix then
+  if FBackgroundEffect = uSkFlowEffects.beRealMatrix then
   begin
-    // Safety: Check if columns exist and images exist
     if (Length(FMatrixCols) > 0) and (FImages.Count > 0) then
     begin
-      // ==========================================================
-      // ONLY UPDATE PHYSICS IF ANIMATEDBACKGROUND IS TRUE
-      // ==========================================================
       if FAnimatedBackground then
       begin
-        for i := 0 to High(FMatrixCols) do
-        begin
-          // <--- MASTER TRY BLOCK --->
-          try
-            // 1. MOVE DOWN
-            FMatrixCols[i].Y := FMatrixCols[i].Y + (FMatrixCols[i].Speed * DeltaTime * FMatrixSpeed * 0.5);
-
-            // 2. RESET IF OFF SCREEN
-            if FMatrixCols[i].Y > (Height + (FMatrixCols[i].Length * FMatrixFontSize)) then
-            begin
-              // >>> RESET TO HEIGHT * 2 <<<
-              // Using Trunc(Height) can spawn columns at Y = -50 (near top).
-              // They fall 50px, become visible briefly, then continue.
-              // Using Trunc(Height * 2) ensures they start far above (e.g. -1500).
-              FMatrixCols[i].Y := -Random(Trunc(Height * 2));
-              FMatrixCols[i].Speed := 5.0 + Random(15);
-
-              // >>> VALIDATE INDEX <<<
-              // Re-validate index here too, as images might have been cleared
-              if (FMatrixCols[i].TargetImageIndex < 0) or (FMatrixCols[i].TargetImageIndex >= FImages.Count) then
-              begin
-                if FImages.Count > 1 then
-                  FMatrixCols[i].TargetImageIndex := Random(FImages.Count - 1)
-                else
-                  FMatrixCols[i].TargetImageIndex := 0;
-              end;
-
-              // Re-seed text immediately
-              FMatrixCols[i].Chars := GetLiveImageDataString(FMatrixCols[i].TargetImageIndex);
-
-              // Adjust length to match new data
-              FMatrixCols[i].Length := Length(FMatrixCols[i].Chars);
-              if FMatrixCols[i].Length > 30 then
-                FMatrixCols[i].Length := 30; // Cap max length
-            end;
-
-            // 3. LIVE DATA UPDATES ("DECODING" EFFECT)
-            // Only run if we have a valid target image
-            // >>> VALIDATE INDEX <<<
-            if (FMatrixCols[i].TargetImageIndex >= 0) and (FMatrixCols[i].TargetImageIndex < FImages.Count) then
-            begin
-              if Random(100) < 15 then
-              begin
-                // <--- REFRESH LIVE DATA STREAM --->
-                // Pull fresh coords from the image right now
-                FMatrixCols[i].Chars := GetLiveImageDataString(FMatrixCols[i].TargetImageIndex);
-
-                // Keep length consistent or allow pulses?
-                // Let's trim to current max length to prevent layout jumps
-                if Length(FMatrixCols[i].Chars) > 30 then
-                  FMatrixCols[i].Chars := Copy(FMatrixCols[i].Chars, 1, 30);
-              end;
-            end;
-
-            NeedRepaint := True;
-          except
-            // --- CATCH ERROR ---
-            // If anything crashes in this specific column, we just skip it.
+        var DataCallback: uSkFlowEffects.TGetMatrixDataFunc;
+        DataCallback :=
+          function(Idx: Integer): string
+          begin
+            Result := Self.GetLiveImageDataString(Idx);
           end;
-        end;
+        uSkFlowEffects.UpdateMatrixPhysics(FMatrixCols, Width, Height, FMatrixSpeed, FMatrixFontSize, FImages.Count, FAnimatedBackground, DataCallback, DeltaTime);
+        NeedRepaint := True;
       end;
     end;
   end;
@@ -8040,79 +7746,87 @@ begin
 
     if FImages.Count = 0 then
     begin
-      // Stop thread if list emptied
       FIsClearing := False;
       Exit;
     end;
 
     StartTick := GetTickCount;
     AllOut := True;
-    for i := 0 to FImages.Count - 1 do
-    begin
 
-      // Dynamic Bound Check
-      if i >= FImages.Count then
-        Break;
-      ImageItem := TImageItem(FImages[i]);
-      if ImageItem = nil then
-        Continue;
+    // SAFE LOOP: Use local reference to FImages
+    var ClearList: TList;
+    ClearList := nil;
+    try
+      if Assigned(FImages) then
+        ClearList := FImages;
 
-      ClearFinished := False;
-
-      // 1. Advance Progress
-      if ImageItem.AnimationProgress < 1.0 then
+      if (ClearList <> nil) and (ClearList.Count > 0) then
       begin
-        ImageItem.AnimationProgress := ImageItem.AnimationProgress + (FAnimationSpeed / 100);
-        if ImageItem.AnimationProgress > 1.0 then
-          ImageItem.AnimationProgress := 1.0;
-        NeedRepaint := True;
+        for i := 0 to ClearList.Count - 1 do
+        begin
+          if i >= ClearList.Count then
+            Break;
+          ImageItem := TImageItem(ClearList[i]);
+          if ImageItem = nil then
+            Continue;
+
+          ClearFinished := False;
+
+          if ImageItem.AnimationProgress < 1.0 then
+          begin
+            ImageItem.AnimationProgress := ImageItem.AnimationProgress + (FAnimationSpeed / 100);
+            if ImageItem.AnimationProgress > 1.0 then
+              ImageItem.AnimationProgress := 1.0;
+            NeedRepaint := True;
+          end;
+
+          Progress := ImageItem.AnimationProgress;
+          if FAnimationEasing then
+            Progress := EaseInOutQuad(Progress);
+
+          TempRect := Rect(Round(ImageItem.StartRect.Left + (ImageItem.TargetRect.Left - ImageItem.StartRect.Left) * Progress), Round(ImageItem.StartRect.Top + (ImageItem.TargetRect.Top - ImageItem.StartRect.Top) * Progress), Round(ImageItem.StartRect.Right + (ImageItem.TargetRect.Right - ImageItem.StartRect.Right) * Progress), Round(ImageItem.StartRect.Bottom + (ImageItem.TargetRect.Bottom - ImageItem.StartRect.Bottom) * Progress));
+
+          if not EqualRect(ImageItem.CurrentRect, TempRect) then
+          begin
+            ImageItem.CurrentRect := TempRect;
+            NeedRepaint := True;
+          end;
+
+          if (ImageItem.AnimationProgress >= 0.99) or (ImageItem.Alpha <= 1) then
+            ClearFinished := True;
+
+          var AlphaStep: Integer;
+          AlphaStep := Max(1, Round(FAnimationSpeed * 4.0));
+          if ImageItem.Alpha > ImageItem.TargetAlpha then
+            ImageItem.Alpha := Min(ImageItem.TargetAlpha, ImageItem.Alpha + AlphaStep)
+          else
+            ImageItem.Alpha := Max(ImageItem.TargetAlpha, ImageItem.Alpha - AlphaStep);
+
+          if ClearFinished then
+            ImageItem.Visible := False
+          else
+            AllOut := False;
+
+          if (GetTickCount - StartTick) > 2000 then
+            AllOut := True;
+        end;
       end;
+    finally
 
-      // 2. Interpolate Position
-      Progress := ImageItem.AnimationProgress;
-      if FAnimationEasing then
-        Progress := EaseInOutQuad(Progress);
-
-      TempRect := Rect(Round(ImageItem.StartRect.Left + (ImageItem.TargetRect.Left - ImageItem.StartRect.Left) * Progress), Round(ImageItem.StartRect.Top + (ImageItem.TargetRect.Top - ImageItem.StartRect.Top) * Progress), Round(ImageItem.StartRect.Right + (ImageItem.TargetRect.Right - ImageItem.StartRect.Right) * Progress), Round(ImageItem.StartRect.Bottom + (ImageItem.TargetRect.Bottom - ImageItem.StartRect.Bottom) * Progress));
-
-      if not EqualRect(ImageItem.CurrentRect, TempRect) then
-      begin
-        ImageItem.CurrentRect := TempRect;
-        NeedRepaint := True;
-      end;
-
-      // 3. Check Finished (Position Done AND Alpha Faded Out)
-      // This ensures we hide them ONLY when they reach the target point or are fully transparent.
-      if (ImageItem.AnimationProgress >= 0.99) or (ImageItem.Alpha <= 1) then
-        ClearFinished := True;
-
-      // 4. FADE ALPHA
-      var AlphaStep: Integer;
-      AlphaStep := Max(1, Round(FAnimationSpeed * 4.0));
-      if ImageItem.Alpha > ImageItem.TargetAlpha then
-        ImageItem.Alpha := Min(ImageItem.TargetAlpha, ImageItem.Alpha + AlphaStep)
-      else
-        ImageItem.Alpha := Max(ImageItem.TargetAlpha, ImageItem.Alpha - AlphaStep);
-
-      // 5. HIDE ITEM WHEN FINISHED
-      if ClearFinished then
-        ImageItem.Visible := False  // Explicitly hide to stop interaction/render
-      else
-        AllOut := False;
-
-      if (GetTickCount - StartTick) > 2000 then
-        AllOut := True; // Safety timeout
     end;
 
-    // 6. Finalize if ALL items finished
     if AllOut then
     begin
       FIsClearing := False;
-      FreeAllImagesAndClearLists;
+      TThread.Synchronize(nil,
+        procedure
+        begin
+          FreeAllImagesAndClearLists;
+        end);
       ThreadSafeFireAllAnimationsFinished;
       Exit;
     end;
-  end; // End PHASE 0
+  end;
 
   { --------------------------------------------------------
   PHASE 2: PAGE FALL-OUT ANIMATION (Animated Page Change)
@@ -8132,24 +7846,35 @@ begin
     begin
       Eased := EaseInOutQuad(FPageOutProgress);
 
-      for i := 0 to FImages.Count - 1 do
-      begin
-        ImageItem := TImageItem(FImages[i]);
+      // SAFE LOOP: Use local reference
+      var FallList: TList;
+      FallList := nil;
+      try
+        if Assigned(FImages) then
+          FallList := FImages;
 
-        // Move items off-screen to the Right
-        FallX := Round(Width + 200);
-        FallY := ImageItem.StartRect.Top;
-        FallW := ImageItem.StartRect.Right - ImageItem.StartRect.Left;
-        FallH := ImageItem.StartRect.Bottom - ImageItem.StartRect.Top;
-
-        TempRect := Rect(FallX, FallY, FallX + FallW, FallY + FallH);
-        TempRect := Rect(Round(ImageItem.StartRect.Left + (TempRect.Left - ImageItem.StartRect.Left) * Eased), Round(ImageItem.StartRect.Top + (TempRect.Top - ImageItem.StartRect.Top) * Eased), Round(ImageItem.StartRect.Right + (TempRect.Right - ImageItem.StartRect.Right) * Eased), Round(ImageItem.StartRect.Bottom + (TempRect.Bottom - ImageItem.StartRect.Bottom) * Eased));
-
-        if not EqualRect(ImageItem.CurrentRect, TempRect) then
+        if (FallList <> nil) and (FallList.Count > 0) then
         begin
-          ImageItem.CurrentRect := TempRect;
-          NeedRepaint := True;
+          for i := 0 to FallList.Count - 1 do
+          begin
+            ImageItem := TImageItem(FallList[i]);
+            FallX := Round(Width + 200);
+            FallY := ImageItem.StartRect.Top;
+            FallW := ImageItem.StartRect.Right - ImageItem.StartRect.Left;
+            FallH := ImageItem.StartRect.Bottom - ImageItem.StartRect.Top;
+
+            TempRect := Rect(FallX, FallY, FallX + FallW, FallY + FallH);
+            TempRect := Rect(Round(ImageItem.StartRect.Left + (TempRect.Left - ImageItem.StartRect.Left) * Eased), Round(ImageItem.StartRect.Top + (TempRect.Top - ImageItem.StartRect.Top) * Eased), Round(ImageItem.StartRect.Right + (TempRect.Right - ImageItem.StartRect.Right) * Eased), Round(ImageItem.StartRect.Bottom + (TempRect.Bottom - ImageItem.StartRect.Bottom) * Eased));
+
+            if not EqualRect(ImageItem.CurrentRect, TempRect) then
+            begin
+              ImageItem.CurrentRect := TempRect;
+              NeedRepaint := True;
+            end;
+          end;
         end;
+      finally
+        // Local reference cleanup
       end;
     end;
   end
@@ -8158,278 +7883,276 @@ begin
     { ==========================================================
     PHASE 3: Normal item animations (move + zoom in/out)
     ========================================================== }
-    for i := 0 to FImages.Count - 1 do
-    begin
-      ImageItem := TImageItem(FImages[i]);
+    var LocalImagesList: TList;
+    LocalImagesList := nil;
+    try
+      if FImages <> nil then
+        LocalImagesList := FImages;
 
-      // ==========================================================
-      // HOVER ALIVE LOGIC (Micro-Movement)
-      // ==========================================================
-      if FHoverAlive then
+      if (LocalImagesList <> nil) and (LocalImagesList.Count > 0) then
       begin
-        // === FULLSCREEN SKIP LOGIC ===
-        // If we are in Fullscreen mode, this is the Selected Image,
-        // and the property is disabled, skip physics updates.
-        if FIsZoomedToFill and (ImageItem = FSelectedImage) and (not FHoverAliveOnFullscreen) then
-          Continue;
-        // === END SKIP LOGIC ===
-
-        // 1. Apply Velocity to Offset
-        // We use a property FHoverAliveSpeed to control how fast they float
-        ImageItem.FHoverX := ImageItem.FHoverX + (ImageItem.FHoverVX * DeltaTime * FHoverAliveSpeed);
-        ImageItem.FHoverY := ImageItem.FHoverY + (ImageItem.FHoverVY * DeltaTime * FHoverAliveSpeed);
-        // ... rest of the bounce logic ...
-
-        // 2. Bounce X (Left/Right Limits)
-        if ImageItem.FHoverX > FHoverAliveRange then
+        for i := 0 to LocalImagesList.Count - 1 do
         begin
-          ImageItem.FHoverX := FHoverAliveRange;       // Clamp to max
-          ImageItem.FHoverVX := -Abs(ImageItem.FHoverVX); // Reverse direction (force negative)
-        end
-        else if ImageItem.FHoverX < -FHoverAliveRange then
-        begin
-          ImageItem.FHoverX := -FHoverAliveRange;      // Clamp to min
-          ImageItem.FHoverVX := Abs(ImageItem.FHoverVX);   // Reverse direction (force positive)
-        end;
+          if LocalImagesList[i] = nil then
+            Continue;
+          ImageItem := TImageItem(LocalImagesList[i]);
 
-        // 3. Bounce Y (Top/Bottom Limits)
-        if ImageItem.FHoverY > FHoverAliveRange then
-        begin
-          ImageItem.FHoverY := FHoverAliveRange;
-          ImageItem.FHoverVY := -Abs(ImageItem.FHoverVY);
-        end
-        else if ImageItem.FHoverY < -FHoverAliveRange then
-        begin
-          ImageItem.FHoverY := -FHoverAliveRange;
-          ImageItem.FHoverVY := Abs(ImageItem.FHoverVY);
-        end;
-
-        // 4. Flag for repaint
-        NeedRepaint := True;
-      end;
-
-      // ==========================================================
-      // CHECK FULLSCREEN COMPLETION (After Animation Loop)
-      // ==========================================================
-      if FIsZoomedToFill and (not FOnFullscreenEnterFired) and Assigned(FSelectedImage) then
-      begin
-        // We check if the selected image has reached its final state
-        // Position (AnimationProgress) AND Scale (ZoomProgress) AND Rotation must all be close to target
-        if (FSelectedImage.AnimationProgress >= 0.99) and (FSelectedImage.ZoomProgress >= 0.99) and (Abs(FSelectedImage.FActualRotation - FSelectedImage.FTargetRotation) <= ROTATION_EPSILON) then
-        begin
-          // Trigger Event
-          if Assigned(FOnFullscreenEnter) then
+          // ==========================================================
+          // HOVER ALIVE LOGIC (Micro-Movement)
+          // ==========================================================
+          if FHoverAlive then
           begin
-            // >>> SYNCHRONIZE TO MAIN THREAD <<<
-            // This ensures the event handler (e.g. ShowMessage)
-            // runs safely on the Main Thread.
-            TThread.Synchronize(nil,
-              procedure
-              begin
-                FOnFullscreenEnter(Self, FSelectedImage, FCurrentSelectedIndex);
-              end);
+            if FIsZoomedToFill and (ImageItem = FSelectedImage) and (not FHoverAliveOnFullscreen) then
+              Continue;
+
+            ImageItem.FHoverX := ImageItem.FHoverX + (ImageItem.FHoverVX * DeltaTime * FHoverAliveSpeed);
+            ImageItem.FHoverY := ImageItem.FHoverY + (ImageItem.FHoverVY * DeltaTime * FHoverAliveSpeed);
+
+            if ImageItem.FHoverX > FHoverAliveRange then
+            begin
+              ImageItem.FHoverX := FHoverAliveRange;
+              ImageItem.FHoverVX := -Abs(ImageItem.FHoverVX);
+            end
+            else if ImageItem.FHoverX < -FHoverAliveRange then
+            begin
+              ImageItem.FHoverX := -FHoverAliveRange;
+              ImageItem.FHoverVX := Abs(ImageItem.FHoverVX);
+            end;
+
+            if ImageItem.FHoverY > FHoverAliveRange then
+            begin
+              ImageItem.FHoverY := FHoverAliveRange;
+              ImageItem.FHoverVY := -Abs(ImageItem.FHoverVY);
+            end
+            else if ImageItem.FHoverY < -FHoverAliveRange then
+            begin
+              ImageItem.FHoverY := -FHoverAliveRange;
+              ImageItem.FHoverVY := Abs(ImageItem.FHoverVY);
+            end;
+            NeedRepaint := True;
           end;
 
-          // Set Flag so we don't trigger again until next zoom start
-          FOnFullscreenEnterFired := True;
+          // ==========================================================
+          // CHECK FULLSCREEN COMPLETION
+          // ==========================================================
+          if FIsZoomedToFill and (not FOnFullscreenEnterFired) and Assigned(FSelectedImage) then
+          begin
+            if (FSelectedImage.AnimationProgress >= 0.99) and (FSelectedImage.ZoomProgress >= 0.99) and (Abs(FSelectedImage.FActualRotation - FSelectedImage.FTargetRotation) <= ROTATION_EPSILON) then
+            begin
+              if Assigned(FOnFullscreenEnter) then
+              begin
+                TThread.Synchronize(nil,
+                  procedure
+                  begin
+                    FOnFullscreenEnter(Self, FSelectedImage, FCurrentSelectedIndex);
+                  end);
+              end;
+              FOnFullscreenEnterFired := True;
+            end;
+          end;
+
+          // === FLUID INFO PANEL ANIMATION ===
+          if ImageItem.FIsInfoShowing then
+          begin
+            if ImageItem.FInfoProgress < 1.0 then
+            begin
+              ImageItem.FInfoProgress := ImageItem.FInfoProgress + 0.05;
+              if ImageItem.FInfoProgress > 1.0 then
+                ImageItem.FInfoProgress := 1.0;
+              NeedRepaint := True;
+            end;
+          end
+          else
+          begin
+            if ImageItem.FInfoProgress > 0.0 then
+            begin
+              ImageItem.FInfoProgress := ImageItem.FInfoProgress - 0.05;
+              if ImageItem.FInfoProgress < 0.0 then
+                ImageItem.FInfoProgress := 0.0;
+              NeedRepaint := True;
+            end;
+          end;
+
+          // Update Glitch
+          if ImageItem.FGlitchIntensity > 0 then
+          begin
+            ImageItem.FGlitchIntensity := ImageItem.FGlitchIntensity - 0.05;
+            if ImageItem.FGlitchIntensity < 0 then
+              ImageItem.FGlitchIntensity := 0;
+            NeedRepaint := True;
+          end;
+
+          { Main position/scale animation progress }
+          if ImageItem.AnimationProgress < 1.0 then
+          begin
+            TempZoom := Min(1.0, ImageItem.AnimationProgress + FAnimationSpeed / 100);
+            if Abs(ImageItem.AnimationProgress - TempZoom) > 0.001 then
+            begin
+              ImageItem.AnimationProgress := TempZoom;
+              NeedRepaint := True;
+            end;
+          end;
+
+          { Selection zoom }
+          if ImageItem.IsSelected then
+            TempZoom := Min(1.0, ImageItem.ZoomProgress + FAnimationSpeed / 100)
+          else if ImageItem.ZoomProgress > 0.0 then
+            TempZoom := Max(0.0, ImageItem.ZoomProgress - FAnimationSpeed / 100)
+          else
+            TempZoom := ImageItem.ZoomProgress;
+
+          if Abs(ImageItem.ZoomProgress - TempZoom) > 0.001 then
+          begin
+            ImageItem.ZoomProgress := TempZoom;
+            NeedRepaint := True;
+          end;
+
+          { Combine progress for position interpolation }
+          Progress := Max(ImageItem.AnimationProgress, ImageItem.ZoomProgress);
+          if FAnimationEasing then
+            Progress := EaseInOutQuad(Progress);
+
+          TempRect := Rect(Round(ImageItem.StartRect.Left + (ImageItem.TargetRect.Left - ImageItem.StartRect.Left) * Progress), Round(ImageItem.StartRect.Top + (ImageItem.TargetRect.Top - ImageItem.StartRect.Top) * Progress), Round(ImageItem.StartRect.Right + (ImageItem.TargetRect.Right - ImageItem.StartRect.Right) * Progress), Round(ImageItem.StartRect.Bottom + (ImageItem.TargetRect.Bottom - ImageItem.StartRect.Bottom) * Progress));
+
+          if not EqualRect(ImageItem.CurrentRect, TempRect) then
+          begin
+            ImageItem.CurrentRect := TempRect;
+            NeedRepaint := True;
+          end;
+
+          // --- ALPHA FADING LOGIC ---
+          if ImageItem.IsSelected then
+            ImageItem.TargetAlpha := FAlphaHotSelected
+          else if (ImageItem = FHotItem) then
+            ImageItem.TargetAlpha := FAlphaHotPhase
+          else
+            ImageItem.TargetAlpha := FAlphaStatic;
+
+          if ImageItem.Alpha <> ImageItem.TargetAlpha then
+          begin
+            var AlphaStep: Integer;
+            AlphaStep := Max(1, Round(FAnimationSpeed * 1.5));
+            if ImageItem.Alpha < ImageItem.TargetAlpha then
+              ImageItem.Alpha := Min(ImageItem.TargetAlpha, ImageItem.Alpha + AlphaStep)
+            else
+              ImageItem.Alpha := Max(ImageItem.TargetAlpha, ImageItem.Alpha - AlphaStep);
+            NeedRepaint := True;
+          end;
+
+          ImageItem.Animating := not ((ImageItem.AnimationProgress >= 1.0) and ((ImageItem.ZoomProgress <= 0.0001) or (ImageItem.ZoomProgress >= 0.9999)) and EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) and (Abs(ImageItem.FHotZoom - ImageItem.FHotZoomTarget) <= 0.006));
+
+          if ImageItem = FWasSelectedItem then
+            if (ImageItem.ZoomProgress <= 0.0001) and EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) then
+              FWasSelectedItem := nil;
         end;
       end;
-
-      // === FLUID INFO PANEL ANIMATION ===
-      if ImageItem.FIsInfoShowing then
-      begin
-        // Slide In
-        if ImageItem.FInfoProgress < 1.0 then
-        begin
-          ImageItem.FInfoProgress := ImageItem.FInfoProgress + 0.05;
-          if ImageItem.FInfoProgress > 1.0 then
-            ImageItem.FInfoProgress := 1.0;
-          NeedRepaint := True;
-        end;
-      end
-      else
-      begin
-        // Slide Out (Hide)
-        if ImageItem.FInfoProgress > 0.0 then
-        begin
-          ImageItem.FInfoProgress := ImageItem.FInfoProgress - 0.05;
-          if ImageItem.FInfoProgress < 0.0 then
-            ImageItem.FInfoProgress := 0.0;
-          NeedRepaint := True;
-        end;
-      end;
-
-      // Update Glitch
-      if ImageItem.FGlitchIntensity > 0 then
-      begin
-        ImageItem.FGlitchIntensity := ImageItem.FGlitchIntensity - 0.05;
-        if ImageItem.FGlitchIntensity < 0 then
-          ImageItem.FGlitchIntensity := 0;
-        NeedRepaint := True;
-      end;
-
-      { Main position/scale animation progress }
-      if ImageItem.AnimationProgress < 1.0 then
-      begin
-        TempZoom := Min(1.0, ImageItem.AnimationProgress + FAnimationSpeed / 100);
-        if Abs(ImageItem.AnimationProgress - TempZoom) > 0.001 then
-        begin
-          ImageItem.AnimationProgress := TempZoom;
-          NeedRepaint := True;
-        end;
-      end;
-
-      { Selection zoom }
-      if ImageItem.IsSelected then
-        TempZoom := Min(1.0, ImageItem.ZoomProgress + FAnimationSpeed / 100)
-      else if ImageItem.ZoomProgress > 0.0 then
-        TempZoom := Max(0.0, ImageItem.ZoomProgress - FAnimationSpeed / 100)
-      else
-        TempZoom := ImageItem.ZoomProgress;
-
-      if Abs(ImageItem.ZoomProgress - TempZoom) > 0.001 then
-      begin
-        ImageItem.ZoomProgress := TempZoom;
-        NeedRepaint := True;
-      end;
-
-      { Combine progress for position interpolation }
-      Progress := Max(ImageItem.AnimationProgress, ImageItem.ZoomProgress);
-      if FAnimationEasing then
-        Progress := EaseInOutQuad(Progress);
-
-      TempRect := Rect(Round(ImageItem.StartRect.Left + (ImageItem.TargetRect.Left - ImageItem.StartRect.Left) * Progress), Round(ImageItem.StartRect.Top + (ImageItem.TargetRect.Top - ImageItem.StartRect.Top) * Progress), Round(ImageItem.StartRect.Right + (ImageItem.TargetRect.Right - ImageItem.StartRect.Right) * Progress), Round(ImageItem.StartRect.Bottom + (ImageItem.TargetRect.Bottom - ImageItem.StartRect.Bottom) * Progress));
-
-      // === APPLY DRIFT ===
-      if FFreeFloatDrift and (FFlowLayout = flFreeFloat) and (ImageItem <> FDraggedImage) and (ImageItem <> FSelectedImage) and (ImageItem <> FRotatingImage) then
-      begin
-        DriftOffsetX := Sin(DriftTime * ImageItem.DriftRangeX) * 1.0;
-        DriftOffsetY := Cos(DriftTime * ImageItem.DriftRangeY) * 1.0;
-        OffsetRect(TempRect, Round(DriftOffsetX), Round(DriftOffsetY));
-        ImageItem.TargetRect := TempRect;
-      end;
-
-      if not EqualRect(ImageItem.CurrentRect, TempRect) then
-      begin
-        ImageItem.CurrentRect := TempRect;
-        NeedRepaint := True;
-      end;
-
-      // --- ALPHA FADING LOGIC (Dynamic Target) ---
-      // === REMOVE "Item.Animating" FROM TARGET ALPHA ===
-      // We must NOT treat "Animating" (Layout moving) as "Hot".
-      // Only Selected or Hovered images should fade to HotAlpha.
-      if ImageItem.IsSelected then
-        ImageItem.TargetAlpha := FAlphaHotSelected
-      else if (ImageItem = FHotItem) then
-        ImageItem.TargetAlpha := FAlphaHotPhase
-      else
-        ImageItem.TargetAlpha := FAlphaStatic;
-
-      if ImageItem.Alpha <> ImageItem.TargetAlpha then
-      begin
-        var AlphaStep: Integer;
-        AlphaStep := Max(1, Round(FAnimationSpeed * 1.5));
-        if ImageItem.Alpha < ImageItem.TargetAlpha then
-          ImageItem.Alpha := Min(ImageItem.TargetAlpha, ImageItem.Alpha + AlphaStep)
-        else
-          ImageItem.Alpha := Max(ImageItem.TargetAlpha, ImageItem.Alpha - AlphaStep);
-        NeedRepaint := True;
-      end;
-
-      ImageItem.Animating := not ((ImageItem.AnimationProgress >= 1.0) and ((ImageItem.ZoomProgress <= 0.0001) or (ImageItem.ZoomProgress >= 0.9999)) and EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) and (Abs(ImageItem.FHotZoom - ImageItem.FHotZoomTarget) <= 0.006));
-
-      if ImageItem = FWasSelectedItem then
-        if (ImageItem.ZoomProgress <= 0.0001) and EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) then
-          FWasSelectedItem := nil;
+    finally
+      // LocalImagesList cleanup
     end;
 
     // ===================================================================
-    // PHASE 4: ROTATION SMOOTHING
+    // PHASE 4: ROTATION SMOOTHING (SAFE VERSION)
     // ===================================================================
     if not FIsRotating then
     begin
-      for i := 0 to FImages.Count - 1 do
-      begin
-        ImageItem := TImageItem(FImages[i]);
-        if Abs(ImageItem.FActualRotation - ImageItem.FTargetRotation) > ROTATION_EPSILON then
+      var RotList: TList;
+      RotList := nil;
+      try
+        if Assigned(FImages) then
+          RotList := FImages;
+
+        if (RotList <> nil) and (RotList.Count > 0) then
         begin
-          ImageItem.FActualRotation := ImageItem.FActualRotation + (ImageItem.FTargetRotation - ImageItem.FActualRotation) * ROTATION_SMOOTHING_SPEED;
-          NeedRepaint := True;
-        end
-        else
-        begin
-          ImageItem.FActualRotation := ImageItem.FTargetRotation;
+          for i := 0 to RotList.Count - 1 do
+          begin
+            ImageItem := TImageItem(RotList[i]);
+            if Abs(ImageItem.FActualRotation - ImageItem.FTargetRotation) > ROTATION_EPSILON then
+            begin
+              ImageItem.FActualRotation := ImageItem.FActualRotation + (ImageItem.FTargetRotation - ImageItem.FActualRotation) * ROTATION_SMOOTHING_SPEED;
+              NeedRepaint := True;
+            end
+            else
+            begin
+              ImageItem.FActualRotation := ImageItem.FTargetRotation;
+            end;
+          end;
         end;
+      finally
+        // RotList cleanup
       end;
     end;
 
-    { Update HotTrack Zoom + Breathing }
-    for i := 0 to FImages.Count - 1 do
-    begin
-      ImageItem := TImageItem(FImages[i]);
-
-      // === OVERRIDE IF ZOOMED TO FULL ===
-      if FIsZoomedToFill and (ImageItem = FSelectedImage) then
-      begin
-        ImageItem.FHotZoom := 1.0;
-        ImageItem.FHotZoomTarget := 1.0;
-        Continue;
-      end;
-      // === END OVERRIDE ===
-
-      if (not FHotTrackZoom) and (ImageItem <> FSelectedImage) then
-      begin
-        if ImageItem.FHotZoom <> 1.0 then
+    { Update HotTrack Zoom + Breathing (SAFE VERSION) }
+    var HotList: TList;
+    HotList := nil;
+    try
+      if Assigned(FImages) then
+        HotList := FImages;
+      if (not FIsClearing) then
+        if (HotList <> nil) and (HotList.Count > 0) then
         begin
-          ImageItem.FHotZoomTarget := 1.0;
-          NeedRepaint := True;
+          for i := 0 to HotList.Count - 1 do
+          begin
+            ImageItem := TImageItem(HotList[i]);
+
+            if FIsZoomedToFill and (ImageItem = FSelectedImage) then
+            begin
+              ImageItem.FHotZoom := 1.0;
+              ImageItem.FHotZoomTarget := 1.0;
+              Continue;
+            end;
+
+            if (not FHotTrackZoom) and (ImageItem <> FSelectedImage) then
+            begin
+              if ImageItem.FHotZoom <> 1.0 then
+              begin
+                ImageItem.FHotZoomTarget := 1.0;
+                NeedRepaint := True;
+              end;
+              Continue;
+            end;
+            if not ImageItem.Visible then
+              Continue;
+
+            if FIsMouseOverHandle or FIsMouseOverInfoIndicator then
+              TargetZoom := ImageItem.FHotZoom
+            else
+            begin
+              if FBreathingEnabled and (ImageItem = FSelectedImage) and (ImageItem = FHotItem) then
+              begin
+                if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
+                  TargetZoom := 1.0
+                else
+                  TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0);
+              end
+              else if (ImageItem = FSelectedImage) then
+                TargetZoom := 1.0
+              else if (ImageItem = FHotItem) then
+                TargetZoom := FHotZoomMaxFactor
+              else
+                TargetZoom := 1.0;
+            end;
+
+            if ImageItem.FHotZoom < TargetZoom then
+              Speed := HOT_ZOOM_IN_PER_SEC
+            else
+              Speed := HOT_ZOOM_OUT_PER_SEC;
+            ImageItem.FHotZoom := ImageItem.FHotZoom + (TargetZoom - ImageItem.FHotZoom) * Speed * DeltaTime;
+            if not FHotTrackZoom then
+              ImageItem.FHotZoomTarget := 1.0
+            else
+              ImageItem.FHotZoomTarget := TargetZoom;
+
+            if (ImageItem <> FSelectedImage) and (ImageItem.FHotZoom > FHotZoomMaxFactor) then
+              ImageItem.FHotZoom := FHotZoomMaxFactor;
+            if ImageItem.FHotZoom < 1.0 then
+              ImageItem.FHotZoom := 1.0;
+
+            NeedRepaint := True;
+          end;
         end;
-        Continue;
-      end;
-      if not ImageItem.Visible then
-        Continue;
-
-      // Breathing Logic
-      if FIsMouseOverHandle or FIsMouseOverInfoIndicator then
-      begin
-         //keep breathing state when we are over rotatedot with mouse
-        TargetZoom := ImageItem.FHotZoom;
-      end
-      else
-      begin
-        if FBreathingEnabled and (ImageItem = FSelectedImage) and (ImageItem = FHotItem) then
-        begin
-          if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
-            TargetZoom := 1.0
-          else
-            TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0);
-        end
-        else if (ImageItem = FSelectedImage) then
-          TargetZoom := 1.0
-        else if (ImageItem = FHotItem) then
-          TargetZoom := FHotZoomMaxFactor
-        else
-          TargetZoom := 1.0;
-      end;
-
-      //Hotzoom logic
-      if ImageItem.FHotZoom < TargetZoom then
-        Speed := HOT_ZOOM_IN_PER_SEC
-      else
-        Speed := HOT_ZOOM_OUT_PER_SEC;
-      ImageItem.FHotZoom := ImageItem.FHotZoom + (TargetZoom - ImageItem.FHotZoom) * Speed * DeltaTime;
-      if not FHotTrackZoom then
-        ImageItem.FHotZoomTarget := 1.0
-      else
-        ImageItem.FHotZoomTarget := TargetZoom;
-
-      if (ImageItem <> FSelectedImage) and (ImageItem.FHotZoom > FHotZoomMaxFactor) then
-        ImageItem.FHotZoom := FHotZoomMaxFactor;
-      if ImageItem.FHotZoom < 1.0 then
-        ImageItem.FHotZoom := 1.0;
-
-      NeedRepaint := True;
+    finally
+      // HotList cleanup
     end;
 
     { Advance Breathing Phase }
@@ -8443,37 +8166,25 @@ begin
   // ==========================================================
   if Assigned(FSelectedImage) and FCaptureVideo and (FTestVideoFile <> '') then
   begin
-    // 1. Ensure Static Image is Visible (Layer 0)
     FSelectedImage.Visible := True;
-
-    // 2. Calculate Target Visual State
     VisRect := GetVisualRect(FSelectedImage);
 
-    // --- CALCULATE VISUAL ROTATION (Including Breathing) ---
     var VisualAngle: Single;
     VisualAngle := FSelectedImage.FActualRotation;
     if FBreathingEnabled and FBreathRotationEnabled and (Abs(VisualAngle) > 0.1) then
       VisualAngle := VisualAngle + (Sin(FBreathingPhase * 2 * PI) * 1.5);
 
-    // 3. OPTIMIZATION: Check if we actually need to update UI
-    // If position and angle haven't changed much, skip update.
-    // This prevents "Very Slow" issue caused by excessive UI calls.
     var UpdateNeeded: Boolean;
     UpdateNeeded := False;
 
-    // Check Position Tolerance (1 pixel movement trigger)
     if (Abs(VisRect.Left - FLastVideoRect.Left) > 1.0) or (Abs(VisRect.Top - FLastVideoRect.Top) > 1.0) or (Abs(VisRect.Width - FLastVideoRect.Width) > 1.0) or (Abs(VisRect.Height - FLastVideoRect.Height) > 1.0) then
       UpdateNeeded := True;
 
-    // Check Rotation Tolerance
     if Abs(VisualAngle - FLastVideoAngle) > 0.1 then
       UpdateNeeded := True;
 
-    // 4. ASYNC UPDATE (Using TThread.Queue for UI Safety)
-    // We use Queue instead of Synchronize to keep animation smooth.
-    if UpdateNeeded or (FLastVideoRect.Width = 0) then // Force first update
+    if UpdateNeeded or (FLastVideoRect.Width = 0) then
     begin
-      // Save current state for next frame comparison
       FLastVideoRect := VisRect;
       FLastVideoAngle := VisualAngle;
 
@@ -8482,7 +8193,6 @@ begin
         begin
           if Assigned(FVideoPlayer) then
           begin
-              // === PLAY MEDIA ===
             if FVideoPlayer.MediaPlayer.State <> TMediaState.Playing then
             begin
               if FVideoPlayer.MediaPlayer.FileName <> FTestVideoFile then
@@ -8490,60 +8200,50 @@ begin
               try
                 FVideoPlayer.MediaPlayer.Play;
               except
-
               end;
             end;
           end;
-              // F. UPDATE GLOBAL SNAPSHOT (For next frame comparison)
-              // We use a critical section to free old snapshot safely (avoid memory leaks / AV if exception occurs)
           TThread.Queue(nil,
             procedure
             begin
-          // 1. Update Local State
               if Assigned(FSelectedVideoSnapshot) then
                 FLastVideoRect := VisRect;
               if Assigned(FVideoPlayer) then
                 FLastVideoAngle := VisualAngle;
               CreateNewVideoSnapshot(VisRect.Width, VisRect.Height);
-
-          // 2. Request Repaint (Updates Screen)
-          // Calling this here ensures thread safety (VCL/FireMonkey rule)
-          // It schedules Paint immediately, preventing flicker or missing frames
               ThreadSafeRepaint;
             end);
-
         end);
-
     end;
-
   end
   else if Assigned(FSelectedImage) then
   begin
-    // If not capturing, ensure Static Image is visible
     FSelectedImage.Visible := True;
-    {
-    // Hide Video Player safely
-    if Assigned(FVideoPlayer) and FVideoPlayer.Visible then
-    begin
-      TThread.Queue(nil,
-        procedure
-        begin
-          if Assigned(FVideoPlayer) then
-            FVideoPlayer.Visible := False;
-        end);
-    end;   }
   end;
 
-  { Check if any animations are still running }
+  { Check if any animations are still running (SAFE VERSION) }
   AnyAnimating := FFallingOut;
-  for i := 0 to FImages.Count - 1 do
-    if not ((TImageItem(FImages[i]).AnimationProgress >= 1.0) and ((TImageItem(FImages[i]).ZoomProgress <= 0.0001) or (TImageItem(FImages[i]).ZoomProgress >= 0.9999)) and EqualRect(TImageItem(FImages[i]).CurrentRect, TImageItem(FImages[i]).TargetRect) and (Abs(TImageItem(FImages[i]).FHotZoom - TImageItem(FImages[i]).FHotZoomTarget) <= 0.006)) then
-    begin
-      AnyAnimating := True;
-      Break;
-    end;
+  var FinalList: TList;
+  FinalList := nil;
+  try
+    if Assigned(FImages) then
+      FinalList := FImages;
 
-   // === STOP THREAD IF LIST EMPTY & NOT CLEARING ===
+    if (FinalList <> nil) and (FinalList.Count > 0) then
+    begin
+      for i := 0 to FinalList.Count - 1 do
+      begin
+        if not ((TImageItem(FinalList[i]).AnimationProgress >= 1.0) and ((TImageItem(FinalList[i]).ZoomProgress <= 0.0001) or (TImageItem(FinalList[i]).ZoomProgress >= 0.9999)) and EqualRect(TImageItem(FinalList[i]).CurrentRect, TImageItem(FinalList[i]).TargetRect) and (Abs(TImageItem(FinalList[i]).FHotZoom - TImageItem(FinalList[i]).FHotZoomTarget) <= 0.006)) then
+        begin
+          AnyAnimating := True;
+          Break;
+        end;
+      end;
+    end;
+  finally
+    // FinalList cleanup
+  end;
+
   if (not FIsClearing) and (FImages.Count = 0) and (FAnimationThread <> nil) then
   begin
     FAnimationThread.Stop;
@@ -8556,7 +8256,7 @@ end;
 // --------------------------------------------------------------
 // BOOM / DELETE PHYSICS
 // --------------------------------------------------------------
-procedure TSkFlowMotion.DoAnimateBoom(AImageItem: TImageItem; ASync: Boolean);
+{procedure TSkFlowMotion.DoAnimateBoom(AImageItem: TImageItem; ASync: Boolean);
 var
   TempRect: TRectF;
   SP: TSmallPicParticle;
@@ -8669,7 +8369,7 @@ begin
     FSmallPicParticles.Add(SP);
   end;
 
-end;
+end;       }
 
 procedure TSkFlowmotion.CreateNewVideoSnapshot(AWidth, AHeight: Single);
 var
@@ -9065,89 +8765,6 @@ begin
         Grid[r, c] := True;
 end;
 
-{ - making some problems sometimes selected goign directly to old layout pos...
-function TSkFlowmotion.PlaceImage(ImageItem: TImageItem; var Grid: TBooleanGrid; Row, Col, SpanRows, SpanCols: Integer; BaseCellWidth, BaseCellHeight: Integer): Boolean;
-var
-  X, Y: Integer;
-  CellWidth, CellHeight: Integer;
-  ImageSize: TSize;
-  DummyRect: TRect;
-begin
-  if ImageItem.SkImage = nil then
-  begin
-    Result := True;
-    Exit;
-  end;
-  // Calculate cell position and size
-  X := FSpacing + Col * (BaseCellWidth + FSpacing);
-  Y := FSpacing + Row * (BaseCellHeight + FSpacing);
-  CellWidth := SpanCols * BaseCellWidth + (SpanCols - 1) * FSpacing;
-  CellHeight := SpanRows * BaseCellHeight + (SpanRows - 1) * FSpacing;
-  // Optimal image size preserving aspect ratio
-  ImageSize := GetOptimalSize(ImageItem.SkImage.Width, ImageItem.SkImage.Height, CellWidth, CellHeight);
- // Center image in cell
-  X := X + (CellWidth - ImageSize.cx) div 2;
-  Y := Y + (CellHeight - ImageSize.cy) div 2;
-  // Bounds clamping
-  if X < 0 then
-    X := 0;
-  if Y < 0 then
-    Y := 0;
-  if X + ImageSize.cx > Width then
-    X := trunc(Width - ImageSize.cx);
-  if Y + ImageSize.cy > Height then
-    Y := trunc(Height - ImageSize.cy);
-  // Set Target Rect
-  ImageItem.TargetRect := Rect(X, Y, X + ImageSize.cx, Y + ImageSize.cy);
-  // === PIXEL-EXACT CHECK FOR KeepAreaFreeRect ===
-  if not IsRectEmpty(FKeepAreaFreeRect) then
-  begin
-    if IntersectRect(DummyRect, ImageItem.TargetRect, FKeepAreaFreeRect) then
-    begin
-      Result := False; // Overlap? reject
-      Exit;
-    end;
-  end;
-  // ==========================================================
-  // SMART ANIMATION RESET LOGIC
-  // ==========================================================
-  // 1. Check if we are currently in Entry Animation (Flying in)
-  // If Progress is low, we are busy coming from Offscreen. Do NOT disturb StartRect.
-  if ImageItem.AnimationProgress < 0.95 then
-  begin
-    // Just update TargetRect. Keep StartRect as set by AnimateImage.
-    Result := True;
-    MarkAreaOccupied(Grid, Row, Col, SpanRows, SpanCols);
-    Exit;
-  end;
-  // 2. Check if we need to move (Relayout Animation)
-  // If Current Position != Target Position, we need to animate.
-  if not EqualRect(ImageItem.CurrentRect, ImageItem.TargetRect) then
-  begin
-    // Set Start Point to where we are NOW.
-    // This ensures "Center -> Grid" or "Grid A -> Grid B" works.
-    ImageItem.StartRect := ImageItem.CurrentRect;
-    // SAFETY: If StartRect is garbage (0,0,0), snap immediately.
-    // This prevents "Outside Screen" glitches.
-    if IsRectEmpty(ImageItem.StartRect) or (ImageItem.StartRect.Right <= ImageItem.StartRect.Left) then
-      ImageItem.StartRect := ImageItem.TargetRect;
-    // === START: SAFETY CHECK FOR STARTRECT ===
-    // Reset Animation State
-    if IsRectEmpty(ImageItem.CurrentRect) then
-      ImageItem.StartRect := ImageItem.TargetRect // Safety: If current is invalid, start from Target (Snap)
-    else
-      ImageItem.StartRect := ImageItem.CurrentRect; // Normal: Animate from current position
-    // Kickstart Layout Animation
-    ImageItem.AnimationProgress := 0;
-    ImageItem.Animating := True;
-  end;
-  // Mark grid slot occupied
-  MarkAreaOccupied(Grid, Row, Col, SpanRows, SpanCols);
-  Result := True;
-end;        }
-
-        //upper version was more safe at edges and all but...too tight making problems
-
 function TSkFlowmotion.PlaceImage(ImageItem: TImageItem; var Grid: TBooleanGrid; Row, Col, SpanRows, SpanCols: Integer; BaseCellWidth, BaseCellHeight: Integer): Boolean;
 var
   X, Y: Integer;
@@ -9261,6 +8878,8 @@ begin
   if FAnimatedBackground <> Value then
   begin
     FAnimatedBackground := Value;
+    if FAnimatedBackground and (FBackgroundEffect = uSkFlowEffects.beRealMatrix) then
+      InitMatrix;
     Repaint;
   end;
 end;
@@ -9287,28 +8906,5 @@ begin
   end;
 end;
 
-procedure TSkFlowmotion.SpawnParticles(X, Y: Single; Count: Integer; Color: TAlphaColor);
-var
-  i: Integer;
-  P: TParticle;
-  Angle: Single;
-begin
-  // If no specific color passed, use global property (for clicks)
-  if Color = 0 then
-    Color := FParticleColor;
-
-  for i := 0 to Count - 1 do
-  begin
-    Angle := Random * 2 * Pi;
-    P.X := X;
-    P.Y := Y;
-    P.VX := Cos(Angle) * (2 + Random * 3);
-    P.VY := Sin(Angle) * (2 + Random * 3);
-    P.Life := 1.0;
-    P.Color := Color;
-    P.Size := 0.8 + Random * 1.5;
-    FParticles.Add(P);
-  end;
-end;
-
 end.
+
