@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.47**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.48**    
     
 <img width="1754" height="1140" alt="Unbenannt" src="https://github.com/user-attachments/assets/b72cbf28-2220-4781-8913-47eb0a9154ea" />
 
@@ -24,7 +24,7 @@ me & skia4delphi seem way better compatible than me & vcl canvas
 **Disproven.**    
 few days. Done.   
       
-### Features at a glance (v0.47)   
+### Features at a glance (v0.48)   
    
 - **Pinterest-like masonry layout**   
 - **Freefloat layout** with save/load positions (not fully stable atm)    
@@ -88,6 +88,17 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
+      
+**v 0.48 – Day 11**      
+      
+- Added Skia v7.01 binaries (libSkia.dll) to sample folder.   
+- Important: Updated from godknows how much older version yesterday.   
+- (Discovered i need it this morning via "runtime error shock" on my little dual-core Zenbook UX305CA, yes it runs still on that one too)   
+- switched to MIT license, sounds cooler :D   
+- Started some code refactoring across multiple functions   
+- Moved background effects into new unit -> uSkFlowEffects   
+- Added property ItemBorderColor   
+- Fixed av at threaded clear, using a local reference to FImages list   
      
 **v 0.47 – Day 10**     
       
