@@ -19,6 +19,7 @@ No big deal to port old code when delphi & Skia4delphi is involved 😉
 btw its even my first component and... playing with canvas at all... ^^    
 just learning by doing, and having fun doing it   
 me & skia4delphi seem way better compatible than me & vcl canvas   
+now i think it was a good idea to try it, understanding some things way better now   
     
 If theres nothing good enough for you, then just make it...you have the tools with delphi and sk4d ^^    
    
