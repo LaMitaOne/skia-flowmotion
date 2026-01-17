@@ -19,6 +19,8 @@ No big deal to port old code when delphi & Skia4delphi is involved 😉
 btw its even my first component and... playing with canvas at all... ^^    
 just learning by doing, and having fun doing it   
 me & skia4delphi seem way better compatible than me & vcl canvas   
+    
+If theres nothing good enough for you, then just make it...you have the tools with delphi and sk4d ^^    
    
 **Delphi GUIs are boring and outdated?**    
 **Disproven.**    
@@ -57,6 +59,7 @@ Tip: You can play memory on it now. Enable infopanel on some, unselect, and try 
 ### Current Development Status & Platform   
    
 Alpha – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
+Lots bugs for sure crawling around everywhere, but hey its just few days old... but already impressive nice looking...     
      
 Especially **full freefloat layout** is still making problems with some things,  
 but **normal layout** is getting very stable now – even with SelectedDraggable and not zoom to center.   
