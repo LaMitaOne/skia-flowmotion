@@ -27,6 +27,7 @@ If theres nothing good enough for you, then just make it...you have the tools wi
 few days. Done.   
    
 maybe at least i spread out some new ideas :)  
+static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly    
       
 ### Features at a glance (v0.48)   
    
