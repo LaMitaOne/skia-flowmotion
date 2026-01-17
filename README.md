@@ -1,7 +1,7 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.48**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.49**    
     
-<img width="1754" height="1140" alt="Unbenannt" src="https://github.com/user-attachments/assets/b72cbf28-2220-4781-8913-47eb0a9154ea" />
+<img width="1449" height="1095" alt="Unbenannt" src="https://github.com/user-attachments/assets/a4460635-0f5c-4dea-b797-4b244fda32b6" />
 
     
 # Skia-FlowMotion   
@@ -30,7 +30,7 @@ few days. Done.
 maybe at least i spread out some new ideas :)  
 static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly    
       
-### Features at a glance (v0.48)   
+### Features at a glance (v0.49)   
    
 - **Pinterest-like masonry layout**   
 - **Freefloat layout** with save/load positions (not fully stable atm)    
@@ -95,6 +95,15 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
+    
+**v 0.49 – Day 12**      -stopping dailys now before i fall from my chair :D   
+   
+- Some fine tuning and small bugfixes   
+- Improved thread stability in draw function   
+- Added adaptive frame skipping to prevent UI freezing under heavy load or on toy pcs.   
+- Added new unit -> uSkFlowButtons - creates panel of definable animated buttons,   
+  compiles but not working fully so far    
+- Added property: ShowInfoIndicatoralways    
       
 **v 0.48 – Day 11**      
       
