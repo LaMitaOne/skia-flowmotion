@@ -668,7 +668,7 @@ begin
   { Adds a single random image from AppDir using 'Point' entry animation }
   skfmFlowGallery.ImageEntryStyle := iesFromPoint;
   skfmFlowGallery.EntryPoint := Point(Round(Panel3.Position.X), Round(Panel3.Position.Y));
-  skfmFlowGallery.AddImageAsync(ExtractFilePath(ParamStr(0)) + inttostr(random(13) + 1) + '.jpg');
+  skfmFlowGallery.AddImage(ExtractFilePath(ParamStr(0)) + inttostr(random(13) + 1) + '.jpg');
 end;
 procedure TfrmMain.Button5Click(Sender: TObject);
 begin
