@@ -25,6 +25,8 @@ If theres nothing good enough for you, then just make it...you have the tools wi
 **Delphi GUIs are boring and outdated?**    
 **Disproven.**    
 few days. Done.   
+   
+maybe at least i spread out some new ideas :)  
       
 ### Features at a glance (v0.48)   
    
