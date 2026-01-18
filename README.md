@@ -7,8 +7,11 @@
 # Skia-FlowMotion   
    
 **Animated Image Flow Gallery – Delphi FMX + Skia4Delphi (Google's Skia)**   
-[Skia4Delphi](https://github.com/skia4delphi/skia4delphi)  
-    
+[Skia4Delphi](https://github.com/skia4delphi/skia4delphi)    
+   
+**Sample video:**     
+(https://www.youtube.com/watch?v=JWn37m4JwYM)   
+     
 Started as a simple port of my D7 VCL Flowmotion component...which was "let only show a few pictures of search results somehow" at begin        
 **From zero to this beast in ~3 months** (with pauses):     
 **0 → VCL → FMX/Skia4Delphi**      
@@ -19,8 +22,6 @@ No big deal to port old code when delphi & Skia4delphi is involved 😉
 btw its even my first component and... playing with canvas at all... ^^    
 just learning by doing, and having fun doing it   
     
-If theres nothing good enough for you, then just make it...you have the tools with delphi and sk4d ^^    
-   
 **Delphi GUIs are boring and outdated?**    
 **Disproven.**    
 few days. Done.   
@@ -80,9 +81,6 @@ If you know **where** it breaks and **why**, or even send a PR/fix – that woul
    
 No pressure though – Windows is the main focus for now.     
    
-**Sample video:**    
-(https://www.youtube.com/watch?v=R_yIg2XfF24)   
-
 **Zipped sample exe** (small enough for upload)    
    
 If you want to tip me a coffee.. :)   
