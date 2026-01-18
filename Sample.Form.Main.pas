@@ -12,7 +12,9 @@
   written by: Lara Miriam Tamy Reschke
 *******************************************************************************}
 unit Sample.Form.Main;
+
 interface
+
 uses
   { Delphi RTL }
   System.SysUtils, System.Types, System.UITypes, System.Classes, FMX.Types,
@@ -23,6 +25,7 @@ uses
   Windows, Messages, FMX.Menus,
   { SkFlow Components }
   uSkFlowmotion, uSkFlowEffects, uSkFlowButtons;
+
 type
   { TfrmMain }
   TfrmMain = class(TForm)
@@ -104,7 +107,6 @@ type
     rbhotzoom: TRadioButton;
     Label5: TLabel;
     ComboBox5: TComboBox;
-    CheckBox15: TCheckBox;
     CheckBox16: TCheckBox;
     ComboBox6: TComboBox;
     CheckBox2: TCheckBox;
@@ -112,7 +114,6 @@ type
     rbifoarrow: TRadioButton;
     Panel3: TPanel;
     rbinfhot: TRadioButton;
-    CheckBox17: TCheckBox;
     Button14: TButton;
     Button1: TButton;
     Button2: TButton;
@@ -126,6 +127,9 @@ type
     rbborder: TRadioButton;
     Button19: TButton;
     CheckBox20: TCheckBox;
+    CheckBox21: TCheckBox;
+    CheckBox15: TCheckBox;
+    CheckBox17: TCheckBox;
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
     procedure Button11Click(Sender: TObject);
@@ -158,6 +162,7 @@ type
     procedure CheckBox19Change(Sender: TObject);
     procedure CheckBox1Change(Sender: TObject);
     procedure CheckBox20Change(Sender: TObject);
+    procedure CheckBox21Change(Sender: TObject);
     procedure CheckBox2Change(Sender: TObject);
     procedure CheckBox3Change(Sender: TObject);
     procedure CheckBox4Change(Sender: TObject);
@@ -209,18 +214,22 @@ type
   public
     { Public declarations }
   end;
+
 var
   frmMain: TfrmMain;
+
 implementation
 {$R *.fmx}
 { *******************************************************************************
   EVENT HANDLERS: BUTTON CLICKS
   ******************************************************************************* }
+
 procedure TfrmMain.Button10Click(Sender: TObject);
 begin
   { Clear gallery with specific animation targeting Panel1 }
   skfmFlowGallery.Clear(true, true, Panel1.BoundsRect.Round, Panel1.BoundsRect.Round, iesFromPoint);
 end;
+
 procedure TfrmMain.Button11Click(Sender: TObject);
 begin
   { Set window to transparent overlay mode }
@@ -230,17 +239,20 @@ begin
   Canvas.Clear($00000000);
   skfmFlowGallery.BackgroundColor := TAlphaColors.Null;
 end;
+
 procedure TfrmMain.Button12Click(Sender: TObject);
 begin
   { Trigger Zoom animation for the currently selected image }
   skfmFlowGallery.ZoomSelectedToFull;
 end;
+
 procedure TfrmMain.Button13Click(Sender: TObject);
 begin
   { Show the Info Panel (Side panel with text) for selected image }
   if skfmFlowGallery.SelectedImage <> nil then
     skfmFlowGallery.ShowInfoPanel(skfmFlowGallery.SelectedImage);
 end;
+
 procedure TfrmMain.Button14Click(Sender: TObject);
 begin
   { Video Capture Mode Toggle }
@@ -254,26 +266,31 @@ begin
     skfmFlowGallery.CaptureVideo := True;
   end;
 end;
+
 procedure TfrmMain.Button15Click(Sender: TObject);
 begin
   { Spatial Navigation: West }
   skfmFlowGallery.SelectWest;
 end;
+
 procedure TfrmMain.Button16Click(Sender: TObject);
 begin
   { Spatial Navigation: East }
   skfmFlowGallery.SelectEast;
 end;
+
 procedure TfrmMain.Button17Click(Sender: TObject);
 begin
   { Spatial Navigation: North }
   skfmFlowGallery.SelectNorth;
 end;
+
 procedure TfrmMain.Button18Click(Sender: TObject);
 begin
   { Spatial Navigation: South }
   skfmFlowGallery.SelectSouth;
 end;
+
 procedure TfrmMain.Button19Click(Sender: TObject);
 begin
   { Creates and displays a Radial Button Panel demonstration }
@@ -301,46 +318,57 @@ end;
 { *******************************************************************************
   EVENT HANDLERS: UI CONTROLS (CHECKBOXES, COMBOBOXES, SPINBOX)
   ******************************************************************************* }
+
 procedure TfrmMain.CheckBox10Change(Sender: TObject);
 begin
   skfmFlowGallery.HotTrackZoom := CheckBox10.isChecked;
 end;
+
 procedure TfrmMain.CheckBox11Change(Sender: TObject);
 begin
   skfmFlowGallery.BreathingEnabled := CheckBox11.isChecked;
 end;
+
 procedure TfrmMain.CheckBox12Change(Sender: TObject);
 begin
   skfmFlowGallery.ZoomSelectedtoCenter := Checkbox12.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox13Change(Sender: TObject);
 begin
   skfmFlowGallery.KeepSpaceforZoomed := CheckBox13.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox14Change(Sender: TObject);
 begin
   skfmFlowGallery.BreathRotationEnabled := CheckBox14.isChecked;
 end;
+
 procedure TfrmMain.CheckBox15Change(Sender: TObject);
 begin
   skfmFlowGallery.HoverAlive := Checkbox15.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox16Change(Sender: TObject);
 begin
-  skfmFlowGallery.ShowInfoIndicator :=  Checkbox16.IsChecked;
+  skfmFlowGallery.ShowInfoIndicator := Checkbox16.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox17Change(Sender: TObject);
 begin
   skfmFlowGallery.HoverAliveOnFullscreen := Checkbox17.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox18Change(Sender: TObject);
 begin
   skfmFlowGallery.AlwaysShowInfo := CheckBox18.isChecked;
 end;
+
 procedure TfrmMain.CheckBox19Change(Sender: TObject);
 begin
   skfmFlowGallery.DeleteClicked := CheckBox19.isChecked;
 end;
+
 procedure TfrmMain.CheckBox1Change(Sender: TObject);
 begin
   { Toggle Picture Border Style }
@@ -349,14 +377,17 @@ begin
   else
     skfmFlowGallery.PictureBorderType := btTech;
 end;
+
 procedure TfrmMain.CheckBox2Change(Sender: TObject);
 begin
   skfmFlowGallery.AnimatedBackground := Checkbox2.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox3Change(Sender: TObject);
 begin
   skfmFlowGallery.SelectedMovable := CheckBox3.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox4Change(Sender: TObject);
 begin
   { Toggle Random Rotation vs Zero Rotation }
@@ -365,86 +396,119 @@ begin
   else
     skfmFlowGallery.StartingAngle := 0;
 end;
+
 procedure TfrmMain.CheckBox5Change(Sender: TObject);
 begin
   skfmFlowGallery.RotationAllowed := CheckBox5.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox6Change(Sender: TObject);
 begin
   skfmFlowGallery.SmallPicVisible := CheckBox6.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox7Change(Sender: TObject);
 begin
   skfmFlowGallery.ShowCaptions := CheckBox7.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox8Change(Sender: TObject);
 begin
   skfmFlowGallery.CaptionOnHoverOnly := CheckBox8.IsChecked;
 end;
+
 procedure TfrmMain.CheckBox9Change(Sender: TObject);
 begin
   skfmFlowGallery.ShowSmallPicOnlyOnHover := CheckBox9.IsChecked;
 end;
+
 procedure TfrmMain.ComboBox1Change(Sender: TObject);
 begin
   { Change Layout Strategy }
   case Combobox1.ItemIndex of
-    0: skfmFlowGallery.SetFlowLayout(flSorted);
-    1: skfmFlowGallery.SetFlowLayout(flFreeFloat);
+    0:
+      skfmFlowGallery.SetFlowLayout(flSorted);
+    1:
+      skfmFlowGallery.SetFlowLayout(flPlaceholder);
   end;
 end;
+
 procedure TfrmMain.ComboBox2Change(Sender: TObject);
 begin
   { Change Info Panel Animation Style }
   case Combobox2.ItemIndex of
-    0: skfmFlowGallery.InfoPanelAnimationStyle := iasBlurEdge;
-    1: skfmFlowGallery.InfoPanelAnimationStyle := iasStatic;
-    2: skfmFlowGallery.InfoPanelAnimationStyle := iasTransparent;
+    0:
+      skfmFlowGallery.InfoPanelAnimationStyle := iasBlurEdge;
+    1:
+      skfmFlowGallery.InfoPanelAnimationStyle := iasStatic;
+    2:
+      skfmFlowGallery.InfoPanelAnimationStyle := iasTransparent;
   end;
 end;
+
 procedure TfrmMain.ComboBox3Change(Sender: TObject);
 begin
   { Change Fullscreen Rotation Mode }
   case Combobox3.ItemIndex of
-    0: skfmFlowGallery.FullscreenAngle := fsa0;
-    1: skfmFlowGallery.FullscreenAngle := fsa90;
-    2: skfmFlowGallery.FullscreenAngle := fsa180;
-    3: skfmFlowGallery.FullscreenAngle := fsa270;
+    0:
+      skfmFlowGallery.FullscreenAngle := fsa0;
+    1:
+      skfmFlowGallery.FullscreenAngle := fsa90;
+    2:
+      skfmFlowGallery.FullscreenAngle := fsa180;
+    3:
+      skfmFlowGallery.FullscreenAngle := fsa270;
   end;
 end;
+
 procedure TfrmMain.ComboBox4Change(Sender: TObject);
 begin
   { Change Info Panel Position }
   case Combobox4.ItemIndex of
-    0: skfmFlowGallery.InfoPanelDirection := ipdAuto;
-    1: skfmFlowGallery.InfoPanelDirection := ipdTop;
-    2: skfmFlowGallery.InfoPanelDirection := ipdBottom;
-    3: skfmFlowGallery.InfoPanelDirection := ipdLeft;
-    4: skfmFlowGallery.InfoPanelDirection := ipdRight;
+    0:
+      skfmFlowGallery.InfoPanelDirection := ipdAuto;
+    1:
+      skfmFlowGallery.InfoPanelDirection := ipdTop;
+    2:
+      skfmFlowGallery.InfoPanelDirection := ipdBottom;
+    3:
+      skfmFlowGallery.InfoPanelDirection := ipdLeft;
+    4:
+      skfmFlowGallery.InfoPanelDirection := ipdRight;
   end;
 end;
+
 procedure TfrmMain.ComboBox5Change(Sender: TObject);
 begin
   { Change Info Panel Width Percentage }
   case ComboBox5.ItemIndex of
-    0: skfmFlowGallery.InfoPanelWidthPercent := 30 / 100;
-    1: skfmFlowGallery.InfoPanelWidthPercent := 50 / 100;
-    2: skfmFlowGallery.InfoPanelWidthPercent := 75 / 100;
+    0:
+      skfmFlowGallery.InfoPanelWidthPercent := 30 / 100;
+    1:
+      skfmFlowGallery.InfoPanelWidthPercent := 50 / 100;
+    2:
+      skfmFlowGallery.InfoPanelWidthPercent := 75 / 100;
   end;
 end;
+
 procedure TfrmMain.ComboBox6Change(Sender: TObject);
 begin
   { Change Background Effect }
   case Combobox6.ItemIndex of
-    0: skfmFlowGallery.BackgroundEffect := beRealMatrix;
-    1: skfmFlowGallery.BackgroundEffect := beHolographic;
-    2: skfmFlowGallery.BackgroundEffect := beFade;
+    0:
+      skfmFlowGallery.BackgroundEffect := beRealMatrix;
+    1:
+      skfmFlowGallery.BackgroundEffect := beHolographic;
+    2:
+      skfmFlowGallery.BackgroundEffect := beFade;
   end;
 end;
+
 procedure TfrmMain.SpinBox1Change(Sender: TObject);
 begin
   { Generic handler for multiple settings using Radio Buttons to select target }
-  if not Assigned(skfmFlowGallery) then Exit;
+  if not Assigned(skfmFlowGallery) then
+    Exit;
   if rbAnimspeed.IsChecked then
     skfmFlowGallery.AnimationSpeed := Round(SpinBox1.Value)
   else if rbGlowwidth.IsChecked then
@@ -486,10 +550,12 @@ begin
   else if rbhotzoom.IsChecked then
     skfmFlowGallery.HotZoomMaxFactor := Trunc(SpinBox1.Value);
 end;
+
 procedure TfrmMain.ColorPicker1MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
   { Applies the selected color to the property determined by the checked Radio Button }
-  if not Assigned(skfmFlowGallery) then Exit;
+  if not Assigned(skfmFlowGallery) then
+    Exit;
   if rbselfontcol.IsChecked then
     skfmFlowGallery.SelectedCaptionColor := ColorPicker1.Color
   else if rbfontcol.IsChecked then
@@ -520,6 +586,7 @@ end;
 { *******************************************************************************
   EVENT HANDLERS: FORM LIFECYCLE
   ******************************************************************************* }
+
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
   { Initial state setup }
@@ -543,12 +610,14 @@ begin
     lytContent.Visible := False;
   end;
 end;
+
 procedure TfrmMain.FormShow(Sender: TObject);
 begin
   { Start Timer to initialize gallery after form is fully shown }
   if Loadedwithparams then
     Timer1.Enabled := True;
 end;
+
 procedure TfrmMain.saiAnimatedLogoAnimationFinished(Sender: TObject);
 begin
   { Called when intro animation ends }
@@ -559,10 +628,12 @@ begin
   fanFadeOutTransition.Enabled := True;
   Timer1.Enabled := True;
 end;
+
 procedure TfrmMain.fanFadeOutTransitionFinish(Sender: TObject);
 begin
   saiAnimatedLogo.Visible := False;
 end;
+
 procedure TfrmMain.Timer1Timer(Sender: TObject);
 begin
   Timer1.Enabled := False;
@@ -572,18 +643,21 @@ begin
   else
     InitGallery;
 end;
+
 procedure TfrmMain.lytcontrolsResize(Sender: TObject);
 begin
   { Adjust Max Zoom Size when control panel resizes }
   if visible and assigned(skfmFlowGallery) then
     skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
 end;
+
 procedure TfrmMain.rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 begin
   { Enforce minimum page size to prevent errors }
-  if SpinBox1.Value < 50 then
-    SpinBox1.Value := 50;
+  if SpinBox1.Value < 10 then
+    SpinBox1.Value := 10;
 end;
+
 procedure TfrmMain.Rectangle1DblClick(Sender: TObject);
 begin
   { Debug output }
@@ -592,22 +666,26 @@ end;
 { *******************************************************************************
   EVENT HANDLERS: CUSTOM CALLBACKS
   ******************************************************************************* }
+
 procedure TfrmMain.OnTestButtonClick(Sender: TObject; Button: TFlowButton);
 begin
   { Demonstrates TFlowButtonPanel event firing }
   ShowMessage('You clicked button with ID: ' + Button.TagString);
   FTestPanel.PanelHide;
 end;
+
 procedure TfrmMain.Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
 begin
   { Demonstrates Activation Zones }
   if ZoneName = 'ActivationZone 1' then
     ShowMessage('Image entered ActivationZone 1! ');
 end;
+
 procedure TfrmMain.Onfullscreen(Sender: TObject; ImageItem: TImageItem; Index: Integer);
 begin
   ShowMessage('Fullscreen arrived');
 end;
+
 procedure TfrmMain.MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean);
 begin
   inherited;
@@ -618,6 +696,7 @@ begin
     skfmFlowGallery.SelectNextImage;
   Handled := True;
 end;
+
 procedure TfrmMain.Flowmotion1SelectedImageDblClick(Sender: TObject; ImageItem: TImageItem; Index: Integer);
 var
   FolderPath: string;
@@ -651,29 +730,35 @@ end;
 { *******************************************************************************
   NAVIGATION & CONTROL
   ******************************************************************************* }
+
 procedure TfrmMain.Button1Click(Sender: TObject);
 begin
   skfmFlowGallery.SelectPreviousImage;
 end;
+
 procedure TfrmMain.Button2Click(Sender: TObject);
 begin
   skfmFlowGallery.SelectNextImage;
 end;
+
 procedure TfrmMain.Button3Click(Sender: TObject);
 begin
   skfmFlowGallery.DeselectZoomedImage;
 end;
+
 procedure TfrmMain.Button4Click(Sender: TObject);
 begin
   { Adds a single random image from AppDir using 'Point' entry animation }
   skfmFlowGallery.ImageEntryStyle := iesFromPoint;
   skfmFlowGallery.EntryPoint := Point(Round(Panel3.Position.X), Round(Panel3.Position.Y));
-  skfmFlowGallery.AddImage(ExtractFilePath(ParamStr(0)) + inttostr(random(13) + 1) + '.jpg');
-end;
+  skfmFlowGallery.AddImageAsync(ExtractFilePath(ParamStr(0)) + inttostr(random(13) + 1) + '.jpg');
+end;             //AddImage AddImageAsync
+
 procedure TfrmMain.Button5Click(Sender: TObject);
 begin
   skfmFlowGallery.Clear(true);
 end;
+
 procedure TfrmMain.Button6Click(Sender: TObject);
 var
   AppDir: string;
@@ -687,6 +772,7 @@ begin
   Captionlist := TStringList.create;
   Hintlist := TStringList.create;
   InfosList := TStringList.create;
+  skfmFlowGallery.MaxZoomSize := 700;
   try
     { Create two loops of demo data }
     for i := 14 downto 0 do
@@ -705,9 +791,8 @@ begin
       Hintlist.Add('Hint');
       InfosList.Add('Movie infos or whatever you want to show here | ........... ......... ........... bit more to see if it works right.... ....');
     end;
-    skfmFlowGallery.MaxZoomSize := trunc(Clientwidth / 2);
     skfmFlowGallery.AddImagesAsync(IMList, Captionlist, Pathlist, Hintlist, InfosList);
-  finally
+  finally          //AddImages AddImagesAsync
     InfosList.Free;
     IMList.Free;
     Pathlist.Free;
@@ -715,17 +800,20 @@ begin
     Hintlist.Free;
   end;
 end;
+
 procedure TfrmMain.Button7Click(Sender: TObject);
 begin
   { Set background image }
   if Opendialog1.Execute then
     skfmFlowGallery.SetBackgroundpicture(Opendialog1.FileName);
 end;
+
 procedure TfrmMain.Button8Click(Sender: TObject);
 begin
   { Reset all image rotations to 0 }
   skfmFlowGallery.ResetAllRotations;
 end;
+
 procedure TfrmMain.Button9Click(Sender: TObject);
 var
   i: Integer;
@@ -752,6 +840,11 @@ begin
   skfmFlowGallery.ShowInfoIndicatoralways := CheckBox20.IsChecked;
 end;
 
+procedure TfrmMain.CheckBox21Change(Sender: TObject);
+begin
+  skfmFlowGallery.FreeFloat := CheckBox21.IsChecked;
+end;
+
 procedure TfrmMain.skfmFlowGalleryMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 var
   Item: TImageItem;
@@ -770,6 +863,7 @@ end;
 { *******************************************************************************
   INITIALIZATION
   ******************************************************************************* }
+
 procedure TfrmMain.InitGallery;
 var
   AppDir: string;
@@ -792,7 +886,7 @@ begin
   skfmFlowGallery.AnimationSpeed := 3;
   skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
   skfmFlowGallery.Spacing := 15;
-  skfmFlowGallery.PageSize := 80;
+  skfmFlowGallery.PageSize := 110;
   skfmFlowGallery.OnMouseUp := skfmFlowGalleryMouseUp;
   skfmFlowGallery.ShowCaptions := True;
   skfmFlowGallery.SelectedMovable := True;
@@ -800,13 +894,15 @@ begin
   skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := True;
   skfmFlowGallery.SmallPicImageList := Imagelist1;
-  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
+  skfmFlowGallery.MaxZoomSize := 700;
   skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
   skfmFlowGallery.AddActivationZone('ActivationZone 1', Panel1.BoundsRect);
   skfmFlowGallery.OnFullscreenEnter := Onfullscreen;
   skfmFlowGallery.CaptionFont.Size := 14;
   skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
   skfmFlowGallery.HotTrackZoom := True;
+  FileName := AppDir + 'back.jpg';
+  skfmFlowGallery.SetBackgroundpicture(FileName);
   skfmFlowGallery.Visible := True;
   skfmFlowGallery.BringToFront;
   { Populate Demo Data Lists }
@@ -835,8 +931,6 @@ begin
       Infoslist.Add('Movie infos or whatever you want to show here || pipe for new line |  ...........  |bit more to see if it works right.... ....');
       smallimgindex.Add(Pointer(rndX));
     end;
-    FileName := AppDir + 'back.jpg';
-    skfmFlowGallery.SetBackgroundpicture(FileName);
     skfmFlowGallery.AddImages(IMList, Captionlist, Pathlist, Hintlist, Infoslist, smallimgindex);
   finally
     Infoslist.Free;
@@ -846,6 +940,7 @@ begin
     Hintlist.Free;
   end;
 end;
+
 procedure TfrmMain.LoadFromTxtFile(const TxtFilePath: string);
 var
   Lines: TStringList;
@@ -866,13 +961,13 @@ begin
   skfmFlowGallery.AnimationSpeed := 3;
   skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
   skfmFlowGallery.Spacing := 15;
-  skfmFlowGallery.PageSize := 80;
+  skfmFlowGallery.PageSize := 110;
   skfmFlowGallery.ShowCaptions := True;
   skfmFlowGallery.KeepSpaceforZoomed := False;
   skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := False;
   skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
-  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
+  skfmFlowGallery.MaxZoomSize := 700;
   skfmFlowGallery.SetBackgroundpicture(ExtractFilePath(ParamStr(0)) + 'back.jpg');
   skfmFlowGallery.CaptionFont.Size := 14;
   skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
@@ -913,6 +1008,7 @@ end;
 { *******************************************************************************
   IPC (INTER-PROCESS COMMUNICATION)
   ******************************************************************************* }
+
 procedure TfrmMain.SendSignalToPlayer(const FilePath: string);
 var
   PlayerHandle: HWND;
@@ -930,6 +1026,7 @@ begin
   SendMessage(PlayerHandle, WM_COPYDATA, 0, LPARAM(@CopyData));
   Close;
 end;
+
 procedure TfrmMain.SendNextToPlayer(const FilePath: string);
 var
   PlayerHandle: HWND;
@@ -946,6 +1043,7 @@ begin
   CopyData.lpData := PAnsiChar(Data);
   SendMessage(PlayerHandle, WM_COPYDATA, 0, LPARAM(@CopyData));
 end;
+
 procedure TfrmMain.WMCopyData(var Message: TWMCopyData);
 var
   Data: string;
@@ -972,6 +1070,7 @@ end;
 { *******************************************************************************
   UTILITIES
   ******************************************************************************* }
+
 function TfrmMain.GetFirstImageInFolder(const Folder: string): string;
 var
   Files: TArray<string>;
@@ -985,5 +1084,6 @@ begin
   if Length(Files) > 0 then
     Exit(Files[0]);
 end;
+
 end.
-```
+
