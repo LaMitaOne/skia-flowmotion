@@ -95,7 +95,7 @@ If you want to tip me a coffee.. :)
 
 **v 0.51 – Day 14**   - ok ok, but now i really try make some days break :D   
   
-- some small bugfixes/imrpvements and fine tuning   
+- some small bugfixes/improvements and fine tuning   
 - switched to 60fps now and with 80 pagesize still nice but way smoother   
      
 **v 0.50 – Day 13**    -yea yea, i could not resist, but that damn bug annoyed me so much...but this is a nice version now :)
