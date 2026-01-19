@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.50**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.51**    
     
 <img width="1458" height="1140" alt="Unbenannt" src="https://github.com/user-attachments/assets/849dd714-8c9c-4105-9ec1-27ab6471e98c" />
    
@@ -30,7 +30,7 @@ maybe at least i spread out some new ideas :)
    
 static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly for me :D       
       
-### Features at a glance (v0.50)   
+### Features at a glance (v0.51)   
    
 - **Pinterest-like masonry layout**   
 - **Freefloat layout** with save/load positions (not fully stable atm)    
@@ -92,7 +92,12 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
+
+**v 0.51 – Day 14**   - ok ok, but now i really try make some days break :D   
   
+- some small bugfixes/imrpvements and fine tuning   
+- switched to 60fps now and with 80 pagesize still nice but way smoother   
+     
 **v 0.50 – Day 13**    -yea yea, i could not resist, but that damn bug annoyed me so much...but this is a nice version now :)
    
 - Fixed wrong max zoom after clear and load new pics (that beast...was hard to catch)   
