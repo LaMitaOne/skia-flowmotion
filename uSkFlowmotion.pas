@@ -11,7 +11,7 @@
   - Background effects integration (Matrix, Holographic).
 *******************************************************************************}
 
-{ Skia-Flowmotion v0.50 alpha                                                  }
+{ Skia-Flowmotion v0.51 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -22,6 +22,9 @@
 
 {
  ----Latest Changes
+   v 0.51
+    - some small bugfixes/imrpvements and fine tuning
+    - switched to 60fps now and with 80 pagesize still nice but way smoother
    v 0.50
     - Fixed wrong max zoom after clear and load new pics (that beast...was hard to catch)
     - Freefloat is now a property
@@ -132,7 +135,7 @@ uses
 
 const
   { Animation Timing Constants }
-  TARGET_FPS = 30;
+  TARGET_FPS = 60;
   MIN_FRAME_TIME = 1000 div TARGET_FPS;
   DEFAULT_ANIMATION_SPEED = 4;
   { Visual Defaults }
@@ -3060,27 +3063,20 @@ begin
     Exit;
   if (TargetSize.cx <= 0) or (TargetSize.cy <= 0) then
     Exit;
-
   // Check if update is needed...
   if (ImageItem.FGridSnapshotSize.cx = TargetSize.cx) and (ImageItem.FGridSnapshotSize.cy = TargetSize.cy) then
     Exit;
-
   Surface := nil; // Ensure local is nil before assignment
-
   try
     Info := TSkImageInfo.Create(TargetSize.cx, TargetSize.cy, TSkColorType.RGBA8888, TSkAlphaType.Premul);
     Surface := TSkSurface.MakeRaster(Info);
-
     if Assigned(Surface) then
     begin
       Surface.Canvas.Clear(TAlphaColors.Null);
-
       // CHANGE HERE: Use Cubic (Mitchell) for Snapshots
       HighQualityOpts.UseCubic := True;
       HighQualityOpts.Cubic := TSkCubicResampler.Mitchell; // Super sharp
-
       Surface.Canvas.DrawImageRect(ImageItem.FSkImage, RectF(0, 0, ImageItem.SkImage.Width, ImageItem.SkImage.Height), RectF(0, 0, TargetSize.cx, TargetSize.cy), HighQualityOpts); // Use the new opts
-
       ImageItem.FGridSnapshot := Surface.MakeImageSnapshot;
       ImageItem.FGridSnapshotSize := TargetSize;
       ImageItem.FGridSnapshot := Surface.MakeImageSnapshot; // Extra safety clear
@@ -8317,7 +8313,7 @@ begin
             ClearFinished := True;
 
           var AlphaStep: Integer;
-          AlphaStep := Max(1, Round(FAnimationSpeed * 10.0));
+          AlphaStep := Max(1, Round(FAnimationSpeed * 20.0));
           if ImageItem.Alpha > ImageItem.TargetAlpha then
             ImageItem.Alpha := Min(ImageItem.TargetAlpha, ImageItem.Alpha + AlphaStep)
           else

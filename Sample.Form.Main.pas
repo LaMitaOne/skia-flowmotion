@@ -621,6 +621,7 @@ end;
 procedure TfrmMain.saiAnimatedLogoAnimationFinished(Sender: TObject);
 begin
   { Called when intro animation ends }
+  saiAnimatedLogo.Visible := False;;
   lytcontrols.Visible := not Loadedwithparams;
   Layout1.Visible := not Loadedwithparams;
   lytContent.Visible := True;
@@ -883,7 +884,7 @@ begin
   { Apply Basic Styles }
   skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
-  skfmFlowGallery.AnimationSpeed := 3;
+  skfmFlowGallery.AnimationSpeed := 2;
   skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
   skfmFlowGallery.Spacing := 15;
   skfmFlowGallery.PageSize := 80;
@@ -958,7 +959,7 @@ begin
   { Setup basic gallery style for playlist mode }
   skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
-  skfmFlowGallery.AnimationSpeed := 3;
+  skfmFlowGallery.AnimationSpeed := 2;
   skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
   skfmFlowGallery.Spacing := 15;
   skfmFlowGallery.PageSize := 80;
