@@ -648,7 +648,7 @@ procedure TfrmMain.lytcontrolsResize(Sender: TObject);
 begin
   { Adjust Max Zoom Size when control panel resizes }
   if visible and assigned(skfmFlowGallery) then
-    skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 2);
+    skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
 end;
 
 procedure TfrmMain.rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
@@ -772,7 +772,7 @@ begin
   Captionlist := TStringList.create;
   Hintlist := TStringList.create;
   InfosList := TStringList.create;
-  skfmFlowGallery.MaxZoomSize := 700;
+  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
   try
     { Create two loops of demo data }
     for i := 14 downto 0 do
@@ -886,7 +886,7 @@ begin
   skfmFlowGallery.AnimationSpeed := 3;
   skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
   skfmFlowGallery.Spacing := 15;
-  skfmFlowGallery.PageSize := 110;
+  skfmFlowGallery.PageSize := 80;
   skfmFlowGallery.OnMouseUp := skfmFlowGalleryMouseUp;
   skfmFlowGallery.ShowCaptions := True;
   skfmFlowGallery.SelectedMovable := True;
@@ -894,7 +894,7 @@ begin
   skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := True;
   skfmFlowGallery.SmallPicImageList := Imagelist1;
-  skfmFlowGallery.MaxZoomSize := 700;
+  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
   skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
   skfmFlowGallery.AddActivationZone('ActivationZone 1', Panel1.BoundsRect);
   skfmFlowGallery.OnFullscreenEnter := Onfullscreen;
@@ -961,13 +961,13 @@ begin
   skfmFlowGallery.AnimationSpeed := 3;
   skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
   skfmFlowGallery.Spacing := 15;
-  skfmFlowGallery.PageSize := 110;
+  skfmFlowGallery.PageSize := 80;
   skfmFlowGallery.ShowCaptions := True;
   skfmFlowGallery.KeepSpaceforZoomed := False;
   skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := False;
   skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
-  skfmFlowGallery.MaxZoomSize := 700;
+  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
   skfmFlowGallery.SetBackgroundpicture(ExtractFilePath(ParamStr(0)) + 'back.jpg');
   skfmFlowGallery.CaptionFont.Size := 14;
   skfmFlowGallery.CaptionFont.Family := 'Segoe UI';

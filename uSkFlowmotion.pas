@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   uSkFlowmotion
 ********************************************************************************
   A high-performance, GPU-accelerated image flow control for Delphi FMX.
@@ -1491,7 +1491,7 @@ begin
   FIsGestureZoomed := False;
   FGestureZoomFactor := 3.0;
   { --- Defaults - Paging --- }
-  FPageSize := 100;
+  FPageSize := 80;
   FCurrentPage := 0;
   FCurrentSelectedIndex := -1;
   FMaxZoomSize := DEFAULT_MAX_ZOOM_SIZE;
@@ -2852,9 +2852,20 @@ begin
     for i := 0 to FImages.Count - 1 do
       TImageItem(FImages[i]).Free;
     FImages.Clear;
+    Freeandnil(FImages);
+    FImages := TList.Create;
 
+    FHotItem := nil;
     FSelectedImage := nil;
+    FWasSelectedItem := nil;
     FCurrentSelectedIndex := -1;
+    FBreathingPhase := 0.0;
+    FRotatingImage := nil;
+    FIsRotating := False;
+    FDraggedImage := nil;
+    FDraggingImage := False;
+    FDraggingSelected := False;
+    FIsMouseOverHandle := False;
 
     { --- 2. STOP AND CLEANUP LOADING THREADS --- }
     // First, tell all threads to stop
@@ -2868,6 +2879,8 @@ begin
       CheckSynchronize(10);
       Sleep(10);
     end;
+
+    //ClearNonThreaded(true, true, Rect(0, 0, 0, 0),  Rect(0, 0, 0, 0), iesFromBottom);
 
     // Free any thread objects that are still alive
     for i := 0 to FLoadingThreads.Count - 1 do
@@ -3041,7 +3054,7 @@ var
   Info: TSkImageInfo;
   Surface: ISkSurface;
   SrcW, SrcH, DstW, DstH: Single;
-  HighQualityOpts: TSkSamplingOptions; // <-- Define this
+  HighQualityOpts: TSkSamplingOptions;
 begin
   if not Assigned(ImageItem.FSkImage) then
     Exit;
@@ -3052,6 +3065,8 @@ begin
   if (ImageItem.FGridSnapshotSize.cx = TargetSize.cx) and (ImageItem.FGridSnapshotSize.cy = TargetSize.cy) then
     Exit;
 
+  Surface := nil; // Ensure local is nil before assignment
+
   try
     Info := TSkImageInfo.Create(TargetSize.cx, TargetSize.cy, TSkColorType.RGBA8888, TSkAlphaType.Premul);
     Surface := TSkSurface.MakeRaster(Info);
@@ -3060,21 +3075,23 @@ begin
     begin
       Surface.Canvas.Clear(TAlphaColors.Null);
 
-      // ==========================================
       // CHANGE HERE: Use Cubic (Mitchell) for Snapshots
-      // ==========================================
       HighQualityOpts.UseCubic := True;
       HighQualityOpts.Cubic := TSkCubicResampler.Mitchell; // Super sharp
 
-      Surface.Canvas.DrawImageRect(ImageItem.FSkImage, RectF(0, 0, ImageItem.FSkImage.Width, ImageItem.FSkImage.Height), RectF(0, 0, TargetSize.cx, TargetSize.cy), HighQualityOpts); // Use the new opts
+      Surface.Canvas.DrawImageRect(ImageItem.FSkImage, RectF(0, 0, ImageItem.SkImage.Width, ImageItem.SkImage.Height), RectF(0, 0, TargetSize.cx, TargetSize.cy), HighQualityOpts); // Use the new opts
 
       ImageItem.FGridSnapshot := Surface.MakeImageSnapshot;
       ImageItem.FGridSnapshotSize := TargetSize;
+      ImageItem.FGridSnapshot := Surface.MakeImageSnapshot; // Extra safety clear
+      Surface := nil;
+      ImageItem.FGridSnapshot := Surface.MakeImageSnapshot;
     end;
   except
     ImageItem.FGridSnapshot := nil;
     ImageItem.FGridSnapshotSize.cx := 0;
     ImageItem.FGridSnapshotSize.cy := 0;
+    Surface := nil; // Ensure Surface is nil
   end;
 end;
 
@@ -5480,7 +5497,6 @@ begin
         SkImg := ResizeImageIfNeeded(SkImg);
         NewItem := TImageItem.Create;
         NewItem.SkImage := SkImg;
-        NewItem.SkImage := ResizeImageIfNeeded(NewItem.SkImage);
         NewItem.Caption := ACaption;
         NewItem.Path := APath;
         NewItem.Hint := AHint;
@@ -5859,7 +5875,7 @@ begin
   if (FImages.Count = 0) or FisClearing or FInFallAnimation then
     Exit;
 
-  AnimSpeed := FAnimationSpeed;
+  AnimSpeed := 16;
   StopAnimationThread;
   FInFallAnimation := True;
 
@@ -7389,7 +7405,6 @@ begin
         SkImg := ResizeImageIfNeeded(SkImg);
         NewItem := TImageItem.Create;
         NewItem.SkImage := SkImg;
-        NewItem.SkImage := ResizeImageIfNeeded(NewItem.SkImage);
         NewItem.Caption := Captions[i];
         NewItem.Path := Paths[i];
         NewItem.Hint := Hints[i];
@@ -7452,8 +7467,7 @@ begin
 
   // Create and Configure Item
   NewItem := TImageItem.Create;
-  NewItem.SkImage := BitmapToSkImage(Pic);
-  NewItem.SkImage := ResizeImageIfNeeded(NewItem.SkImage);
+  NewItem.SkImage := ResizeImageIfNeeded(BitmapToSkImage(Pic));
   NewItem.FileName := DummyName;
   NewItem.Caption := XCaption;
   NewItem.Path := XPath;
