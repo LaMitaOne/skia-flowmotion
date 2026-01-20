@@ -2850,7 +2850,20 @@ begin
   StopAnimationThread;
   FPageChangeInProgress := True;
   try
-    { --- 1. CLEANUP PREVIOUS PAGE --- }
+    { --- CLEANUP PREVIOUS PAGE --- }
+    // Free any thread objects that are still alive
+    for i := 0 to FLoadingThreads.Count - 1 do
+    begin
+      try
+        TImageLoadThread(FLoadingThreads[i]).Free;
+      except
+        // Ignore errors if thread is already dead
+      end;
+    end;
+
+    if FImages.Count > 0 then
+    ClearNonThreaded(true, true, Rect(0, 0, 0, 0),  Rect(0, 0, 0, 0), iesFromBottom, false);
+
     // We must explicitly free the ImageItem objects
     for i := 0 to FImages.Count - 1 do
       TImageItem(FImages[i]).Free;
@@ -2870,11 +2883,6 @@ begin
     FDraggingSelected := False;
     FIsMouseOverHandle := False;
 
-    { --- 2. STOP AND CLEANUP LOADING THREADS --- }
-    // First, tell all threads to stop
-    for i := 0 to FLoadingThreads.Count - 1 do
-      TImageLoadThread(FLoadingThreads[i]).Terminate;
-
     // Wait a brief moment for threads to finish naturally
     StartTime := GetTickCount;
     while (FLoadingThreads.Count > 0) and ((GetTickCount - StartTime) < 500) do
@@ -2883,17 +2891,6 @@ begin
       Sleep(10);
     end;
 
-    //ClearNonThreaded(true, true, Rect(0, 0, 0, 0),  Rect(0, 0, 0, 0), iesFromBottom);
-
-    // Free any thread objects that are still alive
-    for i := 0 to FLoadingThreads.Count - 1 do
-    begin
-      try
-        TImageLoadThread(FLoadingThreads[i]).Free;
-      except
-        // Ignore errors if thread is already dead
-      end;
-    end;
     FLoadingThreads.Clear;
     FLoadingCount := 0;
 
@@ -4772,7 +4769,6 @@ begin
   EnteringImages := TList.Create;
   Paint := TSkPaint.Create;
   Paint.AntiAlias := True;
-  ShadowFilter := TSkImageFilter.MakeDropShadow(SHADOW_OFFSET_X, SHADOW_OFFSET_Y, 10.0, 10.0, TAlphaColors.Black, nil);
   try
    // =========================================================================
   // 1. BACKGROUND
@@ -4817,7 +4813,7 @@ begin
             Continue;
 
           // 3. Special check for FWasSelectedItem to handle un-zooming transitions
-          if Assigned(FWasSelectedItem) and (ImageItem = FWasSelectedItem) and (FSelectedImage = nil) and ((FWasSelectedItem.ZoomProgress > 0.001) or (FWasSelectedItem.Animating)) then
+          if Assigned(FWasSelectedItem) and (ImageItem = FWasSelectedItem) and (FSelectedImage = nil) and ((FWasSelectedItem.ZoomProgress > 0.000) or (FWasSelectedItem.Animating)) then
             Continue; // handled in step 7.5
 
           // ==========================================================
@@ -5055,14 +5051,12 @@ begin
 
       if (not FIsClearing) then
       begin
-
       // Draw InfoIndicator
         DrawInfoIndicator(ACanvas, VisualRect, FSelectedImage);
 
         DrawCaption(FSelectedImage, VisualRect);
 
         DrawSmallPicOverlay(FSelectedImage, VisualRect, ACanvas, Paint);
-
       end;
 
       // === CLIP PANEL TO ROUNDED CORNERS ===
@@ -5678,30 +5672,15 @@ begin
   // ==========================================================
   // 2. Spawn Loading Threads ONLY for items on CURRENT PAGE
   // ==========================================================
+    if WasEmpty then
+    begin
+      ShowPage(FCurrentPage);
+    end;
   for i := 0 to FileNames.Count - 1 do
   begin
     // Calculate Absolute Index in Master List
     NewAbsIndex := FAllFiles.Count - FileNames.Count + i;
     TargetPage := NewAbsIndex div FPageSize;
-
-    // --- AutoScroll Logic ---
-    if FAutoScrollPageForNewAdded then
-    begin
-      if FCurrentPage <> TargetPage then
-      begin
-        // Switch page immediately. ShowPage will load these images.
-        ShowPage(TargetPage);
-        // Do NOT spawn threads here, ShowPage handles it.
-        Continue;
-      end;
-    end;
-
-    if WasEmpty then
-    begin
-      ShowPage(FCurrentPage);
-    end
-    else
-    begin
     // --- Lazy Loading Logic ---
     // Only spawn a thread if this specific image belongs to the CURRENT page
       if (NewAbsIndex >= GetPageStartIndex) and (NewAbsIndex <= GetPageEndIndex) then
@@ -5715,9 +5694,17 @@ begin
         FLoadingThreads.Add(LoadThread);
         Inc(FLoadingCount);
       end;
-    end;
     // Else: Image is off-page. It stays in Master Lists but is NOT loaded.
     // It will be loaded later when you navigate to that page.
+  end;
+  // --- AutoScroll Logic ---
+  if FAutoScrollPageForNewAdded and not wasempty then
+  begin
+    if FCurrentPage <> TargetPage then
+    begin
+      // Switch page immediately. ShowPage will load these images.
+      ShowPage(TargetPage);
+    end;
   end;
 end;
 
@@ -5871,12 +5858,13 @@ begin
   if (FImages.Count = 0) or FisClearing or FInFallAnimation then
     Exit;
 
-  AnimSpeed := 16;
+  AnimSpeed := 18;
   StopAnimationThread;
   FInFallAnimation := True;
 
   { --- STOP AND FREE LOADING THREADS --- }
   try
+   if FLoadingCount > 0 then begin
     for i := 0 to FLoadingThreads.Count - 1 do
       TImageLoadThread(FLoadingThreads[i]).Terminate;
 
@@ -5888,7 +5876,9 @@ begin
       except
       end;
     end;
+   end;
   except
+
   end;
   FLoadingThreads.Clear;
   FLoadingCount := 0;
@@ -5903,7 +5893,7 @@ begin
         Break;
       end;
 
-  if not animated then
+  if (not animated) and AndFree then
   begin
     FreeAllImagesAndClearLists;
     Exit;
