@@ -262,8 +262,7 @@ But mostly I am telling it **how it works** at the end – still, it speeds thin
     
 Tip: Nice smooth radio stream without commercials, listening it all the time just:   
  [60 North Radio](https://60north.radio/)     
-    
-VCL Version: https://github.com/LaMitaOne/Flowmotion     
+      
     
    
 ### Requirements   
