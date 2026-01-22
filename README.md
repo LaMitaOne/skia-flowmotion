@@ -271,4 +271,3 @@ Skia4Delphi installed and enabled
    
    
 VCL Version: https://github.com/LaMitaOne/Flowmotion   
-Homepage: https://lamita.jimdosite.com/   
