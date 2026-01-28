@@ -23,7 +23,7 @@
 {
  ----Latest Changes
    v 0.52
-    - Added new propertys: TargetFPS, MitchellQuality, InfoIndicatorOnlyOnHover, AutoZoomOnDblClick
+    - Added new propertys: TargetFPS, MitchellQuality, InfoIndicatorOnlyOnHover
     - Pagechange animated clear re-added/must be nonthreaded here for now
     - Excluded threadpriority for non Windows platforms, thanks to Mauro :)
     - Improved: Smartnavigation
@@ -9609,3 +9609,4 @@ begin
 end;
 
 end.
+
