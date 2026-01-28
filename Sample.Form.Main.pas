@@ -48,7 +48,6 @@ type
     Panel1: TPanel;
     CheckBox3: TCheckBox;
     CheckBox4: TCheckBox;
-    CheckBox5: TCheckBox;
     Button8: TButton;
     CheckBox6: TCheckBox;
     CheckBox7: TCheckBox;
@@ -71,8 +70,6 @@ type
     rbCaptionAlpha: TRadioButton;
     rbCaptionYOffset: TRadioButton;
     rbPagesize: TRadioButton;
-    CheckBox10: TCheckBox;
-    CheckBox11: TCheckBox;
     rbstartingAngle: TRadioButton;
     rbRoundEdges: TRadioButton;
     Panel2: TPanel;
@@ -110,7 +107,6 @@ type
     CheckBox16: TCheckBox;
     ComboBox6: TComboBox;
     CheckBox2: TCheckBox;
-    CheckBox14: TCheckBox;
     rbifoarrow: TRadioButton;
     Panel3: TPanel;
     rbinfhot: TRadioButton;
@@ -128,8 +124,17 @@ type
     Button19: TButton;
     CheckBox20: TCheckBox;
     CheckBox21: TCheckBox;
+    Button20: TButton;
+    Timer2: TTimer;
+    CheckBox22: TCheckBox;
+    CheckBox23: TCheckBox;
+    CheckBox10: TCheckBox;
+    CheckBox11: TCheckBox;
+    CheckBox14: TCheckBox;
     CheckBox15: TCheckBox;
     CheckBox17: TCheckBox;
+    CheckBox5: TCheckBox;
+    rbfps: TRadioButton;
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
     procedure Button11Click(Sender: TObject);
@@ -142,6 +147,7 @@ type
     procedure Button18Click(Sender: TObject);
     procedure Button19Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure Button20Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
@@ -163,6 +169,8 @@ type
     procedure CheckBox1Change(Sender: TObject);
     procedure CheckBox20Change(Sender: TObject);
     procedure CheckBox21Change(Sender: TObject);
+    procedure CheckBox22Change(Sender: TObject);
+    procedure CheckBox23Change(Sender: TObject);
     procedure CheckBox2Change(Sender: TObject);
     procedure CheckBox3Change(Sender: TObject);
     procedure CheckBox4Change(Sender: TObject);
@@ -187,6 +195,7 @@ type
     procedure Rectangle1DblClick(Sender: TObject);
     procedure SpinBox1Change(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
+    procedure Timer2Timer(Sender: TObject);
   private
     { Private declarations }
     Loadedwithparams: Boolean;
@@ -548,7 +557,9 @@ begin
   else if rbmaxzoom.IsChecked then
     skfmFlowGallery.MaxZoomSize := Trunc(SpinBox1.Value)
   else if rbhotzoom.IsChecked then
-    skfmFlowGallery.HotZoomMaxFactor := Trunc(SpinBox1.Value);
+    skfmFlowGallery.HotZoomMaxFactor := Trunc(SpinBox1.Value)
+  else if rbfps.IsChecked then
+    skfmFlowGallery.TargetFPS := Trunc(SpinBox1.Value);
 end;
 
 procedure TfrmMain.ColorPicker1MouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
@@ -737,6 +748,15 @@ begin
   skfmFlowGallery.SelectPreviousImage;
 end;
 
+procedure TfrmMain.Button20Click(Sender: TObject);
+begin
+  Timer2.Enabled := not Timer2.Enabled;
+  if TImer2.Enabled then begin
+    Button20.text := 'Show Mode on';
+    skfmFlowGallery.SelectNextImage;
+  end else Button20.text := 'Show Mode off';
+end;
+
 procedure TfrmMain.Button2Click(Sender: TObject);
 begin
   skfmFlowGallery.SelectNextImage;
@@ -844,6 +864,16 @@ end;
 procedure TfrmMain.CheckBox21Change(Sender: TObject);
 begin
   skfmFlowGallery.FreeFloat := CheckBox21.IsChecked;
+end;
+
+procedure TfrmMain.CheckBox22Change(Sender: TObject);
+begin
+   skfmFlowGallery.InfoIndicatorOnlyOnHover := CheckBox22.IsChecked;
+end;
+
+procedure TfrmMain.CheckBox23Change(Sender: TObject);
+begin
+  skfmFlowGallery.MitchellQuality := CheckBox23.IsChecked;
 end;
 
 procedure TfrmMain.skfmFlowGalleryMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
@@ -1084,6 +1114,14 @@ begin
   Files := TDirectory.GetFiles(Folder, '*.png', TSearchOption.soTopDirectoryOnly);
   if Length(Files) > 0 then
     Exit(Files[0]);
+end;
+
+procedure TfrmMain.Timer2Timer(Sender: TObject);
+begin
+if skfmFlowGallery.CurrentSelectedIndex <= skfmFlowGallery.ImageCount -1 then skfmFlowGallery.SelectNextImage
+ else begin
+   skfmFlowGallery.DeselectZoomedImage;
+ end;
 end;
 
 end.

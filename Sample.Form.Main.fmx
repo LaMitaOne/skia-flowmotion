@@ -4043,7 +4043,7 @@ object frmMain: TfrmMain
     Size.Height = 1104.000000000000000000
     Size.PlatformDefault = False
     Visible = False
-    TabOrder = 37
+    TabOrder = 39
     object Panel1: TPanel
       Anchors = [akRight, akBottom]
       Position.X = 1038.000000000000000000
@@ -4092,24 +4092,24 @@ object frmMain: TfrmMain
         OnClick = Button9Click
       end
       object Button10: TButton
-        Position.X = 49.000000000000000000
+        Position.X = 51.000000000000000000
         Position.Y = 107.000000000000000000
         Size.Width = 93.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 9
+        TabOrder = 10
         Text = 'clear to pos'
         OnClick = Button10Click
       end
       object CheckBox3: TCheckBox
         StyledSettings = [Family, Size, Style]
         IsChecked = True
-        Position.X = 8.000000000000000000
-        Position.Y = 449.000000000000000000
+        Position.X = 7.000000000000000000
+        Position.Y = 371.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 18.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 21
+        TabOrder = 20
         Text = 'selected movable'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4118,7 +4118,7 @@ object frmMain: TfrmMain
       object CheckBox4: TCheckBox
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 354.000000000000000000
+        Position.Y = 299.000000000000000000
         Size.Width = 134.000000000000000000
         Size.Height = 18.000000000000000000
         Size.PlatformDefault = False
@@ -4127,23 +4127,6 @@ object frmMain: TfrmMain
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
         OnChange = CheckBox4Change
-      end
-      object CheckBox5: TCheckBox
-        StyledSettings = [Family, Size, Style]
-        Hint = 'middle mbutton on rotatedot -> reset angle'
-        IsChecked = True
-        Position.X = 8.000000000000000000
-        Position.Y = 380.000000000000000000
-        Size.Width = 120.000000000000000000
-        Size.Height = 18.000000000000000000
-        Size.PlatformDefault = False
-        TabOrder = 16
-        Text = 'allow rotate'
-        TextSettings.FontColor = claDarkgray
-        TextSettings.WordWrap = True
-        ParentShowHint = False
-        ShowHint = True
-        OnChange = CheckBox5Change
       end
       object Button8: TButton
         Position.X = 8.000000000000000000
@@ -4158,12 +4141,12 @@ object frmMain: TfrmMain
       object CheckBox6: TCheckBox
         StyledSettings = [Family, Size, Style]
         IsChecked = True
-        Position.X = 8.000000000000000000
-        Position.Y = 465.000000000000000000
+        Position.X = 7.000000000000000000
+        Position.Y = 387.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 41.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 14
+        TabOrder = 15
         Text = 'show smallpics'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4172,12 +4155,12 @@ object frmMain: TfrmMain
       object CheckBox7: TCheckBox
         StyledSettings = [Family, Size, Style]
         IsChecked = True
-        Position.X = 8.000000000000000000
-        Position.Y = 514.000000000000000000
+        Position.X = 7.000000000000000000
+        Position.Y = 436.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 41.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 13
+        TabOrder = 14
         Text = 'show captions'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4186,12 +4169,12 @@ object frmMain: TfrmMain
       object CheckBox8: TCheckBox
         StyledSettings = [Family, Size, Style]
         IsChecked = True
-        Position.X = 22.000000000000000000
-        Position.Y = 542.000000000000000000
+        Position.X = 21.000000000000000000
+        Position.Y = 464.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 12
+        TabOrder = 13
         Text = 'only on hover'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4199,65 +4182,65 @@ object frmMain: TfrmMain
       end
       object ColorPicker1: TColorPicker
         Position.X = 92.000000000000000000
-        Position.Y = 577.000000000000000000
+        Position.Y = 498.000000000000000000
         Size.Width = 68.000000000000000000
         Size.Height = 137.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 24
+        TabOrder = 21
         OnMouseUp = ColorPicker1MouseUp
       end
       object rbselfontcol: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 576.000000000000000000
+        Position.Y = 497.000000000000000000
         Size.Width = 76.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 55
+        TabOrder = 52
         Text = 'sel fontcolor'
         TextSettings.FontColor = claAliceblue
       end
       object rbfontcol: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 596.000000000000000000
+        Position.Y = 517.000000000000000000
         Size.Width = 70.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 53
+        TabOrder = 50
         Text = 'fontcolor'
         TextSettings.FontColor = claAliceblue
       end
       object rbselcapback: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 616.000000000000000000
+        Position.Y = 537.000000000000000000
         Size.Width = 84.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 50
+        TabOrder = 47
         Text = 'sel capback'
         TextSettings.FontColor = claAliceblue
       end
       object rbcapback: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 636.000000000000000000
+        Position.Y = 557.000000000000000000
         Size.Width = 70.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 48
+        TabOrder = 45
         Text = 'capback'
         TextSettings.FontColor = claAliceblue
       end
       object rbglowcol: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 656.000000000000000000
+        Position.Y = 577.000000000000000000
         Size.Width = 76.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 46
+        TabOrder = 43
         Text = 'glowcolor'
         TextSettings.FontColor = claAliceblue
         object rbhotcol: TRadioButton
@@ -4274,23 +4257,23 @@ object frmMain: TfrmMain
       object rbrotatedot: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 695.000000000000000000
+        Position.Y = 616.000000000000000000
         Size.Width = 70.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 44
+        TabOrder = 41
         Text = 'rotatedot'
         TextSettings.FontColor = claAliceblue
       end
       object CheckBox9: TCheckBox
         StyledSettings = [Family, Size, Style]
         IsChecked = True
-        Position.X = 22.000000000000000000
-        Position.Y = 495.000000000000000000
+        Position.X = 21.000000000000000000
+        Position.Y = 417.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 11
+        TabOrder = 12
         Text = 'only on hover'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4298,12 +4281,12 @@ object frmMain: TfrmMain
       end
       object SpinBox1: TSpinBox
         Touch.InteractiveGestures = [LongTap, DoubleTap]
-        TabOrder = 56
+        TabOrder = 53
         Cursor = crIBeam
         Max = 255.000000000000000000
         Value = 3.000000000000000000
         Position.X = 8.000000000000000000
-        Position.Y = 1077.000000000000000000
+        Position.Y = 1038.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
@@ -4312,26 +4295,26 @@ object frmMain: TfrmMain
       object rbAnimspeed: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 766.000000000000000000
+        Position.Y = 727.000000000000000000
         Size.Width = 117.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 54
+        TabOrder = 51
         Text = 'animation speed'
         TextSettings.FontColor = claAliceblue
       end
       object rbGlowwidth: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 785.000000000000000000
+        Position.Y = 746.000000000000000000
         Size.Width = 84.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 52
+        TabOrder = 49
         Text = 'Glow width'
         TextSettings.FontColor = claAliceblue
         object Rectangle2: TRectangle
-          Position.Y = -20.000000000000000000
+          Position.Y = -38.000000000000000000
           Size.Width = 121.000000000000000000
           Size.Height = 3.000000000000000000
           Size.PlatformDefault = False
@@ -4340,33 +4323,33 @@ object frmMain: TfrmMain
       object rbHotwidth: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 805.000000000000000000
+        Position.Y = 766.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 49
+        TabOrder = 46
         Text = 'Hot width'
         TextSettings.FontColor = claAliceblue
       end
       object rbFontsize: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 825.000000000000000000
+        Position.Y = 786.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 47
+        TabOrder = 44
         Text = 'Fontsize'
         TextSettings.FontColor = claAliceblue
       end
       object rbCaptionAlpha: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 845.000000000000000000
+        Position.Y = 806.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 45
+        TabOrder = 42
         Text = 'Caption Alpha'
         TextSettings.FontColor = claAliceblue
         object rbCaptionYOffset: TRadioButton
@@ -4383,84 +4366,56 @@ object frmMain: TfrmMain
       object rbPagesize: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 884.000000000000000000
+        Position.Y = 845.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 39
+        TabOrder = 36
         Text = 'Page size'
         TextSettings.FontColor = claAliceblue
         OnMouseDown = rbPagesizeMouseDown
       end
-      object CheckBox10: TCheckBox
-        StyledSettings = [Family, Size, Style]
-        IsChecked = True
-        Position.X = 9.000000000000000000
-        Position.Y = 229.000000000000000000
-        Size.Width = 75.000000000000000000
-        Size.Height = 17.000000000000000000
-        Size.PlatformDefault = False
-        TabOrder = 23
-        Text = 'Hotzoom'
-        TextSettings.FontColor = claDarkgray
-        TextSettings.WordWrap = True
-        OnChange = CheckBox10Change
-      end
-      object CheckBox11: TCheckBox
-        StyledSettings = [Family, Size, Style]
-        IsChecked = True
-        Position.X = 8.000000000000000000
-        Position.Y = 247.000000000000000000
-        Size.Width = 121.000000000000000000
-        Size.Height = 16.000000000000000000
-        Size.PlatformDefault = False
-        TabOrder = 22
-        Text = 'selected breathing'
-        TextSettings.FontColor = claDarkgray
-        TextSettings.WordWrap = True
-        OnChange = CheckBox11Change
-      end
       object rbstartingAngle: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 904.000000000000000000
+        Position.Y = 865.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 38
+        TabOrder = 35
         Text = 'Starting Angle'
         TextSettings.FontColor = claAliceblue
       end
       object rbRoundEdges: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 924.000000000000000000
+        Position.Y = 885.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 37
+        TabOrder = 34
         Text = 'Round edges'
         TextSettings.FontColor = claAliceblue
       end
       object rbrotatedothot: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 713.000000000000000000
+        Position.Y = 634.000000000000000000
         Size.Width = 96.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 43
+        TabOrder = 40
         Text = 'rtdot hot'
         TextSettings.FontColor = claAliceblue
       end
       object rbrotatedotdown: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 730.000000000000000000
+        Position.Y = 651.000000000000000000
         Size.Width = 134.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 41
+        TabOrder = 38
         Text = 'rtdot down'
         TextSettings.FontColor = claAliceblue
         object rbinfhot: TRadioButton
@@ -4477,12 +4432,12 @@ object frmMain: TfrmMain
       object CheckBox12: TCheckBox
         StyledSettings = [Family, Size, Style]
         IsChecked = True
-        Position.X = 9.000000000000000000
-        Position.Y = 403.000000000000000000
+        Position.X = 8.000000000000000000
+        Position.Y = 325.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 18.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 15
+        TabOrder = 16
         Text = 'zoom sel to center'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
@@ -4491,11 +4446,11 @@ object frmMain: TfrmMain
       object rbrotateall: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 943.000000000000000000
+        Position.Y = 904.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 36
+        TabOrder = 33
         Text = 'PutAllToAngle'
         TextSettings.FontColor = claAliceblue
       end
@@ -4503,8 +4458,8 @@ object frmMain: TfrmMain
         StyledSettings = [Family, Size, Style]
         Hint = 'only when '#13#10'zoom selected to center'
         IsChecked = True
-        Position.X = 22.000000000000000000
-        Position.Y = 423.000000000000000000
+        Position.X = 21.000000000000000000
+        Position.Y = 345.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 18.000000000000000000
         Size.PlatformDefault = False
@@ -4519,11 +4474,11 @@ object frmMain: TfrmMain
       object rbtechbracketwidth: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 983.000000000000000000
+        Position.Y = 944.000000000000000000
         Size.Width = 117.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 34
+        TabOrder = 31
         Text = 'techbracket width'
         TextSettings.FontColor = claAliceblue
       end
@@ -4541,22 +4496,22 @@ object frmMain: TfrmMain
       object rbRotateAllBy: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 962.000000000000000000
+        Position.Y = 923.000000000000000000
         Size.Width = 111.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 35
+        TabOrder = 32
         Text = 'RotateAllBy'
         TextSettings.FontColor = claAliceblue
       end
       object rbparticle: TRadioButton
         StyledSettings = [Family, Size, Style]
-        Position.X = 7.000000000000000000
-        Position.Y = 747.000000000000000000
+        Position.X = 8.000000000000000000
+        Position.Y = 668.000000000000000000
         Size.Width = 134.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 40
+        TabOrder = 37
         Text = 'particle color'
         TextSettings.FontColor = claAliceblue
       end
@@ -4566,57 +4521,57 @@ object frmMain: TfrmMain
         Size.Width = 57.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 8
+        TabOrder = 9
         Text = 'zoomFS'
         OnClick = Button12Click
       end
       object rbmaxinternal: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 1002.000000000000000000
+        Position.Y = 963.000000000000000000
         Size.Width = 117.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 33
+        TabOrder = 30
         Text = 'max internal picsize'
         TextSettings.FontColor = claAliceblue
       end
       object rbhotalpha: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 1020.000000000000000000
+        Position.Y = 981.000000000000000000
         Size.Width = 70.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 32
+        TabOrder = 29
         Text = 'HotAlpha'
         TextSettings.FontColor = claAliceblue
       end
       object rbalpha: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 84.000000000000000000
-        Position.Y = 1021.000000000000000000
+        Position.Y = 982.000000000000000000
         Size.Width = 61.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 30
+        TabOrder = 28
         Text = 'Alpha'
         TextSettings.FontColor = claAliceblue
       end
       object rbselectedalpha: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 8.000000000000000000
-        Position.Y = 1039.000000000000000000
+        Position.Y = 1000.000000000000000000
         Size.Width = 120.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 25
+        TabOrder = 22
         Text = 'Selected Alpha'
         TextSettings.FontColor = claAliceblue
       end
       object Button13: TButton
-        Position.X = 8.000000000000000000
-        Position.Y = 155.000000000000000000
+        Position.X = 67.000000000000000000
+        Position.Y = 130.000000000000000000
         Size.Width = 77.000000000000000000
         Size.Height = 22.000000000000000000
         Size.PlatformDefault = False
@@ -4627,109 +4582,104 @@ object frmMain: TfrmMain
       object rbrotatesize: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 78.000000000000000000
-        Position.Y = 825.000000000000000000
+        Position.Y = 786.000000000000000000
         Size.Width = 68.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 28
+        TabOrder = 26
         Text = 'rota size'
         TextSettings.FontColor = claAliceblue
       end
       object rbsmlpcmrg: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 82.000000000000000000
-        Position.Y = 885.000000000000000000
+        Position.Y = 846.000000000000000000
         Size.Width = 90.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 26
+        TabOrder = 23
         Text = 'smlpc mrg'
         TextSettings.FontColor = claAliceblue
       end
       object rbmaxzoom: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 84.000000000000000000
-        Position.Y = 806.000000000000000000
+        Position.Y = 767.000000000000000000
         Size.Width = 68.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 27
+        TabOrder = 25
         Text = 'max zoom'
         TextSettings.FontColor = claAliceblue
       end
       object rbhotzoom: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 7.000000000000000000
-        Position.Y = 1057.000000000000000000
+        Position.Y = 1018.000000000000000000
         Size.Width = 84.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 51
+        TabOrder = 48
         Text = 'max hzoom'
         TextSettings.FontColor = claAliceblue
-      end
-      object CheckBox14: TCheckBox
-        StyledSettings = [Family, Size, Style]
-        Position.X = 8.000000000000000000
-        Position.Y = 262.000000000000000000
-        Size.Width = 111.000000000000000000
-        Size.Height = 17.000000000000000000
-        Size.PlatformDefault = False
-        TabOrder = 19
-        Text = 'breath rotate'
-        TextSettings.FontColor = claDarkgray
-        TextSettings.WordWrap = True
-        OnChange = CheckBox14Change
       end
       object rbifoarrow: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 82.000000000000000000
-        Position.Y = 714.000000000000000000
+        Position.Y = 635.000000000000000000
         Size.Width = 60.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 42
+        TabOrder = 39
         Text = 'infoarw'
         TextSettings.FontColor = claAliceblue
       end
       object rbborder: TRadioButton
         StyledSettings = [Family, Size, Style]
         Position.X = 100.000000000000000000
-        Position.Y = 747.000000000000000000
+        Position.Y = 668.000000000000000000
         Size.Width = 60.000000000000000000
         Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 20
+        TabOrder = 19
         Text = 'tmborder'
         TextSettings.FontColor = claAliceblue
       end
-      object CheckBox15: TCheckBox
+      object Button20: TButton
+        StyledSettings = [Family, Size, Style]
+        Position.X = 8.000000000000000000
+        Position.Y = 155.000000000000000000
+        Size.Width = 102.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 8
+        Text = 'Show Mode off'
+        OnClick = Button20Click
+      end
+      object CheckBox23: TCheckBox
         StyledSettings = [Family, Size, Style]
         IsChecked = True
         Position.X = 8.000000000000000000
-        Position.Y = 281.000000000000000000
-        Size.Width = 102.000000000000000000
-        Size.Height = 21.000000000000000000
+        Position.Y = 238.000000000000000000
+        Size.Width = 133.000000000000000000
+        Size.Height = 34.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 31
-        Text = 'Hover alive'
+        TabOrder = 24
+        Text = 'Mitchell quality resizing'
         TextSettings.FontColor = claDarkgray
         TextSettings.WordWrap = True
-        OnChange = CheckBox15Change
+        OnChange = CheckBox23Change
       end
-      object CheckBox17: TCheckBox
+      object rbfps: TRadioButton
         StyledSettings = [Family, Size, Style]
-        IsChecked = True
-        Position.X = 24.000000000000000000
-        Position.Y = 302.000000000000000000
-        Size.Width = 102.000000000000000000
-        Size.Height = 21.000000000000000000
+        Position.X = 93.000000000000000000
+        Position.Y = 923.000000000000000000
+        Size.Width = 57.000000000000000000
+        Size.Height = 19.000000000000000000
         Size.PlatformDefault = False
-        TabOrder = 29
-        Text = 'at fullscreen'
-        TextSettings.FontColor = claDarkgray
-        TextSettings.WordWrap = True
-        OnChange = CheckBox17Change
+        TabOrder = 27
+        Text = 'fps'
+        TextSettings.FontColor = claAliceblue
       end
     end
     object Button3: TButton
@@ -4785,9 +4735,9 @@ object frmMain: TfrmMain
     object CheckBox1: TCheckBox
       StyledSettings = [Family, Size, Style]
       Position.X = 8.000000000000000000
-      Position.Y = 315.000000000000000000
+      Position.Y = 269.000000000000000000
       Size.Width = 134.000000000000000000
-      Size.Height = 41.000000000000000000
+      Size.Height = 27.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 7
       Text = 'techbracket borders'
@@ -4841,7 +4791,7 @@ object frmMain: TfrmMain
       Position.Y = 8.000000000000000000
       TextSettings.FontColor = claAliceblue
       Text = 'Infopnl animation'
-      TabOrder = 18
+      TabOrder = 19
     end
     object ComboBox2: TComboBox
       Items.Strings = (
@@ -4860,7 +4810,7 @@ object frmMain: TfrmMain
     object Label3: TLabel
       StyledSettings = []
       Position.X = 8.000000000000000000
-      Position.Y = 265.000000000000000000
+      Position.Y = 286.000000000000000000
       TextSettings.FontColor = claAliceblue
       Text = 'fullscreen direction'
       TabOrder = 15
@@ -4873,7 +4823,7 @@ object frmMain: TfrmMain
         '270')
       ItemIndex = 0
       Position.X = 8.000000000000000000
-      Position.Y = 290.000000000000000000
+      Position.Y = 311.000000000000000000
       Size.Width = 89.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
@@ -4909,7 +4859,7 @@ object frmMain: TfrmMain
       Position.Y = 64.000000000000000000
       TextSettings.FontColor = claAliceblue
       Text = 'Infopnl direction'
-      TabOrder = 17
+      TabOrder = 18
     end
     object ComboBox4: TComboBox
       Items.Strings = (
@@ -4952,12 +4902,12 @@ object frmMain: TfrmMain
     object CheckBox16: TCheckBox
       StyledSettings = [Family, Size, Style]
       IsChecked = True
-      Position.X = 7.000000000000000000
+      Position.X = 3.000000000000000000
       Position.Y = 196.000000000000000000
       Size.Width = 103.000000000000000000
       Size.Height = 34.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 28
+      TabOrder = 31
       Text = 'Show InfoIndicator'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
@@ -4970,7 +4920,7 @@ object frmMain: TfrmMain
         'Fade')
       ItemIndex = 0
       Position.X = 8.000000000000000000
-      Position.Y = 359.000000000000000000
+      Position.Y = 380.000000000000000000
       Size.Width = 102.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
@@ -4980,27 +4930,27 @@ object frmMain: TfrmMain
     object CheckBox2: TCheckBox
       StyledSettings = [Family, Size, Style]
       Position.X = 8.000000000000000000
-      Position.Y = 320.000000000000000000
+      Position.Y = 341.000000000000000000
       Size.Width = 120.000000000000000000
       Size.Height = 41.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 25
+      TabOrder = 28
       Text = 'Background animated'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
       OnChange = CheckBox2Change
     end
     object Button14: TButton
-      Position.X = 16.000000000000000000
-      Position.Y = 596.000000000000000000
-      TabOrder = 30
+      Position.X = 8.000000000000000000
+      Position.Y = 823.000000000000000000
+      TabOrder = 34
       Text = 'test video'
       OnClick = Button14Click
     end
     object Button15: TButton
       Position.X = 8.000000000000000000
-      Position.Y = 673.000000000000000000
-      Size.Width = 33.000000000000000000
+      Position.Y = 611.000000000000000000
+      Size.Width = 28.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 7
@@ -5009,7 +4959,7 @@ object frmMain: TfrmMain
     end
     object Button16: TButton
       Position.X = 80.000000000000000000
-      Position.Y = 673.000000000000000000
+      Position.Y = 611.000000000000000000
       Size.Width = 30.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
@@ -5019,7 +4969,7 @@ object frmMain: TfrmMain
     end
     object Button17: TButton
       Position.X = 48.000000000000000000
-      Position.Y = 643.000000000000000000
+      Position.Y = 581.000000000000000000
       Size.Width = 30.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
@@ -5029,7 +4979,7 @@ object frmMain: TfrmMain
     end
     object Button18: TButton
       Position.X = 48.000000000000000000
-      Position.Y = 703.000000000000000000
+      Position.Y = 641.000000000000000000
       Size.Width = 30.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
@@ -5040,19 +4990,19 @@ object frmMain: TfrmMain
     object Label6: TLabel
       StyledSettings = [Family, Size, Style]
       Position.X = 8.000000000000000000
-      Position.Y = 495.000000000000000000
+      Position.Y = 729.000000000000000000
       TextSettings.FontColor = claAqua
-      Text = 'better not try  :D'
-      TabOrder = 31
+      Text = 'No, not press it'
+      TabOrder = 36
     end
     object CheckBox19: TCheckBox
       StyledSettings = [Family, Size, Style]
-      Position.X = 7.000000000000000000
-      Position.Y = 403.000000000000000000
+      Position.X = 8.000000000000000000
+      Position.Y = 545.000000000000000000
       Size.Width = 103.000000000000000000
-      Size.Height = 34.000000000000000000
+      Size.Height = 21.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 27
+      TabOrder = 30
       Text = 'Delete clicked'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
@@ -5065,27 +5015,28 @@ object frmMain: TfrmMain
       Size.Width = 111.000000000000000000
       Size.Height = 21.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 20
+      TabOrder = 23
       Text = 'always show info'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
       OnChange = CheckBox18Change
     end
     object Button19: TButton
-      Position.X = 16.000000000000000000
-      Position.Y = 566.000000000000000000
-      TabOrder = 29
+      Position.X = 8.000000000000000000
+      Position.Y = 793.000000000000000000
+      TabOrder = 33
       Text = 'test btns'
       OnClick = Button19Click
     end
     object CheckBox20: TCheckBox
       StyledSettings = [Family, Size, Style]
-      Position.X = 23.000000000000000000
+      IsChecked = True
+      Position.X = 12.000000000000000000
       Position.Y = 228.000000000000000000
       Size.Width = 111.000000000000000000
       Size.Height = 21.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 19
+      TabOrder = 22
       Text = 'on all'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
@@ -5094,15 +5045,115 @@ object frmMain: TfrmMain
     object CheckBox21: TCheckBox
       StyledSettings = [Family, Size, Style]
       Position.X = 7.000000000000000000
-      Position.Y = 528.000000000000000000
+      Position.Y = 754.000000000000000000
       Size.Width = 103.000000000000000000
       Size.Height = 31.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 26
+      TabOrder = 29
       Text = 'All free dragable'
       TextSettings.FontColor = claDarkgray
       TextSettings.WordWrap = True
       OnChange = CheckBox21Change
+    end
+    object CheckBox22: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      IsChecked = True
+      Position.X = 21.000000000000000000
+      Position.Y = 249.000000000000000000
+      Size.Width = 111.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 20
+      Text = 'only on hover'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      OnChange = CheckBox22Change
+    end
+    object CheckBox10: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      IsChecked = True
+      Position.X = 5.000000000000000000
+      Position.Y = 410.000000000000000000
+      Size.Width = 75.000000000000000000
+      Size.Height = 17.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 26
+      Text = 'Hotzoom'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      OnChange = CheckBox10Change
+    end
+    object CheckBox11: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      IsChecked = True
+      Position.X = 5.000000000000000000
+      Position.Y = 435.000000000000000000
+      Size.Width = 121.000000000000000000
+      Size.Height = 16.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 25
+      Text = 'selected breathing'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      OnChange = CheckBox11Change
+    end
+    object CheckBox14: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      Position.X = 15.000000000000000000
+      Position.Y = 450.000000000000000000
+      Size.Width = 111.000000000000000000
+      Size.Height = 17.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 21
+      Text = 'breath rotate'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      OnChange = CheckBox14Change
+    end
+    object CheckBox15: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      IsChecked = True
+      Position.X = 16.000000000000000000
+      Position.Y = 469.000000000000000000
+      Size.Width = 102.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 35
+      Text = 'Hover alive'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      OnChange = CheckBox15Change
+    end
+    object CheckBox17: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      IsChecked = True
+      Position.X = 24.000000000000000000
+      Position.Y = 490.000000000000000000
+      Size.Width = 102.000000000000000000
+      Size.Height = 21.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 32
+      Text = 'at fullscreen'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      OnChange = CheckBox17Change
+    end
+    object CheckBox5: TCheckBox
+      StyledSettings = [Family, Size, Style]
+      Hint = 'middle mbutton on rotatedot -> reset angle'
+      IsChecked = True
+      Position.X = 6.000000000000000000
+      Position.Y = 519.000000000000000000
+      Size.Width = 120.000000000000000000
+      Size.Height = 18.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 17
+      Text = 'allow rotate'
+      TextSettings.FontColor = claDarkgray
+      TextSettings.WordWrap = True
+      ParentShowHint = False
+      ShowHint = True
+      OnChange = CheckBox5Change
     end
   end
   object Panel3: TPanel
@@ -5113,6 +5164,13 @@ object frmMain: TfrmMain
     Size.PlatformDefault = False
     Visible = False
     TabOrder = 26
+  end
+  object Timer2: TTimer
+    Enabled = False
+    Interval = 6000
+    OnTimer = Timer2Timer
+    Left = 310
+    Top = 192
   end
   object ImageList1: TImageList
     Source = <
@@ -5177,10 +5235,10 @@ object frmMain: TfrmMain
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
               007A49444154384F6360F8F7AF84E1E9D35F0CFFFFFF270983F4FCFB57CAC8F0
-              F5EB27062E2E5E0672C0D7AF5F1819F6EFFFCBF0EB1723839B1B23549838B06B
-              D77F0636B6FF8C60E7500098A034D960D480510340800A49F9CB97CF0CDCDC3C
-              5061D2C0972F5F41D9B98CE1FEFDDF18D99510BE72E50FC3BF7FE50069DD7C23
-              178521E50000000049454E44AE426082}
+              F5EB27062E2E5E0672C0D7AF5F1819F6EFFFCBF0E3072383870723549838B063
+              C77F060E8EFF8C60E7500098A034D960D480510340800A49F9CB97CF0CDCDC3C
+              5061D2C0972F5F41D9B98CE1FEFDDF18D99510BE72E50FC3BF7FE500699D7C23
+              E686B6210000000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\ICONS Circle\Shape-Square-16.ico'
@@ -5216,8 +5274,8 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              016249444154384F8553B14EC330103D2759509959BA7482A11BAA1013EA9700
-              0B620321B1940FA8C4C2073081F88A6ED99090183BC0D22E5D581AA9B42025B6
+              016249444154384F8553B14EC330103D27595099D92A7582A11BAA1013EA9700
+              0B620321B1940FA8C4C2073081F888AED99090183BC0D24ADD581AA9B42025B6
               7977C1E0BA89F2A48BCFF6DDBB77B643646D4C0C632E6067E25B9BC022F11BC0
               41AA74699B94BA27AD873253CA085103FC2A56BE513400C933D4EC82A4F855E3
               8A6CC0272883B2EC9BE2B847ABD52B488E8584E35CAB0136FBCCB284C6634DD3
@@ -5227,7 +5285,7 @@ object frmMain: TfrmMain
               14AEBEEE0C4623F3E7E7F93BF60F242E38C46A057C8DEDB691FE8D7942D57D3C
               B01749461365658750C17CFE25E362F189F154F6F8BFA879483EC14012D9CA7B
               DF93F5407208BF0517748BA77C08C96F92CC8F674D72887F0597B073F1596EAD
-              641F443F6481DED442764CDB0000000049454E44AE426082}
+              641F443F58BBDED0CDA554A70000000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\ICONS Circle\Media-Play-16x.ico'
@@ -5712,17 +5770,17 @@ object frmMain: TfrmMain
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
               017649444154384FB552BB4AC45010CDDDCD0A9255703168250A561616829FA1
-              1FE007D8DA58C95AF80D3616FE86AE85CDA29F10D04E7C6C13544224BB21AFEB
-              3997B9925D59D1C281C3393373EE24995CE75F426BADC85555CD13F5DAAF02E6
-              16B92CCB73E0AC5E9B8C86F0B498154C8DB101784A53780FAFBE09F941406FB3
-              263DE3B131F90636AFB22CBB867903D882EE29A586D2FBFED63035EC646A329E
-              7A0C6D02FAB0DE0337ADB689DDFA3AE09B06020B3C41DE9594DE457A442B9EB5
-              8D05987B4551DC422F4BCD0C1618230E2FC17303EF157487351677D2347DE500
-              E83998CDE708BB827AAD0DEFC568347A837FD789E3384151E7797E8F653D1368
-              AC71B81CB0DFBD8ADE13F002EF1DCF44513474903C30E9F7FB55100405350674
-              010F7245D0467EC41E3DF45263D8231775C904C592CCA01E0C06591D937D3277
-              C105ED876178EA795E06FD75DFB1ACB10BE3BA6E29D2C19DD04992CCF8BE7F60
-              B7DC41B105D6E2F931E0E5991CF46EFEA7D4FF1C5A6BF50930F7A6B204B6B2E7
+              1FE007D8DA58C95AF80D3616FE86AE85B0857E42403BF1B14D500991EC86BCAE
+              E75CE64A7665450B070EE7CCCCB99364729D7F09ADB5225755354FD46BBF0A98
+              5BE4B22CCF81B37A6D321AC2D362563035C606E0294DE13DBCFA26E40701BDCD
+              9AF48CC7C6E41BD8BCCAB2EC1AE60D600BBAA7941A4AEFFB5BC3D4B093A9C978
+              EA31B409E8C37A0FDCB4DA2676EBEB806F1A082CF0047957527A17E911AD78D6
+              361660EE1545710BBD2C353358608C38BC04CF0DBC57D01DD658DC49D3F49503
+              A0E760369F23EC0AEAB536BC17A3D1E80DFE5D278EE304459DE7F93D96F54CA0
+              B1C6E172C07EF72A7A4FC00BBC773C1345D1D041F2C0A4DFEF57411014D418D0
+              053CC815411BF9117BF4D04B8D618F5CD42513144B32837A301864754CF6C9DC
+              0517B41F86E1A9E77919F4D77DC7B2C62E8CEBBAA548077742274932E3FBFE81
+              DD7207C516588BE7C780976772D0BBF99F52FF7368ADD5270DDBA68E5D1B1D17
               0000000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
@@ -5798,18 +5856,18 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              014E49444154384F8553CB4E84401064704936E14EBCC149FD028E1A2FAEAB7E
-              C0AA5FE4379978E72BB84008C9264B78F80C60553BB3AEEE02954CBA86AEEAE9
-              E90CD614FABE3F62ECBA6E052E88A2A8D3B417D114A0B31951E4E1C7F65B4489
-              6202D0394AA92F14B8C8B2EC39499299EBBA5DD334527814309B2B2CD7EBF53B
-              4FADEBBADA6C366FE4221A02F2A6F52B6388E3989D5C9AEB88F01076CC275555
-              D514B303EC6F450080DF6BFA1734636DE7D3B6ED130BC070C33DA8438D24FF83
-              092C65A2FE36C73AD35C664208DFFB00E0A453F0B9FE26C5341F3DD521877901
-              DEB36D4902D86E8BEC018695A6E4D766DA65593608A6EDC3668262181FB1CED3
-              34FDE45E4F7BA9F3C3668286A2285EF938C8F33CFF80F94EE7B6F31982E29B36
-              CFD2F3BCD6F7FD856DDB2F30CBF3D5BA41D861182AF3A6832098211C9303AD8E
-              E360DBC4EE2F8A2BC8604127AE6059DF45A163DD61C9B67F0000000049454E44
-              AE426082}
+              014C49444154384F8553CB4E844010DCC125D90B776E70523F8193C68BEBAA1F
+              B0EA17F94D265EF90C12124248482080EF0056B533B8BA0B5432E91ABAAAA7A7
+              332CE6D0F7FD1163D7755B704118869DA6BD88E6009DC58822F73FB6DF224A14
+              3380CE564A7DA1C0799AA64F711C2F1DC7E9EABA96C29380D95C6193E7F93B4F
+              6D9AA62E8AE28D5C446340DEB47E690C5114B1930B731D111EC28EF918AD3614
+              B303EC6F440080DF69FA1734630DF369DBF6910560B8E61ED4A64692FFC10496
+              32517F5B619D6A2E332184EF7D0070D209F84A7F93629A4F9E6A93C3BC06EFD9
+              B624016C87227B8061AB29F995997655552F08A6EDC3668262181FB0CE9224F9
+              E45E4F7BA3F3E3668286B22C5FF938C8B32CFB80F956E786F98C41F14D9B67E9
+              BA6EEB79DEDAB2AC6798E5F96ADD28AC20089479D3BEEF2F115C72A0D5711A6C
+              9BD8FD457105192CE8CC15168B6F03AD63C51A5CF25E0000000049454E44AE42
+              6082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\Popup\Aspect.png'
@@ -5901,20 +5959,20 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              01B249444154384F95923D2F44411486F78B88061109058548742AD4E2A3F203
-              141A3AA54423F1112A09F11BA8E9142ABD6CE32FAC668BCBB26B77AFFDB07BC7
-              F34E6676EFC636DEE4DCF79CF79C3373E6CE24FAC11893164751B4D06EB7EFC3
-              302CA3995AADF609DDA2CFC5EB7A80981253B4552C166B6AAC542AD566B3F95A
-              2A95BE158312B66E1BE240F4CDCBB95CEE279BCDE24627D838B90C36C944D7B0
-              A9D7EBEFE8F3B6D1C32FA0B15544C181D3EDA8B1FCA5F2F08D620BE2A4E3119D
-              15FB90EF34BF40C6F14C3E9F6F6A0AC516887EFC697CD36AB55E9C6E1716BC0F
-              0FE99FA8CE363918C7FCF4B0CA7853E48793C964BCCE32F118BB4FE07E29EEC0
-              17D2FCA82EA6D9757A1AD34AFE28879870A7B8038401318D1BCA96CBE510DAC1
-              7CE320B97D9FC35F94AE845697E9AA56A4F94281F3E6F927CF8D462350ECAE77
-              3BDE6CFF2EE2B10AE03D17AF719CA7F883227E405F521E29AD8F6F3E55511004
-              0D31F1AA2B4AE1EB21CD62A34ED3A6DD0BA0E008C1140A85BA189C498775A49E
-              F7AEB84763A40B04A38721263E978EDBD901DFEE28765217DCE71B090B1D431A
-              AE76FE5BDC0F346D6A7776BE52FCAFE64422F10B6B900F284737862B00000000
+              01B249444154384F9592BF2F435114C75B2D110B2212060691D84C98C58FC91F
+              60B0B0192516891F6192107F03339BC164EFE65FA8A54329ADB6CF7BAFDA5E9F
+              EFCDBDED6B74F14DCEFB9EF33DE7DC7BEEBB37D50FC6988CB8DD6E2FB65AAD87
+              2008AA68260CC34FE80E7D3E59D703C4013145DBE572395463AD56AB371A8DD7
+              4AA5F2AD1854B00DDB9004A26F5EC9E7F33FB95C0EB77D8A4D90CB62534C7403
+              9B288ADED1176CA3875F4063AB888243A7DB5113F92BE5E15BC516C469C7A33A
+              2BF621DF697E81ACE3D942A1D0D0148A2D10FDF833F8A6D96CBE38DD2E2C781F
+              1ED63F519D6D72308EF9E9419DF1A6C98FA4D3E9649D65E271769FC4FD52DC81
+              2FA4F9495D4CB3E7F40CA695FC518E30E15E71070883621A3795AD56AB01B48B
+              F9C62172073E87BF245D09AD2ED355AD4AF38502E72DF04F72711C1715BBEBDD
+              4936DBBF8B78A20278DFC5EB1CE739F9A0881FD1979547CAE8E39BCF54542C16
+              6331F19A2B1AC0D7439AC3C69CA64DBB1740C1318229954A91189C4B8775A49E
+              F7AEB84763A44B04A3872126BE908EDBD901DFEE28765217DCE71B090B1D431A
+              AE76FE5BDC0F346D697776BE56FCAFE6542AF50B4D8A0F1C9219E7A800000000
               49454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
@@ -6033,22 +6091,22 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              01EA49444154384F8592BF4B5B5114C7F35E6C8838B4A95028D98DAB38085DDC
-              4B0B223AB51D3B285DEA223A74B283748A8B4897FE019DFD07BA148480922C42
-              9B0EA534A02692F77C79C9FBD1CFF7E5DE124282070EE7DCEFF9DEEF3DE7DEEB
-              244932EB38CE71A3D1785D2A95927EBFEFE4A658A15048DBEDB65BA9549AF97C
-              FE8DEBBADF73711C9FA458AD568B15EF33CB1B0C063F397CDE09C3B085F29328
-              8A7EA17A48373DEA2E07A6C373FF9BB080FA1A715300BC8D5C10043752446DC7
-              80338AE3069E8D06EFA9EFFBB766CF2BA9DA990313672432EEC287E55C44A7A1
-              C91DB7582C8E5F5A449B999327786C5CB9CC43C037F98D3A986A886893ED32A1
-              933C371F20F09C7C9DFC74A200C50C67C6055EE91CFF065646509DC85E827DA2
-              BE2B7207D7856CA9426A6796C007D564BCD205A108B63F44D2B4D7EB5D4D13B0
-              1D2C799ED7555DC6DBFFE8743A77F62FD0C5D1A8C0B6117860A2157951AFD723
-              3625DAD86C3607E2635F54D73F686B35A903624151F38AC3370E14F9EEBF090F
-              5593C0B540485F1199237D848F8EB1DAED763D71463B805FCD04B89C335BD4A5
-              A8238AA766F3823D40C6B7FFDB6AB5428DA335BC03915628FC112011457D5523
-              B0A7B58C0BBC64FD984D1F0D347C05432CE36FF177F87BFC997038CB7A0533F3
-              6246C610F92C81388EABFF00DA854329BF4019520000000049454E44AE426082}
+              01E949444154384F8592BF4B5B5114C7F35E6C8838B4A95028D98DAB38085DDC
+              4B0B223AB51D3B285DEA223A74B283748A8B4897FE019DFD07BA14CCA2248BD0
+              A643290DA889E43D5F5EF27EF4F37DB9B78490E081C339F77BBEF77BCFB9F73A
+              4992CC3A8E73DC68345E974AA5A4DFEF3BB929562814D276BBED562A95663E9F
+              7FE3BAEEF75C1CC7272956ABD562C5FBCCF20683C14F0E9F77C2306CA1FC248A
+              A25FA81ED24D8FBACB81E9F0DCFF262CA0BE46DC14006F231704C18D1451DB31
+              E08CE2B88167A3C17BEAFBFEADD9F34AAA76E6C0C419898CBBF0613917D16968
+              72C72D168BE39716D166E6E4091E1B572EF310F04D7EA30EA61A22DA64BB4CE8
+              24CFCD07083C275F273F9D284031C3997181573AC7BF8195115427B297609FA8
+              EF8ADCC175215BAA90DA9925F0413519AF74412882ED0F9134EDF57A57D3046C
+              074B9EE7755597F1F63F3A9DCE9DFD0B7471342AB06D041E9868455ED4EBF588
+              4D8936369BCD81F8D817D5F50FDA5A4DEA805850D4BCE2F08D0345BEFB6FC243
+              D524702D10D25744E6481FE1A363AC76BB5D4F9CD10EE05733012EE7CC167529
+              EA88E2A9D9BC600F90F1EDFFB65AAD50E3680DEF40A4150A7F044844515FD508
+              EC692DE3022F593F66D347030D5FC110CBF85BFC1DFE1E7F261CCEB25EC1CCBC
+              989131443E4B208EE3EA3F853B42F30D161D990000000049454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\Popup\del2.png'
@@ -6063,24 +6121,24 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D49484452000000100000001008060000001FF3FF
               61000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              021249444154384F45933B8B53511485EF78638641C53FE0A3F0D58AA582A028
-              D82856C358C95888E3548A8D36829D950CCA1453580486D1421C04475414516C
-              14094844B08988298251821012F3BA7EDFCD39C98195B5F7DA6B9FC73D398923
-              CBB24D810BE062BFDF7FDBEBF5AAC44D7930183C1D0E87C7A2174C19E7832495
-              31ECA3F14330CF82DDE06AB7DBFD8E56AA56AB3D780D6D5BE89B4C8278A0D3E9
-              34E00BE6143707FD127146E36BEABF9C8445DEA36F09BED124889F10178DE119
-              301DE2D34E6063986819DC070FAC2315345D71EB6361C453E8D7E126C8EAF5FA
-              3F99C6DB50CAB17E503F6AECEA9F293CB611712F384EBE6443A552E997CBE5A1
-              71BBDDFE43ED903EEA2B6095FC70624103C902D841E18579DC76A3D1E8C8D46E
-              DAEC209EC7B70EEE25D1E8E0CABE523C47B80B3E45FE6554C9B7BF01159D003E
-              487DC10FEF0E7E6B882B61BC1B4C2928922FF95FF0DCE44DF212CD33F043FD9E
-              E79541AD56EBCAE44F9C00D334A97F9A2228A0BF64929FC42788EFC019DFEFA3
-              C6F3267EB0781CB4CB611257BA2588F78323C4EB7A1CE473FAC6BBF018C41B14
-              F680336CFD5BEECCB237E8CB71970EEAE38FEA4A3BBD0D4C2BE6F0234D71575E
-              65BC4EFFDAF867F591A6FEE40F09D12B7C0E56D1CE72BE7736D8D86AB5FEA23F
-              C3338FB475DC1C0749FEC204A639B048BC1DBE06FB614BC1E7CDE89B34C781E8
-              24F159A734C7F77012DC08BA373279854992FC07E972DEAC87364E0200000000
-              49454E44AE426082}
+              021149444154384F4593BD6B535118C66FBD31A5A8F80F681DFC5AC551415014
+              5C14A75227A983583B292EBA086E4E52940E1D1C02451DA445B0A2A288E2A264
+              9188E012113304A3042124E6EBFAFBDD9C931C78F2BCEFF33EEFF9B827277164
+              59B62570015CEAF7FBEF7ABD5E95B8290F068367C3E1F078F48229E37C90A432
+              86FD347E0CE639B0075CEB76BBDFD14AD56AB5073F44DB11FA2693201EEC743A
+              0DF8A239C5AD41BF4C9CD1F886FA2F2761910FE8DB826F3409621971C9189E01
+              D3213EE30436868956C003F0C83A5241D355B73E16463C857E036E82AC5EAFFF
+              9369BC03A51CEB07F563C6AEFE99C2BA8D88FBC009F2651B2A954ABF5C2E0F8D
+              DBEDF61F6A87F5515F056BE447120B1A4816C12E0A2FCDE3B61B8D4647A676CB
+              6607F102BE0D703F89460757F695E279C259F834F9975125DFFE26547402F810
+              F5453FBC3BF8AD21AE84F15E30A5A048BEEC7FC1739337C94B34CFC08FF57B9E
+              D706B55AAD2B933F75024CD3A4FE698AA080FE8A497E129F24BE0B677CBF4F1A
+              2F98F8C1E271D0AE84495CE9B6203E008E126FE87190CFEB1BEFC263106F52D8
+              0BCEB2F56FB933CBDEA2AFC45D3AA88F3FAA2BEDF63630AD9AC34F34C55D7995
+              F13AFD6BE39FD3479AFA933F2444AFF00558433BC7F9DEDB6063ABD5FA8BFE1C
+              CF02D2F671731C24F90B1398E6C112F14EF83AEC872D059F37A36FD21C07A293
+              C4679DD21CDFC3297033E8DEC8E4152649F21FCB66DE94F0F35ED20000000049
+              454E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\Popup\world.png'
@@ -6137,82 +6195,82 @@ object frmMain: TfrmMain
             PNG = {
               89504E470D0A1A0A0000000D4948445200000020000000200806000000737A7A
               F4000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
-              0951494441545847B5577B8C5C5519FFCE39F739AF9DDD9DD9DDD977B765DB6D
-              D99616A4A02D162988A062F88380C668427C60538D896288418201C5D8442322
-              8F26C6074D8C09811882C4674C53B011A8600BB56BE9BEBA8F6E7776766667E6
-              BECE39FEEEECB6B6D85420F8CB9C7BEE3973CEF77DE77B9E4BEF1904DD4056E2
-              E695D1FF15EBD1DCE5D7F3D0CD522DFB56DEDF36F84A7F21B864D85F449F5C1E
-              36D0469CEF409FC2916F5D9E3A8B2A739C8DE80796876F0F17132022469ED1D2
-              FD1898DE83A55F20C3BA8B943AC8D3F91B89E4E99575DD68D7DA5D6B7EC6CA4B
-              1D58FB14C68C0CE36ABCDF86F74CBCE85DC32CACFAA491CD2F30333945C2FA15
-              A62CA367F02EF4ABD13A88F1536861B2AF2FE4564233D39C81E6769310D7E17F
-              03EDA2B898061A08A74FD4457B3F31D32830CEC6888927B88CEEC0093B31F924
-              339D7C72E84A436BC7E0C9C4980EA3BD14F9CF5889F609E6A41F86A93EBC42EA
-              82F85F0208626C53BAAB3BCBB9203B9B2B32CB4ECBD2E96D66DBAA5F33C7BDCE
-              C8B69199C9905E22DF10E26E66189B999BDCAD92CE1EED55EE83A9FEB842EB0C
-              9AD12EE4C40DC4F612F8DDB23CA45E9CD837BB06657A70585BB9CE7D4EBEB04D
-              B81999BAEC1A69F55EAA93975DA745AA559BF9FE1FB81D3D5770D38DD21B37D5
-              B1F7436870565A83069ACB60A6FD007133F68D06DEA2017E3B1E26B3DDD8D363
-              2997604B212B0B4C99495211CB7B73D307C8764729F4B8D5B78EBCD123A40DFE
-              B7706EF4FBA1E77FC368CA0A7F7449C344BF80D32EC23F8E82CE1EB46B9CDEA1
-              4F8B4CBE9B54B81FE306CE1740B05122BB5BCBE829B3BDF76932CD3E2235C50D
-              8B49C54931D98E554CD8EEE361B942462A851339A4EAF56398AF30C6763A03C3
-              24CDC0359B7BBAA0196EE4BA457AF8AA2F2506363D07211F89E627F762ED74CC
-              2EC6F90248F907F8ED4E8ABCD1E8F4C9634E62F50B76575741830977336098DB
-              C8ACE42BC1ECE8535AEB176A470F110425669809BB6BEDE54A5859A373808C96
-              02B9EB36516A703DD9E994AE8D1C31BDE913094DE6140243AF706BE0AC6D8056
-              E2D6EFB8695FABA38831C1D72AB9B49A49B213AB87B433B485916AD8B04331E3
-              5A5D39759F26F629157A9A19F62BA4648635E577E84A89C2D9310A67C667A252
-              F1900ABC0382B3E7A55F3FA465380F0A0669F90FF00B62A6824CE70E91CCEE32
-              B2B95DC26243CAF37B453ADB2D4CE71133E3DE03A6CDE17CB1E04F8CA422AF46
-              B2324FC24DB52BCED752A594872618050163A6B51D264833E4A0686EFC25552B
-              ED50F5CAA3DC4C1F0FBDA54B75E8B9107217981F4782FA1C693D01FE8B0C8FAD
-              68736875B3D0BFD7C8756E678BF39970B11831C3FA79307FF29BF8AF6CF70E7D
-              4085EA268ACC5DB23665B16433C9C519C593CD5C2D2DC0B11DB2376CA5707264
-              2E9A1AB9C1ED1EEC57E5C56F87FED20630D3AC253FCAC2E0900AE5ABAA7CEA97
-              A03983E6C7029C8B5678ED11BB775D7BA27F35555E3D08C7A3FDAA5A1983306B
-              583A27B5BF30A8EB419E0806B010288C93F6AB24B21DA403EF14D516EE1599F6
-              DBB50C76B8854EC61209E5CD8E1683C9930F218CE0AC22C45EEC57B110D0D7F9
-              8006F94B24CC2D76CF3A4AACDF428BFB9F23E124C840368C8A5324974A527343
-              900C89D94DA0A520C02298D7AB9C0983655A6D916AA2C4BACD24EB3E05536314
-              4C2054EBD56749879F078FB3110038E73AE10AF45F1068CDAA5EBD34AA2C3277
-              FD9564F7ACA1E0E471080D6695A2045364480E9F4D4062CC41186E272DD89644
-              B2899BF95EF28EBE0CC6C7C8EE1A20552E920A6A83A07D355A5C4FA085067092
-              3310E27AD82ACE602572D347CCF6CE4F382996A0F202ABFFEB306AA3FFD770FE
-              E4F7782A77154BB72455196EC3340EE5354C00213429ABAA853C1ACD4E1D53F5
-              E23FE1985ACE4FB724D70E938E64AC3D84A07E1C3CFC064F503D23401ACC6B3C
-              DDB2D36CEDBED26CCADC184D8F6F8F4A1526EBF56926C31F87A599C744BEEB41
-              6EB9BDAA344BF0FD8827B35CD7CAC433796251C8B819C065EC7D9CE99FA8CAFC
-              0FB5B7F4B4916A690E672787ADA62C59D93E93B8CE203AFE0C9E71A6DD7CC607
-              3E0AF56D818A1FC5FB020AD08370300761F5A2F2AACF63AECCACC47EBB7FF8FD
-              880A62BE1AD736AB52105E42414D92D922452E9B50D512F1441685A948AC1656
-              98259F51FED21310A25B87E1BD61BD3A2492A992E46252FBFE61ED550F9CEB84
-              30A8789871034EA23B53EDDD6FF841B0414BD9032BF730665C62AF5A4F61B944
-              72FEE41E6D27B709CEB722D130393FF92DD1DCF56514AB1C4FA5C9EE5D4DD1D8
-              EBAA36F21A53412075E03FABB57A96BBE9AF29BF2271D03BC02F4E46E765C290
-              04AF3143EC41C86D8D7CEF7A27D7B65134B70D30B7A995B9297256AF277FE455
-              ACF4EED7D5C58F2137B4C70E2890DCA2E2F467E5D2DC3655AFE565B54ADEF438
-              B35A3A6A42B92CF24E6393DE072150D1E4D7C16B04AD9192CFAF055AAF438419
-              7667A16EF7AE09BCC50AF3268E23B34D12EE00C48A507F10CCC8F2DC4B5ACBD1
-              70E6042536BC0FC7E03BACD6B682F6EB1F048D08B72224DA3AD5C70ECF794B13
-              B7591DAB2E21CB82B6F99FC025D6BA6CF003CE1500C157D8C2DCEC77EAC78FDD
-              503BFACA43A85C246B6519554E9D3252AC5A79ED456C0DFE8EB51E8A535ED62B
-              88009FCC54022E29716FA43A82BF240C24A72840E5109D10E4F7C1F4CC2D4C58
-              7792F40F23DAE28BEB05603AB791E5DC8DB7B6E509C23108E5983AB1E966A76F
-              B08A58F70C27B5DD6EEBFFAE91CEE9D4153769B36BAD4E6DDAAE442253B7522D
-              4356BE70303D74B9E6E91C2EB53C3EA9131303B92D78C426EF690C57F01F1F50
-              D108C93855D2ECF2445CFB68112D30BB077705936F221A5464A4B22370AA1F25
-              D76F26EFC4518A164FA10A2746C3E2745E333E261C770675649BD19C54B254DA
-              8DFD076362D81B67C0D8EEE5C67005E73A612CEDD2F2EB596C45FDBF5F564A7B
-              A1FA9761DF358693FC8C996F6F8F9058FCA937E190E16F55E8FFD4C8661D595E
-              08290A0B4AAA61B3A51046C5D9AF82C6C232A9770F1BEA1B26D3BE9325320798
-              E9EA54DF2AA4525E868ADFC0FF43689DEEE0A65DE8D3B8BAEF85D091D9D21118
-              85816D31818BE12D77C2FF4216F6DF4942F550E8FF060E5513B6A8D58AE5D7A1
-              D2DDA809F1B72084B05D7F623CC2BB8930E348CF0F84A5D35F614ADD0A813ED2
-              A0F31E61D068ED1A477FF9F27005427C1CCF6DC8A6F1DDA1D0985B06EE718DCF
-              BBC4F2F03D004BE59E4477A12F9EF81B32FE707D4738D709DF1E146EC64AC69E
-              1C7F1BC23F1AC2C40E1C97D8F866F50E40F46FBC88E7FB4C3BF2F60000000049
-              454E44AE426082}
+              0950494441545847B557798C9D55153FF7DE6F7DDBBC59DECCBCD93A5D9876A6
+              4C4B0B52D0168B14445031FC41406334212ED85463A218629060403136D188C8
+              D2C4B8D0C498108821485C639A828D40055BA81D4B67EBAC9D376FDEFA6DF75E
+              7FDF9B696DB1A940F097B9EFFBEE9DEF3BE7DC737EE79CFBD17B0641379095B8
+              7965F67FC51086BB7C7B1E7A58AA65FFCAFDDB065FB95E082E19F617714D2E4F
+              1B6827CE77E29AC2966F5D5E3A8B2A739C4DB8AE599EBE3D5CCC80881879464B
+              CF63507A0F1EFD0219D65DA4D4219ECEDD48244FAF3CD78371ADDDBDEE67AC54
+              E9C4B34F61CEC830AEC6FD6DB8CFC40FBD6B98F9D59F34B2B9456626A74858BF
+              C29265F40EDC85EB5A8C4E627C0E234CAE5A15722BA19969CEC0737B4888EBF0
+              7F03E3A2B898071A08A74FD645473F31D3C833CEC6888927B88CEEC00EBBB0F8
+              24339D5C72F04A436BC7E0C9C4980EA37D14F9CF58898E09E6A41F46A83EBC22
+              EA82F85F0608626C73BABB27CBB9203BDB5660969D96C5D3DBCDF6D5BF668E7B
+              9D916D273393215D21DF10E26E66185B989BDCA392CE5EED95EF43A8FEB822EB
+              0C9A312E44E206E27809FCDDB23CA53EECD837BB07647A60585B6D5DFB9D5C7E
+              BB70333275D935D2EABB54272FBB4E8B54AB3673FD3F703B7BAFE0A61BA5376D
+              AEE3DD0F6180ACB40E033297C14CFB01E266CC8D06DEE2017E3B7E4C66BB31D3
+              632B2B88A590E545A6CC24A988E5BCF9E98364BBA3147ADC5AB581BCD1A3A40D
+              FEB7707EF4FBA1E77FC368CA0A7FB4A211A25F80B44BE0C731C8D98B718DD337
+              F86991C9F5900A0F60DEC0F90608364A64F768193D6576F43D4DA6B98A484D71
+              C3625271524C76E029266CF7F1B054262395C28E1C52F5FA71AC971963BB9C35
+              C324CDC0359B7BBBE1196EB4F588F4F0555F4AACD9FC1C8C7C245A98DC8767A7
+              637531CE3740CA3F80B7BB28F246A3D3A78E3B89B52FD8DDDD790D25DCCD4061
+              DB2666255F0966479FD25ABF503B7698602831C34CD8DDEB2F57C2CA1A5D6BC8
+              68C993BB6133A50686C84EA7746DE4A8E94D9F4C6832A790187A455B03676303
+              B412B77EC74DFB5A1D458C09BE5EC9CA5A26C94EAC1DD4CEE05646AA11C34EC5
+              8C6B7579EE3E4DEC532AF43433EC5748C90C6BCAEDD4E52285B36314CE8CCF44
+              C5C2611578070567CF4BBF7E58CB7001120CD2F21FD017C44A0599CE1D2299DD
+              6D64DB760B8B0D2ACFEF13E96C8F309D47CC8C7B0F9436870B85BC3F31928ABC
+              1AC9F2020937D5A1385F4FE5620E9E6014048C99D60E8420CD5083A2F9F19754
+              ADB853D5CB8F72337D22F42A97EAD07361E46E283F8102F539D27A02FA97187E
+              B661CC63D4CD7CFF3EA3AD6B075B5AC8844B858819D6CF838553DFC4FF4A76DF
+              E00754A86EA2C8DC2D6B53164B36935C9A513CD9CC556511C476C8DEB88DC2C9
+              91F9686AE406B767A05F9596BE1DFA958D50A6594B6E9485C16115CA575569EE
+              97903983E1C7069C8B56B0F6A8DDB7A123D1BF96CAAF1E02F1E880AA96C760CC
+              3A966E93DA5F1CD0F520478400584814C649FB5512D94ED2813747B5C57B45A6
+              E3762D839D6EBE8BB1444279B3A38560F2D44348239055847817EFABD808F8EB
+              7CC083FC2512E656BB77032586B6D2D281E748380932500DA3C214C94A516A6E
+              08922131BB09B2140C5882F27A953361B04CAB2D524D94D8B08564DDA7606A8C
+              8209A46ABDFA2CE9F0F3D071360300E75C12AE40FF0589D6ACEAD54BA3F21273
+              87AE24BB771D05A74EC068282B172494A242727036018BB10663B89DB4105B12
+              C9266EE6FAC83BF632141F27BB7B0DA9528154501B80ECAB31E27E022F34809D
+              9C8110D7235671052B929B3E6A76747DC249B104951659FD5F47D01BFDBF860B
+              A7BEC7536D57B1744B5295401BA6B129AF110218A14959552DE4B16876EAB8AA
+              17FE09626AB930DD925C3F4C3A92B1F79082FA71E8F01B3A21F58C016928AFF1
+              74CB2EB3B5E74AB3297363343DBE232A9699ACD7A7990C7F1C16671E13B9EE07
+              B9E5F6A9E22C81FB114F66B9AE95886772C4A29071330065ECFD9CE99FA8F2C2
+              0FB55779DA48B53487B393C3565396ACEC2A93B8CE203BFE0C9D71A5DD728603
+              1F85FBB6C2C58FE27E110DE84110CC415ABDA8BCEAF3582B312B71C0EE1F7E3F
+              B28298AFC6B5CDAA14849750509364B648D1964DA86A9178228BC65420560BCB
+              CC92CF28BFF2048CE8D161786F58AF0E8A64AA28B998D4BE7F447BD583E79210
+              01150F336E8024BA2BD5D1F3861F041BB594BD88722F63C625F6EA210A4B4592
+              0BA7F66A3BB95D70BE0D8586C985C96F89E6EE2FA359B5F1549AECBEB5148DBD
+              AE6A23AF3115045207FEB35AAB67B99BFE9AF2CB121BBD03FAE262745E250C49
+              F01A33C45EA4DCB6C8F7AE77DADA3789E6F635CC6D6A656E8A9CB543E48FBC8A
+              27BDFB7575E963A80D1D3101058A5B5498FEACACCC6F57F55A4E56ABE44D8F33
+              ABA5B32694CB22EF345ED2FB61043A9AFC3A748D60344AF2F9BD40EB0DC830C3
+              EECAD7EDBE7581B75466DEC40954B649C219805801EE0F8219599A7F496B391A
+              CE9CA4C4C6F7611B7CA7D5DA9ED77EFD839011E15484425BA7FAD89179AF3271
+              9BD5B9FA12B22C789BFF095A62AFCB863EE05C03907CF9ADCCCD7EA77EE2F80D
+              B563AF3C84CE45B2569251796ECE48B16AF9B517F16AF0773CEBA139E564BD8C
+              0CF0C94C254049897323D591FC4561A03845013A87E88221BF0FA6676E61C2BA
+              93A47F04D9161F5C2F00D3B98D2CE76EDCB52F2F10B64168C7D485976E76560D
+              5491EB9EE1A476D8EDFDDF35D26D3A75C54DDAEC5EAF539B772891C8D4AD54CB
+              A095CB1F4A0F5EAE79BA0D875A1EEFD4898541DC56FCC421EF6D4C57F01F0EA8
+              6884645C2A69767921EE7DB48411983D03BB83C937910D2A3252D91190EA47C9
+              A12DE49D3C46D1D21CBA7062342C4CE734E363C27167D047B61BCD49258BC53D
+              78FF502C0CEFC615308E7BA9315DC1B9248CADAD2CDF9EC536F4FFFB65B9B80F
+              AE7F19F15D6738C9CF98B98E8E0885C59F7A13840C7FAB42FFA74636EBC8D262
+              48519857520D9B2DF9302ACC7E1532169745BD7BD870DF3099F69D2C9139C84C
+              57A77004077D4A70F11BF8FF2046973BB07937AE691CDDF7C1E8C86CE90C8CFC
+              9AEDB1808BE12D67C2FF4216F1DF4542F552E8FF0684AA095BD46A85CAEB70E9
+              1EF484F85B1046D8AE3F311EE1DE449A7194E707C2E2E9AF30A56E85411F69C8
+              798F3060B4768FE37AF9F27405427C1CBFDB514DE3B343BEB1B60C9CE31A9F77
+              89E5E97B00966A7B12970B7DF1C4DF90F187EB3BC2B9247C7B5038192B193339
+              FE36043F1AC6C4048E5B6C7CB27A0720FA37BB86E7FB0C067A4C000000004945
+              4E44AE426082}
             FileName = 
               'C:\Users\Cylance\Documents\_Software\_CyLence\MEDIA Revolution\M' +
               'EDIA Revolution\Design\tray_sidebar.ico'
