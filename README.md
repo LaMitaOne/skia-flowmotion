@@ -1,8 +1,8 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.51**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.52**    
     
-<img width="1458" height="1140" alt="Unbenannt" src="https://github.com/user-attachments/assets/849dd714-8c9c-4105-9ec1-27ab6471e98c" />
-   
+<img width="1377" height="1062" alt="Unbenannt" src="https://github.com/user-attachments/assets/6c73681d-89ef-412e-a9de-509642097c74" />
+  
     
 # Skia-FlowMotion   
    
@@ -30,7 +30,7 @@ maybe at least i spread out some new ideas :)
    
 static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly for me :D       
       
-### Features at a glance (v0.51)   
+### Features at a glance (v0.52)   
    
 - **Pinterest-like masonry layout**   
 - **Freefloat layout** with save/load positions (not fully stable atm)    
@@ -92,13 +92,20 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
-
-**v 0.51 – Day 14**   - ok ok, but now i really try make some days break :D   
+   
+**v 0.52**   
+    
+- Added new propertys: TargetFPS, MitchellQuality, InfoIndicatorOnlyOnHover, AutoZoomOnDblClick   
+- Pagechange animated clear re-added/must be nonthreaded here for now   
+- Excluded threadpriority for non Windows platforms, thanks to Mauro :)   
+- Improved: Smartnavigation   
+   
+**v 0.51 – Day 14**   
   
 - some small bugfixes/improvements and fine tuning   
 - switched to 60fps now and with 80 pagesize still nice but way smoother   
      
-**v 0.50 – Day 13**    -yea yea, i could not resist, but that damn bug annoyed me so much...but this is a nice version now :)
+**v 0.50 – Day 13**    
    
 - Fixed wrong max zoom after clear and load new pics (that beast...was hard to catch)   
 - Freefloat is now a property   
