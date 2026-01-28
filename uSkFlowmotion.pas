@@ -1,4 +1,4 @@
-﻿{*******************************************************************************
+{*******************************************************************************
   uSkFlowmotion
 ********************************************************************************
   A high-performance, GPU-accelerated image flow control for Delphi FMX.
@@ -11,7 +11,7 @@
   - Background effects integration (Matrix, Holographic).
 *******************************************************************************}
 
-{ Skia-Flowmotion v0.51 alpha                                                  }
+{ Skia-Flowmotion v0.52 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -22,9 +22,14 @@
 
 {
  ----Latest Changes
+   v 0.52
+    - Added new propertys: TargetFPS, MitchellQuality, InfoIndicatorOnlyOnHover, AutoZoomOnDblClick
+    - Pagechange animated clear re-added/must be nonthreaded here for now
+    - Excluded threadpriority for non Windows platforms, thanks to Mauro :)
+    - Improved: Smartnavigation
    v 0.51
-    - some small bugfixes/imrpvements and fine tuning
     - switched to 60fps now and with 80 pagesize still nice but way smoother
+    - some small bugfixes/improvements and fine tuning
    v 0.50
     - Fixed wrong max zoom after clear and load new pics (that beast...was hard to catch)
     - Freefloat is now a property
@@ -135,8 +140,7 @@ uses
 
 const
   { Animation Timing Constants }
-  TARGET_FPS = 60;
-  MIN_FRAME_TIME = 1000 div TARGET_FPS;
+  DEFAULT_TARGET_FPS = 60;
   DEFAULT_ANIMATION_SPEED = 4;
   { Visual Defaults }
   DEFAULT_ALPHA = 255;
@@ -392,6 +396,7 @@ type
     FAllInfoTexts: TStringList;        { Master list of info texts }
     FMasterItem: TFlowMasterItem;       { Virtual item for property access }
     FMaxInternalPicSize: Integer;       { Max dimension for resized cached bitmaps }
+    FTargetFPS: Integer;
 
     { --- Threading --- }
     FNextLoaderCoreIndex: Integer;
@@ -444,7 +449,7 @@ type
     FSelectedVideoSnapshot: ISkImage;
 
     { --- Visuals & Style --- }
-    FBackgroundSkImage: ISkImage;
+    //FBackgroundSkImage: ISkImage;
     FBackgroundNEWSkImage: ISkImage;
     FBackgroundColor: TAlphaColor;
     FBackgroundFadestage: Integer;
@@ -459,6 +464,7 @@ type
     FGlowColor: TAlphaColor;
     FGlowWidth: Integer;
     FItemBorderColor: TAlphaColor;
+    FMitchellQuality: Boolean;
 
     { Caption Properties }
     FCaptionFont: TFont;
@@ -507,6 +513,7 @@ type
     FShowInfoIndicator: Boolean;
     FShowInfoIndicatoralways: Boolean;
     FInfoIndicatorHotColor: TAlphaColor;
+    FInfoIndicatorOnlyOnHover: Boolean;
 
     { Background Effects }
     FScaledBgSkImage: ISkImage;
@@ -554,7 +561,10 @@ type
 
     { --- State --- }
     FActive: Boolean;
+
+    {$IFDEF MSWINDOWS}
     FThreadPriority: TThreadPriority;
+    {$ENDIF}
 
     { --- SmallPic Support --- }
     FSmallPicImageList: TImageList;
@@ -644,7 +654,9 @@ type
     procedure SetHotZoomMaxFactor(const Value: Single);
     procedure SetSorted(Value: Boolean);
     procedure SetKeepSpaceforZoomed(Value: Boolean);
+    {$IFDEF MSWINDOWS}
     procedure SetThreadPriority(Value: TThreadPriority);
+    {$ENDIF}
     procedure SetMaxZoomSize(Value: Integer);
     procedure SetHotTrackColor(Value: TAlphaColor);
     procedure SetGlowColor(Value: TAlphaColor);
@@ -709,6 +721,9 @@ type
     procedure SetAlwaysShowInfo(const Value: Boolean);
     procedure SetDeleteClicked(const Value: Boolean);
     procedure SetItemBorderColor(const Value: TAlphaColor);
+    procedure SetTargetFPS(const Value: Integer);
+    procedure SetMitchellQuality(const Value: Boolean);
+    procedure SetInfoIndicatorOnlyOnHover(const Value: Boolean);
   protected
     { Paint Overrides }
     procedure Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single); override;
@@ -858,7 +873,9 @@ type
     property OnImageLoad: TProc<TObject, string, Boolean> read FOnImageLoad write FOnImageLoad;
     property OnItemSelected: TImageSelectEvent read FOnItemSelected write FOnItemSelected;
     property Active: Boolean read FActive write SetActive default True;
+    {$IFDEF MSWINDOWS}
     property ThreadPriority: TThreadPriority read FThreadPriority write SetThreadPriority;
+    {$ENDIF}
     property OnSelectedItemMouseDown: TOnSelectedItemMouseDown read FOnSelectedItemMouseDown write FOnSelectedItemMouseDown;
     property OnAllAnimationsFinished: TOnAllAnimationsFinished read FOnAllAnimationsFinished write FOnAllAnimationsFinished;
     property OnSelectedImageDblClick: TOnSelectedImageDblClick read FOnSelectedImageDblClick write FOnSelectedImageDblClick;
@@ -924,6 +941,7 @@ type
 
     { Internal Constraints }
     property MaxInternalPicSize: Integer read FMaxInternalPicSize write FMaxInternalPicSize default 720;
+    property TargetFPS: Integer read FTargetFPS write SetTargetFPS default 50;
     property BreathRotationEnabled: Boolean read FBreathRotationEnabled write SetBreathRotationEnabled default True;
     property FullscreenAngle: TFullscreenAngle read FFullscreenAngle write FFullscreenAngle;
 
@@ -940,6 +958,8 @@ type
     property InfoIndicatorHotColor: TAlphaColor read FInfoIndicatorHotColor write SetInfoIndicatorHotColor;
     property ShowInfoOnMiddleClick: Boolean read FShowInfoOnMiddleClick write SetShowInfoOnMiddleClick;
     property AlwaysShowInfo: Boolean read FAlwaysShowInfo write SetAlwaysShowInfo default False;
+    property MitchellQuality: Boolean read FMitchellQuality write SetMitchellQuality default True;
+    property InfoIndicatorOnlyOnHover: Boolean read FInfoIndicatorOnlyOnHover write SetInfoIndicatorOnlyOnHover default True;
 
     { Backgrounds }
     property BackgroundEffect: uSkFlowEffects.TBackgroundEffect read FBackgroundEffect write SetBackgroundEffect;
@@ -989,6 +1009,7 @@ implementation
 
 var
   GlobalSortHotItem: TImageItem;
+  GMinFrameTime: Cardinal;
 { -------------------------------------------------------------------------------
   COMPONENT REGISTRATION
   ------------------------------------------------------------------------------- }
@@ -1133,10 +1154,13 @@ begin
   FOwner := AOwner;
   FLastTick := GetTickCount;
   FStopRequested := False;
+
+    {$IFDEF MSWINDOWS}
   if AOwner is TSkFlowmotion then
     Priority := (AOwner as TSkFlowmotion).FThreadPriority
   else
     Priority := tpNormal;
+  {$ENDIF}
 end;
 
 destructor TAnimationThread.destroy;
@@ -1165,8 +1189,10 @@ begin
     ElapsedMS := NowTick - LastTick;
     LastTick := NowTick;
     SleepTime := 0;
-    if ElapsedMS < MIN_FRAME_TIME then
-      SleepTime := 16 + MIN_FRAME_TIME - ElapsedMS;
+
+    // Use the global GMinFrameTime
+    if ElapsedMS < GMinFrameTime then
+      SleepTime := 16 + GMinFrameTime - ElapsedMS;
 
     if FStopRequested then
       Break;
@@ -1225,10 +1251,14 @@ begin
   FSmallPicIndex := ASmallPicIndex;
 
   { Set priority }
+
+  {$IFDEF MSWINDOWS}
+
   if AOwner is TSkFlowmotion then
     Priority := (AOwner as TSkFlowmotion).FThreadPriority
   else
     Priority := tpNormal;
+    {$ENDIF}
 
   Self.Execute; { Start immediately }
 end;
@@ -1442,7 +1472,9 @@ begin
   FInfoIndicatorColor := TAlphaColors.Darkorange;
   FInfoIndicatorHotColor := TAlphaColors.Aqua;
   FShowInfoIndicator := True;
-  FShowInfoIndicatoralways := False;
+  FShowInfoIndicatoralways := True;
+  FMitchellQuality := True;
+  FInfoIndicatorOnlyOnHover := True;
   FEnableParticlesOnMouseClick := True;
   FGlowColor := TAlphaColors.Aqua;
   FItemBorderColor := TAlphaColor($FF373737);
@@ -1481,6 +1513,7 @@ begin
   FMatrixSpeed := 10.0;
   FMatrixFontSize := 14.0;
   SetLength(FMatrixCols, 0);
+  GMinFrameTime := 1000 div 40;
   { --- Defaults - Selection --- }
   FSelectedImage := nil;
   FWasSelectedItem := nil;
@@ -1500,7 +1533,11 @@ begin
   FMaxZoomSize := DEFAULT_MAX_ZOOM_SIZE;
   { --- Defaults - System --- }
   FActive := True;
+
+  {$IFDEF MSWINDOWS}
   FThreadPriority := tpNormal;
+  {$ENDIF}
+
   TabStop := True;
   Width := 400;
   Height := 300;
@@ -1508,6 +1545,7 @@ begin
   FZoomSelectedtoCenter := True;
   Self.HitTest := True;
   FMaxInternalPicSize := 720;
+  FTargetFPS := 50;
   // ==========================================================
   // CREATE VIDEO PLAYER (Initialize at Startup)
   // ==========================================================
@@ -1588,7 +1626,9 @@ begin
     if Assigned(FParticles) then
       FParticles.Free;
     if Assigned(FSmallPicParticles) then
-      FSmallPicParticles.Free;
+      FreeAndNil(FSmallPicParticles);
+    if Assigned(FLoadedPositions) then
+      SetLength(FLoadedPositions, 0);
   except
     { Ensure we don't leak even if destructor crashes }
   end;
@@ -1648,6 +1688,33 @@ end;
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: PROPERTY SETTERS
 // -----------------------------------------------------------------------------
+
+procedure TSkFlowmotion.SetMitchellQuality(const Value: Boolean);
+begin
+  if FMitchellQuality <> Value then
+  begin
+    FMitchellQuality := Value;
+  end;
+end;
+
+procedure TSkFlowmotion.SetInfoIndicatorOnlyOnHover(const Value: Boolean);
+begin
+  if FInfoIndicatorOnlyOnHover <> Value then
+  begin
+    FInfoIndicatorOnlyOnHover := Value;
+    Repaint;
+  end;
+end;
+
+procedure TSkFlowmotion.SetTargetFPS(const Value: Integer);
+begin
+  if (Value > 0) and (FTargetFPS <> Value) then
+  begin
+    FTargetFPS := Value;
+    // Update the global variable that the animation thread reads
+    GMinFrameTime := 1000 div FTargetFPS;
+  end;
+end;
 
 procedure TSkFlowmotion.SetItemBorderColor(const Value: TAlphaColor);
 begin
@@ -1974,12 +2041,16 @@ begin
   end;
 end;
 
+  {$IFDEF MSWINDOWS}
+
 procedure TSkFlowmotion.SetThreadPriority(Value: TThreadPriority);
 begin
   FThreadPriority := Value;
   if Assigned(FAnimationThread) then
     FAnimationThread.Priority := Value;
 end;
+
+  {$ENDIF}
 
 procedure TSkFlowmotion.SetMaxZoomSize(Value: Integer);
 begin
@@ -2862,7 +2933,7 @@ begin
     end;
 
     if FImages.Count > 0 then
-    ClearNonThreaded(true, true, Rect(0, 0, 0, 0),  Rect(0, 0, 0, 0), iesFromBottom, false);
+      ClearNonThreaded(true, true, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), iesFromBottom, false);
 
     // We must explicitly free the ImageItem objects
     for i := 0 to FImages.Count - 1 do
@@ -3053,7 +3124,6 @@ procedure TSkFlowmotion.UpdateGridSnapshot(ImageItem: TImageItem; const TargetSi
 var
   Info: TSkImageInfo;
   Surface: ISkSurface;
-  SrcW, SrcH, DstW, DstH: Single;
   HighQualityOpts: TSkSamplingOptions;
 begin
   if not Assigned(ImageItem.FSkImage) then
@@ -3070,9 +3140,17 @@ begin
     if Assigned(Surface) then
     begin
       Surface.Canvas.Clear(TAlphaColors.Null);
-      // CHANGE HERE: Use Cubic (Mitchell) for Snapshots
-      HighQualityOpts.UseCubic := True;
-      HighQualityOpts.Cubic := TSkCubicResampler.Mitchell; // Super sharp
+
+      if FMitchellQuality then
+      begin
+        HighQualityOpts.UseCubic := True;
+        HighQualityOpts.Cubic := TSkCubicResampler.Mitchell; // Super sharp
+      end
+      else
+      begin
+        HighQualityOpts := TSkSamplingOptions.Medium;
+      end;
+
       Surface.Canvas.DrawImageRect(ImageItem.FSkImage, RectF(0, 0, ImageItem.SkImage.Width, ImageItem.SkImage.Height), RectF(0, 0, TargetSize.cx, TargetSize.cy), HighQualityOpts); // Use the new opts
       ImageItem.FGridSnapshot := Surface.MakeImageSnapshot;
       ImageItem.FGridSnapshotSize := TargetSize;
@@ -3220,8 +3298,6 @@ procedure TSkFlowmotion.StartZoomAnimation(ImageItem: TImageItem; ZoomIn: Boolea
 var
   CenterX, CenterY: Integer;
   ImageSize: TSize;
-  DynMaxW, DynMaxH: Integer;
-  MaxLimitW, MaxLimitH: Integer;
 begin
   if ImageItem = nil then
     Exit;
@@ -4006,6 +4082,13 @@ begin
   if (AItem.InfoText = '') then
     Exit;
 
+  // If OnlyOnHover is True, we only draw if the mouse is currently over this specific item
+  if FInfoIndicatorOnlyOnHover then
+  begin
+    if (AItem <> FHotItem) and (AItem <> FSelectedImage) then
+      Exit;
+  end;
+
   // 1. If panel is OPEN (State = True), don't draw.
   if AItem.FIsInfoShowing then
     Exit;
@@ -4439,8 +4522,15 @@ begin
   LPaint.Alpha := FAlphaStatic; // Restore alpha for the image content
   //ACanvas.DrawImageRect(ImageToDraw, DstRect, TSkSamplingOptions.High, LPaint);
 
-  HighQualityOpts.UseCubic := True;
-  HighQualityOpts.Cubic := TSkCubicResampler.Mitchell;
+  if FMitchellQuality then
+  begin
+    HighQualityOpts.UseCubic := True;
+    HighQualityOpts.Cubic := TSkCubicResampler.Mitchell; // Super sharp
+  end
+  else
+  begin
+    HighQualityOpts := TSkSamplingOptions.Medium;
+  end;
   ACanvas.DrawImageRect(ImageToDraw, DstRect, HighQualityOpts, LPaint);
 
   ACanvas.Restore;
@@ -4763,6 +4853,7 @@ begin
   // =========================================================================
   // 0. PREPARE BUCKETS FOR Z-ORDERING
   // =========================================================================
+
   StaticImages := TList.Create;
   GlobalSortHotItem := FHotItem;
   AnimatingImages := TList.Create;
@@ -4875,13 +4966,16 @@ begin
       ProcessItem(FHotItem, True);
     end;
 
-   // =========================================================================
-    // 6. DRAW SELECTED IMAGE (Absolute Top)
+        // =========================================================================
+    // 6. DRAW SELECTED IMAGE (Absolute Top) - OPTIMIZED
     // =========================================================================
     if Assigned(FSelectedImage) and FSelectedImage.Visible then
     begin
       ImageItem := FSelectedImage;
+
+      // === OPTIMIZATION: CALCULATE ONCE ===
       VisualRect := GetVisualRect(ImageItem);
+
       var SelZoom: Single;
       SelZoom := ImageItem.FHotZoom;
 
@@ -4892,7 +4986,8 @@ begin
       else
         ShadowMultiplier := 1.0; // Normal size
 
-      // === CALCULATE VISUAL ANGLE (With Wobble) ===
+      // === OPTIMIZATION: CALCULATE ANGLE ONCE ===
+      // We need the visual angle (ActualRotation + Wobble) for the shadow and the drawing.
       var SelDrawAngle: Single;
       SelDrawAngle := ImageItem.FActualRotation;
       if FBreathingEnabled and BreathRotationEnabled and (Abs(SelDrawAngle) > 0.1) then
@@ -5005,7 +5100,7 @@ begin
           ACanvas.Save;
       // Draw Snapshot
           Paint.Style := TSkPaintStyle.Fill;
-          ACanvas.DrawImageRect(FSelectedVideoSnapshot, VisRect, TSkSamplingOptions.High, Paint);
+          ACanvas.DrawImageRect(FSelectedVideoSnapshot, VisualRect, TSkSamplingOptions.High, Paint);
           ACanvas.Restore;
         end;
 
@@ -5051,7 +5146,7 @@ begin
 
       if (not FIsClearing) then
       begin
-      // Draw InfoIndicator
+      // Draw InfoIndicator (Uses VisualRect, SelDrawAngle calculated above)
         DrawInfoIndicator(ACanvas, VisualRect, FSelectedImage);
 
         DrawCaption(FSelectedImage, VisualRect);
@@ -5088,12 +5183,10 @@ begin
       ACanvas.Save;
 
       // === CALCULATE BORDER ROTATION WITH WOBBLE ===
+      // Re-use SelDrawAngle calculated above
       var BorderRotAngle: Single;
-      BorderRotAngle := ImageItem.FActualRotation;
-      if FBreathingEnabled and BreathRotationEnabled and (Abs(BorderRotAngle) > 0.1) then
-      begin
-        BorderRotAngle := BorderRotAngle + (Sin(FBreathingPhase * 2 * PI) * 1.5);
-      end;
+      BorderRotAngle := SelDrawAngle;
+
       if BorderRotAngle <> 0 then
       begin
         CenterX := (VisualRect.Left + VisualRect.Right) / 2;
@@ -5586,7 +5679,11 @@ begin
   begin
     // Only spawn a thread if this specific image belongs to the CURRENT page
     LoadThread := TImageLoadThread.Create(FileName, ACaption, APath, AHint, AInfo, Self, NewAbsIndex, ASmallPicIndex);
+
+   {$IFDEF MSWINDOWS}
     LoadThread.Priority := FThreadPriority;
+  {$ENDIF}
+
     FLoadingThreads.Add(LoadThread);
     Inc(FLoadingCount);
   end;
@@ -5672,10 +5769,10 @@ begin
   // ==========================================================
   // 2. Spawn Loading Threads ONLY for items on CURRENT PAGE
   // ==========================================================
-    if WasEmpty then
-    begin
-      ShowPage(FCurrentPage);
-    end;
+  if WasEmpty then
+  begin
+    ShowPage(FCurrentPage);
+  end;
   for i := 0 to FileNames.Count - 1 do
   begin
     // Calculate Absolute Index in Master List
@@ -5683,22 +5780,26 @@ begin
     TargetPage := NewAbsIndex div FPageSize;
     // --- Lazy Loading Logic ---
     // Only spawn a thread if this specific image belongs to the CURRENT page
-      if (NewAbsIndex >= GetPageStartIndex) and (NewAbsIndex <= GetPageEndIndex) then
-      begin
+    if (NewAbsIndex >= GetPageStartIndex) and (NewAbsIndex <= GetPageEndIndex) then
+    begin
       // Retrieve SmallPic Index from Master List
-        CurrentSmallIndex := Integer(FAllSmallPicIndices[NewAbsIndex]);
+      CurrentSmallIndex := Integer(FAllSmallPicIndices[NewAbsIndex]);
 
       // Create and Start Thread
-        LoadThread := TImageLoadThread.Create(FileNames[i], Captions[i], Paths[i], Hints[i], Infotxts[i], Self, NewAbsIndex, CurrentSmallIndex);
-        LoadThread.Priority := FThreadPriority;
-        FLoadingThreads.Add(LoadThread);
-        Inc(FLoadingCount);
-      end;
+      LoadThread := TImageLoadThread.Create(FileNames[i], Captions[i], Paths[i], Hints[i], Infotxts[i], Self, NewAbsIndex, CurrentSmallIndex);
+
+       {$IFDEF MSWINDOWS}
+      LoadThread.Priority := FThreadPriority;
+          {$ENDIF}
+
+      FLoadingThreads.Add(LoadThread);
+      Inc(FLoadingCount);
+    end;
     // Else: Image is off-page. It stays in Master Lists but is NOT loaded.
     // It will be loaded later when you navigate to that page.
   end;
   // --- AutoScroll Logic ---
-  if FAutoScrollPageForNewAdded and not wasempty then
+  if FAutoScrollPageForNewAdded and not WasEmpty then
   begin
     if FCurrentPage <> TargetPage then
     begin
@@ -5864,19 +5965,20 @@ begin
 
   { --- STOP AND FREE LOADING THREADS --- }
   try
-   if FLoadingCount > 0 then begin
-    for i := 0 to FLoadingThreads.Count - 1 do
-      TImageLoadThread(FLoadingThreads[i]).Terminate;
+    if FLoadingCount > 0 then
+    begin
+      for i := 0 to FLoadingThreads.Count - 1 do
+        TImageLoadThread(FLoadingThreads[i]).Terminate;
 
     // Free the thread objects to prevent leak
-    for i := 0 to FLoadingThreads.Count - 1 do
-    begin
-      try
-        TImageLoadThread(FLoadingThreads[i]).Free;
-      except
+      for i := 0 to FLoadingThreads.Count - 1 do
+      begin
+        try
+          TImageLoadThread(FLoadingThreads[i]).Free;
+        except
+        end;
       end;
     end;
-   end;
   except
 
   end;
@@ -6389,6 +6491,7 @@ begin
     begin
       if FSelectedImage <> ImageItem then
         SetSelectedImage(ImageItem, ItemIndex);
+
       if Assigned(FOnSelectedImageDblClick) then
         FOnSelectedImageDblClick(Self, ImageItem, ItemIndex);
     end;
@@ -6652,6 +6755,31 @@ var
   iZone: Integer;
   ZoneRect: TRectF;
   ZoneCenter: TPointF;
+
+  // --- OPTIMIZED LOCAL VARS ---
+  DrawAngle: Single;
+  HandleSize: Single;
+  Margin: Integer;
+  ActDir: TInfoPanelDirection;
+  LocalHitRect: TRect;
+  HitTestRect: TRect;
+  LocalPt: TPointF;
+  SafeY_Top, SafeY_Bottom, SafeX_Left, SafeX_Right: Single;
+  LocalHitRectF: TRectF;
+  TriggerZoom: Boolean;
+  TriggerPanel: Boolean;
+  ActualDir: TInfoPanelDirection;
+  SwipeDist: Single;
+  CheckAngle: Single;
+  BestCandidateZoom: Double;
+  DrawRect: TRectF;
+  P: TPointF;
+  BestCandidate: TImageItem;
+  i: Integer;
+  Item: TImageItem;
+  TargetAngle: Single;
+  ImgItem: TImageItem;
+  VisRect: TRectF;
 begin
   if FisClearing or FInFallAnimation then
     Exit;
@@ -6664,11 +6792,6 @@ begin
   // ONLY RUNS IF WE STARTED A CLICK IN MOUSEDOWN and Fullscreen
   if FGestureActive and Assigned(FSelectedImage) and (FIsZoomedToFill or (not SelectedMovable)) then
   begin
-    var SwipeDist: Single;
-    var ActualDir: TInfoPanelDirection;
-    var TriggerPanel: Boolean;
-    var TriggerZoom: Boolean;
-
     SwipeDist := 200.0; // How many pixels to swipe
     TriggerPanel := False;
     TriggerZoom := False;
@@ -6883,38 +7006,39 @@ begin
       StartAnimationThread;
     end;
 
-  // --- 5. CHECK ROTATION HANDLE HOVER (Priority 1) ---
+  // ==========================================================
+  // 5. CHECK ROTATION HANDLE, INFO PANEL & INDICATOR (OPTIMIZED)
+  // ==========================================================
+  // We calculate VisualRect and DrawAngle ONCE here.
+  // These values are valid for the entire Selected Image block below.
   if FRotationAllowed and Assigned(FSelectedImage) then
   begin
+    // --- CALCULATE ONCE ---
     VisualRect := GetVisualRect(FSelectedImage);
+    DrawAngle := FSelectedImage.FActualRotation;
+    if FBreathingEnabled and BreathRotationEnabled and (Abs(DrawAngle) > 0.1) then
+      DrawAngle := DrawAngle + (Sin(FBreathingPhase * 2 * PI) * 1.5);
+
     L := Round(VisualRect.Left);
     T := Round(VisualRect.Top);
     R := Round(VisualRect.Right);
     B := Round(VisualRect.Bottom);
     HandleRect := GetRotateHandleRect(rect(L, T, R, B));
 
-    // === CALCULATE HANDLE ANGLE (Must match Draw) ===
-    var HandleAngle: Single;
-    HandleAngle := FSelectedImage.FActualRotation;
-    if FBreathingEnabled and BreathRotationEnabled and (Abs(HandleAngle) > 0.1) then
-      HandleAngle := HandleAngle + (Sin(FBreathingPhase * 2 * PI) * 1.5);
-    CheckPt := GetLocalPoint(TPointF.Create(X, Y), VisualRect, HandleAngle); // Use calculated
+    // --- 5. CHECK ROTATION HANDLE HOVER ---
+    CheckPt := GetLocalPoint(TPointF.Create(X, Y), VisualRect, DrawAngle);
 
     // >>> INFLATE HIT AREA FOR HOVER CURSOR <<<
-    // We create a temporary larger rectangle for the hit test.
-    // This matches the "easy click" zone we added to MouseDown.
-    var HitTestRect: TRect;
     HitTestRect := HandleRect;
     InflateRect(HitTestRect, FRotateHandleSize, FRotateHandleSize);
 
-    // >>> USE HitTestRect HERE FOR CURSOR <<<
     if not FIsZoomedToFill then
       if PtInRect(HitTestRect, Point(Round(CheckPt.X), Round(CheckPt.Y))) then
       begin
         Cursor := crSizeNWSE;
         FSelectedImage.FHotZoomTarget := 1.0;
         FIsMouseOverHandle := True;
-        Exit;
+        // We do NOT Exit here, we must check Info Indicator too!
       end
       else
       begin
@@ -6923,26 +7047,23 @@ begin
   end;
 
   // ==========================================================
-  // 6. CHECK INFO INDICATOR HOVER (Priority 1.5)
+  // 6. CHECK INFO INDICATOR HOVER (Reusing VisualRect/DrawAngle if available)
   // ==========================================================
   if Assigned(FSelectedImage) and (FSelectedImage.InfoText <> '') and (not FSelectedImage.FIsInfoShowing) and FShowInfoIndicator then
   begin
-    VisualRect := GetVisualRect(FSelectedImage);
-
-    // === CALCULATE ROTATION ANGLE (Must match Draw) ===
-    // The arrow rotates WITH the image. We must rotate the mouse point INTO image space.
-    var DrawAngle: Single;
-    DrawAngle := FSelectedImage.FActualRotation;
-    if FBreathingEnabled and BreathRotationEnabled and (Abs(DrawAngle) > 0.1) then
-      DrawAngle := DrawAngle + (Sin(FBreathingPhase * 2 * PI) * 1.5);
+    // If we didn't calculate VisualRect above (e.g. Rotation disabled), calculate it now.
+    if VisualRect.IsEmpty then
+    begin
+      VisualRect := GetVisualRect(FSelectedImage);
+      DrawAngle := FSelectedImage.FActualRotation;
+      if FBreathingEnabled and BreathRotationEnabled and (Abs(DrawAngle) > 0.1) then
+        DrawAngle := DrawAngle + (Sin(FBreathingPhase * 2 * PI) * 1.5);
+    end;
 
     // === TRANSFORM MOUSE TO LOCAL SPACE ===
-    // This rotates the mouse point (X,Y) around the center of VisualRect by -DrawAngle.
-    // Result: CheckPt is where the mouse is relative to an un-rotated image.
-    CheckPt := GetLocalPoint(TPointF.Create(X, Y), VisualRect, DrawAngle);
+    LocalPt := GetLocalPoint(TPointF.Create(X, Y), VisualRect, DrawAngle);
 
     // === DETERMINE DIRECTION & STRIP BOUNDS ===
-    var ActDir: TInfoPanelDirection;
     ActDir := FInfoPanelDirection;
     if ActDir = ipdAuto then
     begin
@@ -6955,7 +7076,6 @@ begin
     FIsMouseOverInfoIndicator := False; // Reset
 
     // Define Local Hit Strip
-    var LocalHitRect: TRect;
     case ActDir of
       ipdLeft:
         LocalHitRect := Rect(Round(VisualRect.Left), Round(VisualRect.Top), Round(VisualRect.Left + 30), Round(VisualRect.Bottom));
@@ -6968,8 +7088,7 @@ begin
     end;
 
     // === PERFORM HIT TEST ===
-    // CheckPt is in local space, LocalHitRect is in local space (axis aligned).
-    if PtInRect(LocalHitRect, Point(Round(CheckPt.X), Round(CheckPt.Y))) then
+    if PtInRect(LocalHitRect, Point(Round(LocalPt.X), Round(LocalPt.Y))) then
       FIsMouseOverInfoIndicator := True;
   end
   else
@@ -7045,102 +7164,151 @@ end;
 
 function TSkFlowmotion.GetSpatialCandidate(CurrentImage: TImageItem; const Action: TSmartImageAction): TImageItem;
 var
+  CurrentIndex, TargetIndex: Integer;
+  CurrentRow, CurrentCol: Integer;
+  TargetRow, TargetCol: Integer;
+  NumCols: Integer;
   i: Integer;
   Item: TImageItem;
-  VisualRect: TRectF;
-  CenterX, CenterY: Single;
-  CheckPt: TPointF; // Use TPointF (from System.Types)
-  Dist, BestDist: Double;
+  FirstItemY: Single; // We ONLY use this to detect the Row Change
 begin
   Result := nil;
+  if FImages.Count = 0 then
+    Exit;
 
-  // Center calculation is still Single, as it's easier to calculate center of a Rect
-  CenterX := (CurrentImage.CurrentRect.Left + CurrentImage.CurrentRect.Right) / 2;
-  CenterY := (CurrentImage.CurrentRect.Top + CurrentImage.CurrentRect.Bottom) / 2;
+  // 1. GET CURRENT INDEX
+  CurrentIndex := FImages.IndexOf(CurrentImage);
+  if CurrentIndex = -1 then
+    Exit;
 
-  // Initialize best distance to a large value
-  BestDist := 999999;
+  // 2. CALCULATE NUMBER OF COLUMNS (Pure Index Logic)
+  // We iterate by Index. The moment the Y position changes, we are in Row 2.
+  // The Index at that moment IS our Column Count.
+  NumCols := FImages.Count; // Default (single row)
 
-  for i := 0 to FImages.Count - 1 do
+  if FImages.Count > 1 then
   begin
-    Item := TImageItem(FImages[i]);
+    // Get Y of the very first item (Index 0)
+    FirstItemY := TImageItem(FImages[0]).TargetRect.Top; // Only reading Y to detect row break
 
-    // Skip Self, Not Visible, or Currently Selected items
-    if (Item = nil) or (Item = CurrentImage) or (not Item.Visible) or (Item = FSelectedImage) then
-      Continue;
-
-    // Get visual bounds (which includes wall sliding)
-    VisualRect := GetVisualRect(Item);
-
-    // Rotate Mouse into Image Local Space (Supports Rotation)
-    if Item.FActualRotation <> 0 then
+    for i := 1 to FImages.Count - 1 do
     begin
-      // We use the TPointF.Create overload that takes X, Y
-      CheckPt := TPointF.Create(CurrentImage.CurrentRect.Right, CurrentImage.CurrentRect.Bottom);
-      // Rotate point around Item center
-      CheckPt.X := CenterX - (CenterX - CheckPt.X) * Cos(Item.FActualRotation * (PI / 180)) + (CenterY - CheckPt.Y) * Sin(Item.FActualRotation * (PI / 180));
-      CheckPt.Y := CenterY - (CenterY - CheckPt.Y * Cos(Item.FActualRotation * (PI / 180)) + (CenterX - CheckPt.X) * Sin(Item.FActualRotation * (PI / 180)));
-    end
-    else
-    begin
-      // No rotation, just copy directly
-      CheckPt := TPointF.Create(CurrentImage.CurrentRect.Right, CurrentImage.CurrentRect.Bottom);
-    end;
+      Item := TImageItem(FImages[i]);
+      if not Assigned(Item) then
+        Continue;
 
-    // Calculate distance squared
-    Dist := Hypot(CheckPt.X - VisualRect.Left - (VisualRect.Right - VisualRect.Left) / 2, CheckPt.Y - VisualRect.Top - (VisualRect.Bottom - VisualRect.Top) / 2);
-
-    // Find closest item based on distance
-    if (Dist < BestDist) then
-    begin
-      BestDist := Dist;
-      Result := Item;
+      // If this item is lower than the first one, we hit Row 2
+      if Item.TargetRect.Top > FirstItemY then
+      begin
+        NumCols := i; // 'i' is the count of items in Row 1
+        Break;
+      end;
     end;
   end;
+
+  // 3. CALCULATE CURRENT GRID POSITION (Pure Math)
+  CurrentRow := CurrentIndex div NumCols;
+  CurrentCol := CurrentIndex mod NumCols;
+
+  // 4. CALCULATE TARGET GRID POSITION
+  TargetRow := CurrentRow;
+  TargetCol := CurrentCol;
+
+  case Action of
+    siaSelectNorth:
+      TargetRow := CurrentRow - 1;
+    siaSelectSouth:
+      TargetRow := CurrentRow + 1;
+    siaSelectWest:
+      TargetCol := CurrentCol - 1;
+    siaSelectEast:
+      TargetCol := CurrentCol + 1;
+  else
+    Exit;
+  end;
+
+  // 5. CONVERT TARGET GRID BACK TO INDEX
+  TargetIndex := (TargetRow * NumCols) + TargetCol;
+
+  // 6. VALIDATE AND RETURN
+  if (TargetIndex >= 0) and (TargetIndex < FImages.Count) then
+    Result := TImageItem(FImages[TargetIndex]);
 end;
 
 procedure TSkFlowmotion.SelectNorth;
+var
+  Candidate: TImageItem;
+  StartItem: TImageItem;
 begin
-  // Use Smart Spatial Selection
-  var Candidate: TImageItem;
-  Candidate := GetSpatialCandidate(FSelectedImage, siaSelectNorth);
+  // 1. DETERMINE START POINT
+  // If nothing selected, start from Top-Left (Index 0)
+  if Assigned(FSelectedImage) then
+    StartItem := FSelectedImage
+  else if (FImages.Count > 0) then
+    StartItem := TImageItem(FImages[0])
+  else
+    Exit; // No images at all
+
+  // 2. FIND CANDIDATE
+  Candidate := GetSpatialCandidate(StartItem, siaSelectNorth);
+
+  // 3. SELECT IF FOUND
   if Assigned(Candidate) then
-  begin
     SetSelectedImage(Candidate, FImages.IndexOf(Candidate));
-  end;
 end;
 
 procedure TSkFlowmotion.SelectSouth;
 var
   Candidate: TImageItem;
+  StartItem: TImageItem;
 begin
-  Candidate := GetSpatialCandidate(FSelectedImage, siaSelectSouth);
+  if Assigned(FSelectedImage) then
+    StartItem := FSelectedImage
+  else if (FImages.Count > 0) then
+    StartItem := TImageItem(FImages[0])
+  else
+    Exit;
+
+  Candidate := GetSpatialCandidate(StartItem, siaSelectSouth);
+
   if Assigned(Candidate) then
-  begin
     SetSelectedImage(Candidate, FImages.IndexOf(Candidate));
-  end;
 end;
 
 procedure TSkFlowmotion.SelectWest;
 var
   Candidate: TImageItem;
+  StartItem: TImageItem;
 begin
-  Candidate := GetSpatialCandidate(FSelectedImage, siaSelectWest);
+  if Assigned(FSelectedImage) then
+    StartItem := FSelectedImage
+  else if (FImages.Count > 0) then
+    StartItem := TImageItem(FImages[0])
+  else
+    Exit;
+
+  Candidate := GetSpatialCandidate(StartItem, siaSelectWest);
+
   if Assigned(Candidate) then
-  begin
     SetSelectedImage(Candidate, FImages.IndexOf(Candidate));
-  end;
 end;
 
 procedure TSkFlowmotion.SelectEast;
 var
   Candidate: TImageItem;
+  StartItem: TImageItem;
 begin
-  Candidate := GetSpatialCandidate(FSelectedImage, siaSelectEast);
+  if Assigned(FSelectedImage) then
+    StartItem := FSelectedImage
+  else if (FImages.Count > 0) then
+    StartItem := TImageItem(FImages[0])
+  else
+    Exit;
+
+  Candidate := GetSpatialCandidate(StartItem, siaSelectEast);
+
   if Assigned(Candidate) then
-  begin
     SetSelectedImage(Candidate, FImages.IndexOf(Candidate));
-  end;
 end;
 
 function TSkFlowmotion.GetImageAtPoint(X, Y: Single): TImageItem;
@@ -7517,7 +7685,11 @@ begin
     begin
       // Create and Start Thread
       LoadThread := TImageLoadThread.Create(FileName, Caption, Path, Hint, Info, Self, NewAbsIndex, ASmallPicIndex);
+
+  {$IFDEF MSWINDOWS}
       LoadThread.Priority := FThreadPriority;
+  {$ENDIF}
+
       FLoadingThreads.Add(LoadThread);
       Inc(FLoadingCount);
     end;
@@ -9437,4 +9609,3 @@ begin
 end;
 
 end.
-
