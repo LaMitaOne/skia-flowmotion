@@ -93,7 +93,7 @@ If you want to tip me a coffee.. :)
     
 ### Latest Changes   
    
-**v 0.52**   
+**v 0.53**   
 - New SetExternalStreamImage -> Pipeline for override selected img, show video snapshot or whatever   
 - Added Texture Caching for UI Text.   
   Text overlays (Captions, Info Panels) are now baked to high-resolution surfaces.   
