@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.52**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.53**    
     
 <img width="1377" height="1062" alt="Unbenannt" src="https://github.com/user-attachments/assets/6c73681d-89ef-412e-a9de-509642097c74" />
   
@@ -30,7 +30,7 @@ maybe at least i spread out some new ideas :)
    
 static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly for me :D       
       
-### Features at a glance (v0.52)   
+### Features at a glance (v0.53)   
    
 - **Pinterest-like masonry layout**   
 - **Freefloat layout** with save/load positions (not fully stable atm)    
@@ -91,7 +91,14 @@ If you want to tip me a coffee.. :)
   </a>
 </p>
     
-### Latest Changes     
+### Latest Changes   
+   
+**v 0.52**   
+- New SetExternalStreamImage -> Pipeline for override selected img, show video snapshot or whatever   
+- Added Texture Caching for UI Text.   
+  Text overlays (Captions, Info Panels) are now baked to high-resolution surfaces.   
+  This decouples text layout from the animation loop, completely removing visual jitter   
+  during zoom and breath effects.   
    
 **v 0.52**   
     
