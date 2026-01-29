@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   uSkFlowmotion
 ********************************************************************************
   A high-performance, GPU-accelerated image flow control for Delphi FMX.
@@ -11,7 +11,7 @@
   - Background effects integration (Matrix, Holographic).
 *******************************************************************************}
 
-{ Skia-Flowmotion v0.52 alpha                                                  }
+{ Skia-Flowmotion v0.53 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -22,6 +22,12 @@
 
 {
  ----Latest Changes
+   v 0.53
+    - New SetExternalStreamImage -> Pipeline for override selected img, show video snapshot or whatever
+    - Added Texture Caching for UI Text.
+      Text overlays (Captions, Info Panels) are now baked to high-resolution surfaces.
+      This decouples text layout from the animation loop, completely removing visual jitter
+      during zoom and breath effects.
    v 0.52
     - Added new propertys: TargetFPS, MitchellQuality, InfoIndicatorOnlyOnHover
     - Pagechange animated clear re-added/must be nonthreaded here for now
@@ -38,87 +44,6 @@
     - Backgrounds are now pre-scaled on Window Resize.
     - Massive performance improvement: Renders now 110 images same time visible moving still fine here, before around 80.
     - Enabled "Mitchell" (High-Quality) scaling for images
-   v 0.49
-    - Some fine tuning and small bugfixes
-    - Improved thread stability in draw function
-    - Added adaptive frame skipping to prevent UI freezing under heavy load or on toy pcs.
-    - Added new unit -> uSkFlowButtons - creates panel of definable animated buttons,
-      compiles but not working fully so far
-    - Added property: ShowInfoIndicatoralways
-   v 0.48
-    - Added Skia v7.01 binaries (libSkia.dll) to sample folder.
-    - Important: Updated from godknows how much older version yesterday.
-    - (Discovered i need it this morning via "runtime error shock" on my little dual-core Zenbook UX305CA)
-    - switched to MIT license, sounds cooler :D
-    - Started some code refactoring across multiple functions
-    - Moved background effects into new unit -> uSkFlowEffects
-    - Added property ItemBorderColor
-    - Fixed av at threaded clear, using a local reference to FImages list
-   v 0.47
-    - Fixed Infoindicator showing again before panel outside
-    - Fixed sometimes selected getting directly back to gridposition and not animate to it when clickng like mad around and select others :D
-    - Fixed sometimes item from fullscreen animating back in line getting a moment invisible
-    - Added property HoverAliveOnFullscreen en/disables HoverAlive for selected only at fullscreen
-    - Implemented basic videoplayer inside of selected image (not working, but starting already, threadhopping works :D)
-    - Implemented base for smartnavigation (GetSpatialCandidate -> TSmartImageAction = (siaSelectNorth, siaSelectSouth, siaSelectWest, siaSelectEast) not finished
-    - Added property AlwaysShowInfo
-    - Added property DeleteClicked -> if active clicked pic gets destroyed
-   v 0.46
-    - Added new TBackgroundEffect -> beHolographic, beRealMatrix
-    - beRealMatrix using live data of items (smallpics too but instable atm, commented out)
-    - New propertys -> MatrixFont, MatrixColor, MatrixHeadColor, MatrixSpeed, MatrixFontSize
-    - Fixed: Hoveralive not stops anymore at fullscreen
-    - some fine tuning, small bugfixes, code cleaning, remove var corpses...
-    - Improved InfoIndicator: stops breathing on mouseover
-    - Added propertys -> InfoIndicatorHotColor, ShowInfoOnMiddleClick
-    - Added OnFullscreenEnter event.
-      Fires when the selected image animation finishes (is fully zoomed).
-      Requires synchronization with Main Thread for UI safety.
-    - Added Swipe Gesture support for InfoPanel when SelectedMovable false or fullscreen
-      Mouse Swipe (Left/Right/Up/Down) opens/closes the info panel depending on TInfoPanelDirection.
-   v 0.45
-    - Added HoverAlive feature (Micro-Hovering).
-      Images now gently float around their center position with customizable range and speed.
-    - Aded propertys -> HoverAliveRange, HoverAlive, HoverAliveSpeed
-    - Added new TInfoPanelDirection: ipdAuto, ipdTop, ipdBottom, ipdLeft, ipdRight
-    - Fixed: InfoPanelWidthPercent now working
-    - Added new InfoIndicator -> propertys FInfoIndicatorColor, FShowInfoIndicator
-      shows arrows when info text in imageitem and on click show infos
-    - Added new TFullscreenAngle: fsa0, fsa90, fsa180, fsa270
-    - Improved shadow rendering: breathing selected now raises shadow more than hotzoomed
-    - Improved RotateDot: stops breathing on mouseover + larger clickable area
-    - Improved smallpic & rotatedot positioning with roundedges + smallpicmargin
-    - Added property RotateHandleSize
-    - New: Set OwnerForm Quality to HighPerformance by default
-    - Improved wall sliding physics – now calculates with rotation (commented out for now, more TODO)
-    - Split DrawFluidInfo into separate functions for easier extension: DrawFluidInfo_BlurEdge, DrawFluidInfo_Static
-    - Fixed: Info text now supports new line at '|'
-    - Added new TInfoAnimationStyle: iasTransparent (transparency tied to zoom factor)
-    - Added new properties: HotZoomMaxFactor, EnableParticlesOnMouseClick
-   v 0.44
-    - Implemented Imageitem TargetAlpha for smooth fade alpha.
-    - Animated Clear method now runs in our physics thread + alpha fade-out.
-    - Fixed shadow perspective alignment for small rotated images too now.
-    - Fixed Z-order layering issues during un-zooming(from fullzoomed) and hot-tracking.
-    - Fixed live UI updates for SetCaption, SetHint, and SetSmallPicIndex.
-    - Added BreathRotationEnabled for subtle breathing rotation effects.
-    - Added Imageitem - FInfoText
-    - Added new ShowInfoPanel -> overlays more infos txt, animated slidein and look
-    - Changed - MidMousebtn now shows/Hides infopanel and on rotatebtn reset angle
-    - Added TInfoAnimationStyle = (iasBlurEdge, iasStatic)
-   v 0.43
-    - skFLM now automatically resizes large images
-    - Added MaxInternalPicSize property (default 720px)
-    - Implemented real-time collision avoidance
-      Images now dynamically move out of the way when the selected is dragged across the screen
-      This creates a natural, magnetic interaction effect when KeepSpaceforZoomed is combined with
-      SelectedMovable
-    - We disable breathing/hotzoom if we are currently dragging the image
-      This prevents the "Jitter/Flicker" effect caused by size changes while moving
-    - Implemented dynamic shadow scaling based on zoom/breath state
-    - Wall Sliding: Hotzoom and breathing effects now respect screen edges.
-      Images smoothly slide against borders.
-    - lots fine tuning and bugfixes
    }
 
 
@@ -132,7 +57,7 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Math,
   System.IOUtils, System.Generics.Defaults, System.Generics.Collections,
   { FMX }
-  FMX.Types, FMX.Controls, FMX.Graphics, FMX.Forms, FMX.ImgList, FMX.Media,
+  FMX.Types, FMX.Controls, FMX.Graphics, FMX.Forms, FMX.ImgList,
   { Skia }
   System.Skia, FMX.Skia,
   { Dependencies }
@@ -440,13 +365,11 @@ type
     FPrevRect: TRect;
     FFreeFloat: Boolean;
 
-    { --- Video Support --- }
-    FVideoPlayer: TMediaPlayerControl;
-    FTestVideoFile: string;
-    FCaptureVideo: Boolean;
-    FLastVideoRect: TRectF;
-    FLastVideoAngle: Single;
-    FSelectedVideoSnapshot: ISkImage;
+    { --- Picture Pipeline --- }
+    // Swap Chain for Thread Safety
+    FExternalImage_A: ISkImage;
+    FExternalImage_B: ISkImage;
+    FUsingImageA: Boolean;
 
     { --- Visuals & Style --- }
     //FBackgroundSkImage: ISkImage;
@@ -616,12 +539,8 @@ type
     procedure DrawBackgroundEffects(const ACanvas: ISkCanvas; const ADest: TRectF; const Paint: ISkPaint);
     procedure InitMatrix;
     function GetLiveImageDataString(ImgIdx: Integer): string;
-    procedure CreateNewVideoSnapshot(AWidth, AHeight: Single);
     procedure DrawSmallPicOverlay(const Item: TImageItem; const BaseRect: TRectF; ACanvas: ISkCanvas; Paint: ISkPaint);
     procedure DrawAndAnimateParticles(const ACanvas: ISkCanvas);
-
-    { --- Video Player Methods --- }
-    procedure SetVideoFileSync;
 
     { --- Internal Methods - Paging --- }
     function GetPageCount: Integer;
@@ -716,14 +635,13 @@ type
     procedure SetInfoPanelStyle(const Value: TInfoAnimationStyle);
     procedure SetInfoIndicatorHotColor(const Value: TAlphaColor);
     procedure SetShowInfoOnMiddleClick(const Value: Boolean);
-    procedure SetTestVideoFile(const Value: string);
-    procedure SetCaptureVideo(const Value: Boolean);
     procedure SetAlwaysShowInfo(const Value: Boolean);
     procedure SetDeleteClicked(const Value: Boolean);
     procedure SetItemBorderColor(const Value: TAlphaColor);
     procedure SetTargetFPS(const Value: Integer);
     procedure SetMitchellQuality(const Value: Boolean);
     procedure SetInfoIndicatorOnlyOnHover(const Value: Boolean);
+    procedure SetExternalStreamImage(const Value: ISkImage);
   protected
     { Paint Overrides }
     procedure Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single); override;
@@ -855,9 +773,7 @@ type
     property AnimationSpeed: Integer read FAnimationSpeed write SetAnimationSpeed default DEFAULT_ANIMATION_SPEED;
     property SelectedMovable: Boolean read FSelectedMovable write SetSelectedMovable default false;
     property Sorted: Boolean read FSorted write SetSorted default True;
-
     property FreeFloat: Boolean read FFreeFloat write FFreeFloat;
-
     property KeepSpaceforZoomed: Boolean read FKeepSpaceforZoomed write SetKeepSpaceforZoomed default false;
     property Spacing: Integer read FSpacing write SetSpacing default 0;
     property KeepAspectRatio: Boolean read FKeepAspectRatio write SetKeepAspectRatio default True;
@@ -868,6 +784,7 @@ type
     property MaxColumns: Integer read FMaxColumns write SetMaxColumns default 0;
     property MaxRows: Integer read FMaxRows write SetMaxRows default 0;
     property AnimationEasing: Boolean read FAnimationEasing write FAnimationEasing default True;
+    property ExternalStreamImage: ISkImage read FExternalImage_A write SetExternalStreamImage;
 
     { Events }
     property OnImageLoad: TProc<TObject, string, Boolean> read FOnImageLoad write FOnImageLoad;
@@ -971,10 +888,6 @@ type
 
     { Events }
     property OnFullscreenEnter: TImageFullscreenEvent read FOnFullscreenEnter write FOnFullscreenEnter;
-
-    { Video }
-    property TestVideoFile: string read FTestVideoFile write SetTestVideoFile;
-    property CaptureVideo: Boolean read FCaptureVideo write SetCaptureVideo;
 
     { Standard FMX Properties }
     property Align;
@@ -1453,6 +1366,9 @@ begin
   FShowInfoOnMiddleClick := True;
   FOnFullscreenEnterFired := False;
   FBackgroundFadestage := 255;
+  FExternalImage_A := nil;
+  FExternalImage_B := nil;
+  FUsingImageA := True;
   { --- Defaults - Layout --- }
   FFlowLayout := flSorted;
   FKeepSpaceforZoomed := false;
@@ -1473,7 +1389,7 @@ begin
   FInfoIndicatorHotColor := TAlphaColors.Aqua;
   FShowInfoIndicator := True;
   FShowInfoIndicatoralways := True;
-  FMitchellQuality := True;
+  FMitchellQuality := False;
   FInfoIndicatorOnlyOnHover := True;
   FEnableParticlesOnMouseClick := True;
   FGlowColor := TAlphaColors.Aqua;
@@ -1546,21 +1462,6 @@ begin
   Self.HitTest := True;
   FMaxInternalPicSize := 720;
   FTargetFPS := 50;
-  // ==========================================================
-  // CREATE VIDEO PLAYER (Initialize at Startup)
-  // ==========================================================
-  FCaptureVideo := False;
-  try
-    FVideoPlayer := TMediaPlayerControl.Create(Self);
-    FVideoPlayer.Parent := Self;
-    FVideoPlayer.SetBounds(10, 10, 100, 100); // Start off-screen
-    FVideoPlayer.Visible := True; // Keep it hidden initially
-    FVideoPlayer.HitTest := False; // Pass mouse clicks to Skia
-    FVideoPlayer.MediaPlayer := TMediaPlayer.Create(Self);
-    FVideoPlayer.MediaPlayer.Volume := 100;
-  except
-    //maybe windows and no windows mediaplayer installed or something
-  end;
 end;
 
 destructor TSkFlowmotion.destroy;
@@ -1576,8 +1477,6 @@ begin
       FAnimationThread.WaitFor;
       FreeAndNil(FAnimationThread);
     end;
-    if Assigned(FVideoPlayer) then
-      FVideoPlayer.Free;
     { --- Terminate Load Threads --- }
     for i := 0 to FLoadingThreads.Count - 1 do
     begin
@@ -1689,6 +1588,37 @@ end;
 // INTERNAL METHODS: PROPERTY SETTERS
 // -----------------------------------------------------------------------------
 
+procedure TSkFlowmotion.SetExternalStreamImage(const Value: ISkImage);
+begin
+  // ENTER CRITICAL SECTION
+  // We only lock for the micro-second it takes to swap pointers and flip a flag.
+  // We DO NOT resize here to prevent CPU blocking at 30fps.
+  TMonitor.Enter(Self);
+  try
+    // Double Buffer Logic: Write to the inactive buffer
+    if FUsingImageA then
+    begin
+      // Currently Reading A -> Write to B
+      FExternalImage_B := Value;
+      // Flip flag so Draw() will read B next frame
+      FUsingImageA := False;
+    end
+    else
+    begin
+      // Currently Reading B -> Write to A
+      FExternalImage_A := Value;
+      // Flip flag so Draw() will read A next frame
+      FUsingImageA := True;
+    end;
+  finally
+    TMonitor.Exit(Self);
+  end;
+
+  // We do NOT call Repaint/Invalidate here.
+  // The animation loop (PerformAnimationUpdate) runs continuously and will
+  // automatically pick up the new buffer at the next VSync/Frame tick.
+end;
+
 procedure TSkFlowmotion.SetMitchellQuality(const Value: Boolean);
 begin
   if FMitchellQuality <> Value then
@@ -1740,35 +1670,6 @@ begin
   begin
     FAlwaysShowInfo := Value;
     Repaint;
-  end;
-end;
-
-procedure TSkFlowmotion.SetTestVideoFile(const Value: string);
-begin
-  if FTestVideoFile = Value then
-    Exit;
-
-  // 1. Store value locally first (prevents re-entry)
-  FTestVideoFile := Value;
-
-  // 2. Trigger the Safe Sync
-  TThread.Synchronize(nil, SetVideoFileSync);
-end;
-
-procedure TSkFlowmotion.SetCaptureVideo(const Value: Boolean);
-begin
-  if FCaptureVideo <> Value then
-  begin
-    FCaptureVideo := Value;
-    // Hide and stop player if turning off
-    if not FCaptureVideo then
-      if Assigned(FVideoPlayer) then
-      begin
-        FVideoPlayer.Visible := False;
-        FVideoPlayer.MediaPlayer.Stop;
-        FVideoPlayer.MediaPlayer.Clear;
-        FVideoPlayer.Visible := False;
-      end;
   end;
 end;
 
@@ -3144,10 +3045,12 @@ begin
       if FMitchellQuality then
       begin
         HighQualityOpts.UseCubic := True;
+        HighQualityOpts := TSkSamplingOptions.High;
         HighQualityOpts.Cubic := TSkCubicResampler.Mitchell; // Super sharp
       end
       else
       begin
+        HighQualityOpts.UseCubic := False;
         HighQualityOpts := TSkSamplingOptions.Medium;
       end;
 
@@ -3437,7 +3340,7 @@ begin
   Result := 0;
 end;
 
-// -----------------------------------------------------------------------------
+     // -----------------------------------------------------------------------------
 // DRAW FLUID INFO (Main Function)
 // -----------------------------------------------------------------------------
 procedure TSkFlowmotion.DrawFluidInfo(const AItem: TImageItem; const VisualRect: TRectF; ACanvas: ISkCanvas);
@@ -3458,6 +3361,7 @@ var
   TargetPanelW, TargetPanelH: Single;
   CurrentPanelL, CurrentPanelR, CurrentPanelT, CurrentPanelB: Single;
   CurrentPanelW, CurrentPanelH: Single;
+  BaseImageW, BaseImageH: Single;
   // Local Paint/Font Objects
   LPaint: ISkPaint;
   LSkFont: ISkFont;
@@ -3468,7 +3372,7 @@ var
 
   function IsWide: Boolean;
   begin
-    Result := (TotalImageWidth > TotalImageHeight);
+    Result := (BaseImageW > BaseImageH);
   end;
 
 begin
@@ -3507,11 +3411,23 @@ begin
     LineSpacing := FInfoFont.Size * 1.4;
 
     // ==========================================================
+    // CALCULATE BASE GEOMETRY (Stable Reference)
+    // ==========================================================
+    if (AItem.TargetRect.Right > AItem.TargetRect.Left) and (AItem.TargetRect.Bottom > AItem.TargetRect.Top) then
+    begin
+      BaseImageW := AItem.TargetRect.Right - AItem.TargetRect.Left;
+      BaseImageH := AItem.TargetRect.Bottom - AItem.TargetRect.Top;
+    end
+    else
+    begin
+      // Fallback to VisualRect if Target is empty (e.g. during initial entry)
+      BaseImageW := VisualRect.Right - VisualRect.Left;
+      BaseImageH := VisualRect.Bottom - VisualRect.Top;
+    end;
+
+    // ==========================================================
     // CALCULATE TARGET DIMENSIONS (W and H)
     // ==========================================================
-    TotalImageWidth := VisualRect.Right - VisualRect.Left;
-    TotalImageHeight := VisualRect.Bottom - VisualRect.Top;
-
     // 1. Determine Direction & Resolve Auto
     ActualDirection := FInfoPanelDirection;
     if ActualDirection = ipdAuto then
@@ -3530,15 +3446,19 @@ begin
     case ActualDirection of
       ipdLeft, ipdRight:
         begin
-          TargetPanelW := TotalImageWidth * FInfoPanelWidthPercent; // % of Width
-          TargetPanelH := TotalImageHeight; // Full Height
+          TargetPanelW := BaseImageW * FInfoPanelWidthPercent; // % of Width
+          TargetPanelH := BaseImageH; // Full Height
         end;
       ipdTop, ipdBottom:
         begin
-          TargetPanelW := TotalImageWidth; // Full Width
-          TargetPanelH := TotalImageHeight * FInfoPanelWidthPercent; // % of Height
+          TargetPanelW := BaseImageW; // Full Width
+          TargetPanelH := BaseImageH * FInfoPanelWidthPercent; // % of Height
         end;
     end;
+
+    // Round Panel Dimensions to prevent sub-pixel box jitter
+    TargetPanelW := Round(TargetPanelW);
+    TargetPanelH := Round(TargetPanelH);
 
     if TargetPanelW < 10 then
       TargetPanelW := 10;
@@ -3584,9 +3504,9 @@ begin
         if CurrentWord <> '' then
         begin
           if CurrentLine = '' then
-            LineWidth := Trunc(LocalBmp.Canvas.TextWidth(CurrentWord))
+            LineWidth := LocalBmp.Canvas.TextWidth(CurrentWord)
           else
-            LineWidth := Trunc(LocalBmp.Canvas.TextWidth(CurrentLine + ' ' + CurrentWord));
+            LineWidth := LocalBmp.Canvas.TextWidth(CurrentLine + ' ' + CurrentWord);
 
           if LineWidth > MaxCaptionWidth then
           begin
@@ -3770,10 +3690,10 @@ begin
       InfoLines.Free;
   end;
 end;
-// -----------------------------------------------------------------------------
-// DRAW FLUID INFO: TRANSPARENT STYLE (Helper) - LARGER MARGIN
-// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// DRAW FLUID INFO: TRANSPARENT STYLE (Helper)
+// -----------------------------------------------------------------------------
 procedure TSkFlowmotion.DrawFluidInfo_Transparent(const AItem: TImageItem; const VisualRect: TRectF; ACanvas: ISkCanvas; LocalBmp: TBitmap; const CurrentPanelLeft, CurrentPanelRight, CurrentPanelTop, CurrentPanelBottom: Single; const BreathingPulse: Single; const ZoomFactor: Single; const InfoLines: TStringList; const LineSpacing: Single; const Paint: ISkPaint; const SkFont: ISkFont; const MaxLines: Integer; const ActualDirection: TInfoPanelDirection);
 var
   StripRect: TRectF;
@@ -3783,7 +3703,11 @@ var
   TextHeight: Single;
   LocalPaint: ISkPaint;
   ActualMaxLines: Integer;
-  BaseMargin: Single; // <--- ONLY THIS
+  BaseMargin: Single;
+  // Vars for Text Baking
+  SnapshotInfo: TSkImageInfo;
+  TextSurface: ISkSurface;
+  TextSnapshot: ISkImage;
 begin
   ACanvas.Save;
   ACanvas.ClipRect(TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom));
@@ -3810,42 +3734,53 @@ begin
   LocalPaint.Alpha := 255;
 
   ActualMaxLines := Min(InfoLines.Count, MaxLines);
-
-  // ==========================================================
-  // MARGIN: 25 pixels down from top
-  // ==========================================================
   BaseMargin := 25.0;
 
+  // ==========================================================
+  // BAKING STRATEGY (For Smooth Zoom/Breath)
+  // ==========================================================
+  // 1. Create Surface sized to the Panel
+  SnapshotInfo := TSkImageInfo.Create(Round(CurrentPanelRight - CurrentPanelLeft), Round(CurrentPanelBottom - CurrentPanelTop), TSkColorType.RGBA8888, TSkAlphaType.Premul);
+  TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
+
+  // 2. Clear Surface
+  TextSurface.Canvas.Clear(TAlphaColors.Null);
+
+  // 3. Draw Text onto Surface
   for i := 0 to ActualMaxLines - 1 do
   begin
-    LineTextWidth := Trunc(LocalBmp.Canvas.TextWidth(InfoLines[i]));
-    TextHeight := Trunc(LocalBmp.Canvas.TextHeight(InfoLines[i]));
+    // Use SkFont.MeasureText for exact Skia width
+    LineTextWidth := SkFont.MeasureText(InfoLines[i], Paint);
+    TextHeight := LocalBmp.Canvas.TextHeight(InfoLines[i]);
 
-    // TEXT ALIGNMENT
+    // Align Left for ALL directions to ensure maximum stability during breathing
     if ActualDirection = ipdLeft then
       TextDrawX := CurrentPanelLeft + BaseMargin
     else if ActualDirection = ipdRight then
       TextDrawX := CurrentPanelLeft + BaseMargin
     else
-      TextDrawX := ((CurrentPanelLeft + CurrentPanelRight) / 2) - (LineTextWidth / 2);
+      // Top or Bottom: Align Left
+      TextDrawX := CurrentPanelLeft + BaseMargin;
 
-    // VERTICAL ALIGNMENT
-    // Top, Bottom, Left, Right: Start at Top + Margin
     DrawY := (CurrentPanelTop + BaseMargin) + (i * LineSpacing);
 
-    // CLIP CHECK
     if DrawY + TextHeight > CurrentPanelBottom then
       Break;
 
-    ACanvas.DrawSimpleText(InfoLines[i], TextDrawX, DrawY, SkFont, LocalPaint);
+    // IMPORTANT: Draw relative to Surface (0,0)
+    TextSurface.Canvas.DrawSimpleText(InfoLines[i], TextDrawX - CurrentPanelLeft, DrawY - CurrentPanelTop, SkFont, LocalPaint);
   end;
+
+  // 4. Snapshot and Draw
+  TextSnapshot := TextSurface.MakeImageSnapshot;
+  ACanvas.DrawImageRect(TextSnapshot, StripRect, TSkSamplingOptions.High, LocalPaint);
 
   ACanvas.Restore;
 end;
-// -----------------------------------------------------------------------------
-// DRAW FLUID INFO: STATIC STYLE (Helper) - LARGER MARGIN
-// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// DRAW FLUID INFO: STATIC STYLE (Helper)
+// -----------------------------------------------------------------------------
 procedure TSkFlowmotion.DrawFluidInfo_Static(const AItem: TImageItem; const VisualRect: TRectF; ACanvas: ISkCanvas; LocalBmp: TBitmap; const CurrentPanelLeft, CurrentPanelRight, CurrentPanelTop, CurrentPanelBottom: Single; const BreathingPulse: Single; const ZoomFactor: Single; const InfoLines: TStringList; const LineSpacing: Single; const Paint: ISkPaint; const SkFont: ISkFont; const MaxLines: Integer; const ActualDirection: TInfoPanelDirection);
 var
   StripRect: TRectF;
@@ -3855,7 +3790,11 @@ var
   TextHeight: Single;
   LocalPaint: ISkPaint;
   ActualMaxLines: Integer;
-  BaseMargin: Single; // <--- ONLY THIS
+  BaseMargin: Single;
+  // Vars for Text Baking
+  SnapshotInfo: TSkImageInfo;
+  TextSurface: ISkSurface;
+  TextSnapshot: ISkImage;
 begin
   ACanvas.Save;
   ACanvas.ClipRect(TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom));
@@ -3877,38 +3816,53 @@ begin
   LocalPaint.Alpha := 255;
 
   ActualMaxLines := Min(InfoLines.Count, MaxLines);
-
-  // ==========================================================
-  // MARGIN: 25 pixels down from top
-  // ==========================================================
   BaseMargin := 25.0;
 
+  // ==========================================================
+  // BAKING STRATEGY (For Smooth Zoom/Breath)
+  // ==========================================================
+  // 1. Create Surface sized to the Panel
+  SnapshotInfo := TSkImageInfo.Create(Round(CurrentPanelRight - CurrentPanelLeft), Round(CurrentPanelBottom - CurrentPanelTop), TSkColorType.RGBA8888, TSkAlphaType.Premul);
+  TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
+
+  // 2. Clear Surface
+  TextSurface.Canvas.Clear(TAlphaColors.Null);
+
+  // 3. Draw Text onto Surface
   for i := 0 to ActualMaxLines - 1 do
   begin
-    LineTextWidth := Trunc(LocalBmp.Canvas.TextWidth(InfoLines[i]));
-    TextHeight := Trunc(LocalBmp.Canvas.TextHeight(InfoLines[i]));
+    // Use SkFont.MeasureText for exact Skia width
+    LineTextWidth := SkFont.MeasureText(InfoLines[i], Paint);
+    TextHeight := LocalBmp.Canvas.TextHeight(InfoLines[i]);
 
+    // Align Left for ALL directions to ensure maximum stability during breathing
     if ActualDirection = ipdLeft then
       TextDrawX := CurrentPanelLeft + BaseMargin
     else if ActualDirection = ipdRight then
       TextDrawX := CurrentPanelLeft + BaseMargin
     else
-      TextDrawX := ((CurrentPanelLeft + CurrentPanelRight) / 2) - (LineTextWidth / 2);
+      // Top or Bottom: Align Left
+      TextDrawX := CurrentPanelLeft + BaseMargin;
 
     DrawY := (CurrentPanelTop + BaseMargin) + (i * LineSpacing);
 
     if DrawY + TextHeight > CurrentPanelBottom then
       Break;
 
-    ACanvas.DrawSimpleText(InfoLines[i], TextDrawX, DrawY, SkFont, LocalPaint);
+    // IMPORTANT: Draw relative to Surface (0,0)
+    TextSurface.Canvas.DrawSimpleText(InfoLines[i], TextDrawX - CurrentPanelLeft, DrawY - CurrentPanelTop, SkFont, LocalPaint);
   end;
+
+  // 4. Snapshot and Draw
+  TextSnapshot := TextSurface.MakeImageSnapshot;
+  ACanvas.DrawImageRect(TextSnapshot, StripRect, TSkSamplingOptions.High, LocalPaint);
 
   ACanvas.Restore;
 end;
-// -----------------------------------------------------------------------------
-// DRAW FLUID INFO: BLUR EDGE STYLE (Helper) - LARGER MARGIN
-// -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// DRAW FLUID INFO: BLUR EDGE STYLE (Helper)
+// -----------------------------------------------------------------------------
 procedure TSkFlowmotion.DrawFluidInfo_BlurEdge(const AItem: TImageItem; const VisualRect: TRectF; ACanvas: ISkCanvas; LocalBmp: TBitmap; const CurrentPanelLeft, CurrentPanelRight, CurrentPanelTop, CurrentPanelBottom: Single; const WaveX, WaveY: Single; const BreathingPulse: Single; const ZoomFactor: Single; const InfoLines: TStringList; const LineSpacing: Single; const Paint: ISkPaint; const SkFont: ISkFont; const MaxLines: Integer; const ActualDirection: TInfoPanelDirection);
 var
   Builder: ISkPathBuilder;
@@ -3922,7 +3876,12 @@ var
   TextHeight: Single;
   LocalPaint: ISkPaint;
   ActualMaxLines: Integer;
-  BaseMargin: Single; // <--- ONLY THIS
+  BaseMargin: Single;
+  // Vars for Text Baking
+  SnapshotInfo: TSkImageInfo;
+  TextSurface: ISkSurface;
+  TextSnapshot: ISkImage;
+  TextSurfaceRect: TRectF; // Store the rect for the text surface
 begin
   ACanvas.Save;
   ACanvas.ClipRect(TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom));
@@ -4036,31 +3995,49 @@ begin
   LocalPaint.Alpha := 255;
 
   ActualMaxLines := Min(InfoLines.Count, MaxLines);
-
-  // ==========================================================
-  // MARGIN: 30 pixels down from top (More for Blur)
-  // ==========================================================
   BaseMargin := 30.0;
 
+  // Define the rect where text will be drawn (for snapshot sizing)
+  TextSurfaceRect := TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom);
+
+  // ==========================================================
+  // BAKING STRATEGY (For Smooth Zoom/Breath)
+  // ==========================================================
+  // 1. Create Surface sized to the Panel
+  SnapshotInfo := TSkImageInfo.Create(Round(TextSurfaceRect.Width), Round(TextSurfaceRect.Height), TSkColorType.RGBA8888, TSkAlphaType.Premul);
+  TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
+
+  // 2. Clear Surface
+  TextSurface.Canvas.Clear(TAlphaColors.Null);
+
+  // 3. Draw Text onto Surface
   for i := 0 to ActualMaxLines - 1 do
   begin
-    LineTextWidth := Trunc(LocalBmp.Canvas.TextWidth(InfoLines[i]));
-    TextHeight := Trunc(LocalBmp.Canvas.TextHeight(InfoLines[i]));
+    // Use SkFont.MeasureText for exact Skia width
+    LineTextWidth := SkFont.MeasureText(InfoLines[i], Paint);
+    TextHeight := LocalBmp.Canvas.TextHeight(InfoLines[i]);
 
+    // Align Left for ALL directions to ensure maximum stability during breathing
     if ActualDirection = ipdLeft then
       TextDrawX := CurrentPanelLeft + BaseMargin
     else if ActualDirection = ipdRight then
       TextDrawX := CurrentPanelLeft + BaseMargin
     else
-      TextDrawX := ((CurrentPanelLeft + CurrentPanelRight) / 2) - (LineTextWidth / 2);
+      // Top or Bottom: Align Left
+      TextDrawX := CurrentPanelLeft + BaseMargin;
 
     DrawY := (CurrentPanelTop + BaseMargin) + (i * LineSpacing);
 
     if DrawY + TextHeight > CurrentPanelBottom then
       Break;
 
-    ACanvas.DrawSimpleText(InfoLines[i], TextDrawX, DrawY, SkFont, LocalPaint);
+    // IMPORTANT: Draw relative to Surface (0,0)
+    TextSurface.Canvas.DrawSimpleText(InfoLines[i], TextDrawX - CurrentPanelLeft, DrawY - CurrentPanelTop, SkFont, LocalPaint);
   end;
+
+  // 4. Snapshot and Draw
+  TextSnapshot := TextSurface.MakeImageSnapshot;
+  ACanvas.DrawImageRect(TextSnapshot, TextSurfaceRect, TSkSamplingOptions.High, LocalPaint);
 
   ACanvas.Restore;
 end;
@@ -4515,22 +4492,24 @@ begin
   end;
 
   // ---------------------------------------------------------
-  // 4. DRAW CLEAN IMAGE (No filter applied here)
+  // 4. DRAW IMAGE
   // ---------------------------------------------------------
   LPaint.ImageFilter := nil;
   LPaint.Style := TSkPaintStyle.Fill;
-  LPaint.Alpha := FAlphaStatic; // Restore alpha for the image content
-  //ACanvas.DrawImageRect(ImageToDraw, DstRect, TSkSamplingOptions.High, LPaint);
+  LPaint.Alpha := FAlphaStatic;
 
   if FMitchellQuality then
   begin
     HighQualityOpts.UseCubic := True;
+    HighQualityOpts := TSkSamplingOptions.High;
     HighQualityOpts.Cubic := TSkCubicResampler.Mitchell; // Super sharp
   end
   else
   begin
+    HighQualityOpts.UseCubic := False;
     HighQualityOpts := TSkSamplingOptions.Medium;
   end;
+
   ACanvas.DrawImageRect(ImageToDraw, DstRect, HighQualityOpts, LPaint);
 
   ACanvas.Restore;
@@ -4538,8 +4517,8 @@ end;
 
 procedure TSkFlowmotion.Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single);
 var
-  VisRect: TRectF;
-  i, MaxLineWidth, LineTextWidth, HandleSize, Margin: Integer;
+  HandleSize, Margin, i: Integer;
+  MaxLineWidth, LineTextWidth: Single;
   ImageItem: TImageItem;
   Paint: ISkPaint;
   ShadowFilter: ISkImageFilter;
@@ -4552,35 +4531,53 @@ var
   AnimatingImages: TList;
   EnteringImages: TList;
   CurrentItem: TImageItem;
+  HighQualityOpts: TSkSamplingOptions;
+  ActiveStreamImage: ISkImage;
+  StreamSamplingOpts: TSkSamplingOptions;
 const
   SHADOW_OFFSET_X = 8.0;
   SHADOW_OFFSET_Y = 8.0;
   // --------------------------------------------------------------
   // Renders Caption with Word Wrapping & Alpha Background
   // --------------------------------------------------------------
-
+  // Renders Caption with Word Wrapping & Alpha Background
+  // Uses "Text Baking" for Selected/Hot items to prevent jitter during zoom/breath animations.
   procedure DrawCaption(Item: TImageItem; const DrawRect: TRectF);
   var
     LocalBmp: TBitmap;
     Lines: TStringList;
-    i, LineHeight, LineWidth: Integer;
-    MaxCaptionWidth, MaxCaptionHeight: Integer;
+    MaxCaptionWidth, MaxCaptionHeight,
+    LineHeight, LineWidth: Single;
     CurrentLine, Word: string;
-    WordStart, WordEnd: Integer;
+    i, WordStart, WordEnd: Integer;
     ActualLinesToShow, MaxLinesToShow: Integer;
     TextRect, LineRect: TRectF;
     InflatedDrawRect: TRectF;
     CapTop, DrawX, DrawY: Single;
     SkFont: ISkFont;
     SkStyle: TSkFontStyle;
+    // Vars for Text Baking (Snapshot)
+    SnapshotInfo: TSkImageInfo;
+    TextSurface: ISkSurface;
+    TextSnapshot: ISkImage;
+    BakingNeeded: Boolean;
   begin
     if not FShowCaptions or (Item.Caption = '') then
       Exit;
     if FCaptionOnHoverOnly and (Item <> FHotItem) and (Item <> FSelectedImage) then
       Exit;
 
-    LocalBmp := TBitmap.Create;
+    // OPTIMIZATION: Only bake text if the item is animating/zooming (Selected or Hot).
+    // Static items draw directly for max performance.
+    BakingNeeded := Item.IsSelected or (Item = FHotItem);
+
+    LocalBmp := nil;
+    TextSurface := nil;
+    TextSnapshot := nil;
+
     try
+      // 1. Measure Text (Keep LocalBmp logic to ensure Wrapping matches exactly)
+      LocalBmp := TBitmap.Create;
       LocalBmp.Canvas.Font.Family := FCaptionFont.Family;
       LocalBmp.Canvas.Font.Size := FCaptionFont.Size;
       LocalBmp.Canvas.Font.Style := FCaptionFont.Style;
@@ -4593,6 +4590,8 @@ const
       Lines := TStringList.Create;
       CurrentLine := '';
       i := 1;
+
+      // --- Word Wrapping Logic ---
       while i <= Length(Item.Caption) do
       begin
         while (i <= Length(Item.Caption)) and (Item.Caption[i] = ' ') do
@@ -4606,9 +4605,9 @@ const
         Word := Copy(Item.Caption, WordStart, WordEnd - WordStart + 1);
 
         if CurrentLine = '' then
-          LineWidth := Trunc(LocalBmp.Canvas.TextWidth(Word))
+          LineWidth := LocalBmp.Canvas.TextWidth(Word)
         else
-          LineWidth := Trunc(LocalBmp.Canvas.TextWidth(CurrentLine + ' ' + Word));
+          LineWidth := LocalBmp.Canvas.TextWidth(CurrentLine + ' ' + Word);
 
         if LineWidth > MaxCaptionWidth then
         begin
@@ -4627,6 +4626,7 @@ const
       if CurrentLine <> '' then
         Lines.Add(CurrentLine);
 
+      // --- Geometry Calculation ---
       LineHeight := Trunc(LocalBmp.Canvas.TextHeight('Hg')) + 2;
       MaxCaptionHeight := Max(MaxCaptionHeight, LineHeight * 2);
       MaxLinesToShow := 2;
@@ -4661,9 +4661,9 @@ const
       MaxLineWidth := 0;
       for i := 0 to ActualLinesToShow - 1 do
       begin
-        LineTextWidth := Trunc(LocalBmp.Canvas.TextWidth(Lines[i]));
-        if LineTextWidth > MaxLineWidth then
-          MaxLineWidth := LineTextWidth;
+        LineWidth := LocalBmp.Canvas.TextWidth(Lines[i]);
+        if LineWidth > MaxLineWidth then
+          MaxLineWidth := LineWidth;
       end;
 
       TextRect.Left := TextRect.Left + ((TextRect.Right - TextRect.Left) - (MaxLineWidth + 24)) / 2.0;
@@ -4679,6 +4679,7 @@ const
       if TextRect.Top < 0 then
         TextRect.Top := 0;
 
+      // --- Draw Background ---
       Paint.Style := TSkPaintStyle.Fill;
       if Item.IsSelected then
         Paint.Color := (FSelectedCaptionBackground and $00FFFFFF) or (FCaptionAlpha shl 24)
@@ -4690,6 +4691,7 @@ const
       Paint.ImageFilter := nil;
       ACanvas.DrawRoundRect(TextRect, 4.0, 4.0, Paint);
 
+      // --- Prepare Skia Font ---
       SkStyle := TSkFontStyle.Normal;
       if TFontStyle.fsBold in FCaptionFont.Style then
         SkStyle := TSkFontStyle.Bold;
@@ -4705,17 +4707,58 @@ const
       else
         Paint.Color := FCaptionColor;
 
-      for i := 0 to ActualLinesToShow - 1 do
+      // --- DRAW TEXT STRATEGY ---
+      if BakingNeeded then
       begin
-        LineTextWidth := Trunc(LocalBmp.Canvas.TextWidth(Lines[i]));
-        DrawX := TextRect.Left + (TextRect.Right - TextRect.Left - LineTextWidth) / 2.0;
-        DrawY := (TextRect.Top + 6 + (i * LineHeight)) + LineHeight - (LineHeight * 0.25);
-        ACanvas.DrawSimpleText(Lines[i], DrawX, DrawY, SkFont, Paint);
+        // STRATEGY A: BAKE TO SURFACE (Prevents Jitter during Zoom/Breath)
+        // 1. Create a temporary Surface sized to the TextRect
+        SnapshotInfo := TSkImageInfo.Create(Round(TextRect.Width), Round(TextRect.Height), TSkColorType.RGBA8888, TSkAlphaType.Premul);
+        TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
+
+        // 2. Clear Surface
+        TextSurface.Canvas.Clear(TAlphaColors.Null);
+
+        // 3. Draw Text onto Surface
+        for i := 0 to ActualLinesToShow - 1 do
+        begin
+          // Use SkFont.MeasureText to get exact width for alignment
+          // We use the overload that returns a Single directly.
+          var SkiaLineW: Single;
+          SkiaLineW := SkFont.MeasureText(Lines[i], Paint);
+
+          // Center inside the box (Box Width - 24 Margins) / 2
+          DrawX := (TextRect.Left + 12) + ((TextRect.Right - TextRect.Left - 24) - SkiaLineW) / 2.0;
+          DrawY := (TextRect.Top + 6 + (i * LineHeight)) + LineHeight - (LineHeight * 0.25);
+
+          // IMPORTANT: Subtract TextRect.Top/Left to draw relative to Surface (0,0)
+          TextSurface.Canvas.DrawSimpleText(Lines[i], DrawX - TextRect.Left, DrawY - TextRect.Top, SkFont, Paint);
+        end;
+
+        // 4. Snapshot the Surface to an Image
+        TextSnapshot := TextSurface.MakeImageSnapshot;
+
+        // 5. Draw the Snapshot onto the Main Canvas (Smooth scaling)
+        // We use High quality sampling so the text looks crisp even when scaled
+        ACanvas.DrawImageRect(TextSnapshot, TextRect, TSkSamplingOptions.High, Paint);
+      end
+      else
+      begin
+        // STRATEGY B: DIRECT DRAW (Fastest for static items)
+        for i := 0 to ActualLinesToShow - 1 do
+        begin
+          LineWidth := LocalBmp.Canvas.TextWidth(Lines[i]);
+          DrawX := TextRect.Left + 12 + ((TextRect.Right - TextRect.Left) - 24 - LineWidth) / 2.0;
+          DrawY := (TextRect.Top + 6 + (i * LineHeight)) + LineHeight - (LineHeight * 0.25);
+          ACanvas.DrawSimpleText(Lines[i], DrawX, DrawY, SkFont, Paint);
+        end;
       end;
 
     finally
       Lines.Free;
-      LocalBmp.Free;
+      if Assigned(LocalBmp) then
+        LocalBmp.Free;
+      TextSurface := nil;
+      TextSnapshot := nil;
     end;
   end;
 
@@ -4966,16 +5009,22 @@ begin
       ProcessItem(FHotItem, True);
     end;
 
-        // =========================================================================
+    // =========================================================================
     // 6. DRAW SELECTED IMAGE (Absolute Top) - OPTIMIZED
     // =========================================================================
     if Assigned(FSelectedImage) and FSelectedImage.Visible then
     begin
       ImageItem := FSelectedImage;
 
-      // === OPTIMIZATION: CALCULATE ONCE ===
-      VisualRect := GetVisualRect(ImageItem);
+      // =================================================================
+      // STREAM: Determine which buffer is currently active (Front Buffer)
+      // =================================================================
+      if FUsingImageA then
+        ActiveStreamImage := FExternalImage_A
+      else
+        ActiveStreamImage := FExternalImage_B;
 
+      VisualRect := GetVisualRect(ImageItem);
       var SelZoom: Single;
       SelZoom := ImageItem.FHotZoom;
 
@@ -5042,6 +5091,30 @@ begin
         ACanvas.Translate(-CenterX, -CenterY);
       end;
 
+      //Set quality for selected
+      if FMitchellQuality then
+      begin
+        HighQualityOpts.UseCubic := True;
+        HighQualityOpts := TSkSamplingOptions.High;
+        HighQualityOpts.Cubic := TSkCubicResampler.Mitchell; // Super sharp
+      end
+      else
+      begin
+        HighQualityOpts.UseCubic := False;
+        HighQualityOpts := TSkSamplingOptions.Medium;
+      end;
+
+      if Assigned(ActiveStreamImage) then
+      begin
+        StreamSamplingOpts.UseCubic := False;
+        StreamSamplingOpts := TSkSamplingOptions.Low; // Fast GPU Bilinear
+      end
+      else
+      begin
+    // Use standard settings for static images
+        StreamSamplingOpts := HighQualityOpts;
+      end;
+
       // === DRAW IMAGE & SHADOW ===
       if FRoundEdges > 0 then
       begin
@@ -5064,7 +5137,10 @@ begin
         ACanvas.ClipRoundRect(RR, TSkClipOp.Intersect, True);
         Paint.ImageFilter := nil;
         Paint.Alpha := 255;
-        ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, TSkSamplingOptions.High, Paint);
+        if ImageItem.IsSelected and Assigned(ActiveStreamImage) then
+          ACanvas.DrawImageRect(ActiveStreamImage, VisualRect, StreamSamplingOpts, Paint)
+        else
+          ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, HighQualityOpts, Paint);
 
         ACanvas.Restore;
       end
@@ -5084,25 +5160,13 @@ begin
         Paint.AntiAlias := True;
         Paint.Style := TSkPaintStyle.Fill;
         Paint.Alpha := FAlphaHotSelected;
-        ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, TSkSamplingOptions.High, Paint);
+        if ImageItem.IsSelected and Assigned(ActiveStreamImage) then
+          ACanvas.DrawImageRect(ActiveStreamImage, VisualRect, StreamSamplingOpts, Paint)
+        else
+          ACanvas.DrawImageRect(ImageItem.SkImage, VisualRect, HighQualityOpts, Paint);
 
         ACanvas.Restore;
       end;
-
-    // ==========================================================
-    // DRAW VIDEO SNAPSHOT IF CAPTURING
-    // ==========================================================
-    // We draw the video frame ON TOP of the image.
-
-      if FCaptureVideo and Assigned(FSelectedVideoSnapshot) then
-        if (not FSelectedVideoSnapshot.ImageInfo.IsEmpty) then
-        begin
-          ACanvas.Save;
-      // Draw Snapshot
-          Paint.Style := TSkPaintStyle.Fill;
-          ACanvas.DrawImageRect(FSelectedVideoSnapshot, VisualRect, TSkSamplingOptions.High, Paint);
-          ACanvas.Restore;
-        end;
 
       // === DRAW ROTATION HANDLE ===
       if (not FIsClearing) then
@@ -6755,7 +6819,6 @@ var
   iZone: Integer;
   ZoneRect: TRectF;
   ZoneCenter: TPointF;
-
   // --- OPTIMIZED LOCAL VARS ---
   DrawAngle: Single;
   HandleSize: Single;
@@ -8847,66 +8910,6 @@ begin
         FBreathingPhase := Frac(FBreathingPhase + BREATHING_SPEED_PER_SEC * DeltaTime);
   end;
 
-  // ==========================================================
-  // PHASE 7: VIDEO OVERLAY SYNC (Using Skia Snapshot)
-  // ==========================================================
-  if Assigned(FSelectedImage) and FCaptureVideo and (FTestVideoFile <> '') then
-  begin
-    FSelectedImage.Visible := True;
-    VisRect := GetVisualRect(FSelectedImage);
-
-    var VisualAngle: Single;
-    VisualAngle := FSelectedImage.FActualRotation;
-    if FBreathingEnabled and FBreathRotationEnabled and (Abs(VisualAngle) > 0.1) then
-      VisualAngle := VisualAngle + (Sin(FBreathingPhase * 2 * PI) * 1.5);
-
-    var UpdateNeeded: Boolean;
-    UpdateNeeded := False;
-
-    if (Abs(VisRect.Left - FLastVideoRect.Left) > 1.0) or (Abs(VisRect.Top - FLastVideoRect.Top) > 1.0) or (Abs(VisRect.Width - FLastVideoRect.Width) > 1.0) or (Abs(VisRect.Height - FLastVideoRect.Height) > 1.0) then
-      UpdateNeeded := True;
-
-    if Abs(VisualAngle - FLastVideoAngle) > 0.1 then
-      UpdateNeeded := True;
-
-    if UpdateNeeded or (FLastVideoRect.Width = 0) then
-    begin
-      FLastVideoRect := VisRect;
-      FLastVideoAngle := VisualAngle;
-
-      TThread.Queue(nil,
-        procedure
-        begin
-          if Assigned(FVideoPlayer) then
-          begin
-            if FVideoPlayer.MediaPlayer.State <> TMediaState.Playing then
-            begin
-              if FVideoPlayer.MediaPlayer.FileName <> FTestVideoFile then
-                FVideoPlayer.MediaPlayer.FileName := FTestVideoFile;
-              try
-                FVideoPlayer.MediaPlayer.Play;
-              except
-              end;
-            end;
-          end;
-          TThread.Queue(nil,
-            procedure
-            begin
-              if Assigned(FSelectedVideoSnapshot) then
-                FLastVideoRect := VisRect;
-              if Assigned(FVideoPlayer) then
-                FLastVideoAngle := VisualAngle;
-              CreateNewVideoSnapshot(VisRect.Width, VisRect.Height);
-              ThreadSafeRepaint;
-            end);
-        end);
-    end;
-  end
-  else if Assigned(FSelectedImage) then
-  begin
-    FSelectedImage.Visible := True;
-  end;
-
   // Force repaint if background is fading
   if (FBackgroundEffect = beFade) and (FBackgroundFadestage < uSkFlowEffects.MAX_BG_FADE_STEPS) then
     NeedRepaint := True;
@@ -9060,43 +9063,6 @@ begin
   end;
 
 end;       }
-
-procedure TSkFlowmotion.CreateNewVideoSnapshot(AWidth, AHeight: Single);
-var
-  Data: TBitmap;
-  MS: TMemoryStream;
-begin
-  if (not Assigned(FSelectedImage)) or (not Assigned(FVideoPlayer)) then
-    Exit;
-
-    // 1. Create Bitmap (100x100)
-  Data := TBitmap.Create;
-  try
-      // Set size explicitly to ensure bitmap matches what we draw (Zoomed Rect size)
-    Data.SetSize(Trunc(AWidth), Trunc(AHeight));
-
-    // Capture Frame using Player.PaintTo
-    // We draw the player (Invisible) onto this Bitmap.
-    FVideoPlayer.PaintTo(Data.Canvas, RectF(0, 0, Width, Height));
-
-    // Convert Bitmap -> Skia Snapshot
-    MS := TMemoryStream.Create;
-    try
-      // Save bitmap to stream
-      Data.SaveToStream(MS);
-      MS.Position := 0; // Ensure stream start
-
-      // Load back into Skia
-      FSelectedVideoSnapshot := TSkImage.MakeFromEncodedStream(MS);
-    finally
-      MS.Free;
-    end;
-  except
-    // If PaintTo failed (e.g. Player destroyed), Snapshot is nil (nothing drawn)
-    FSelectedVideoSnapshot := nil;
-    Exit;
-  end;
-end;
 
 
 // -----------------------------------------------------------------------------
@@ -9522,43 +9488,6 @@ begin
 
   MarkAreaOccupied(Grid, Row, Col, SpanRows, SpanCols);
   Result := True;
-end;
-
-procedure TSkFlowMotion.SetVideoFileSync;
-begin
-  // Only run logic if player exists
-  if not Assigned(FVideoPlayer) then
-    Exit;
-
-  // 3. Update State
-  if FTestVideoFile <> '' then
-  begin
-    // A. Safe Access (Main Thread)
-    if FTestVideoFile <> FVideoPlayer.MediaPlayer.FileName then
-    begin
-      // Stop and Clear safely
-      if FVideoPlayer.MediaPlayer.State <> TMediaState.Stopped then
-        FVideoPlayer.MediaPlayer.Stop;
-      FVideoPlayer.MediaPlayer.Clear;
-      FVideoPlayer.MediaPlayer.FileName := FTestVideoFile;
-      // Only Play if we are in "Capture" mode
-      if FCaptureVideo then
-      begin
-        try
-          FVideoPlayer.MediaPlayer.Play;
-        except
-          // Ignore errors silently so it doesn't crash the component
-        end;
-      end
-    end
-    else
-    begin
-    // Stop and Clear immediately
-      if FVideoPlayer.MediaPlayer.State <> TMediaState.Stopped then
-        FVideoPlayer.MediaPlayer.Stop;
-      FVideoPlayer.MediaPlayer.Clear;
-    end;
-  end;
 end;
 
 procedure TSkFlowmotion.SetCornerRadius(const Value: Single);

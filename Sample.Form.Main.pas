@@ -19,12 +19,12 @@ uses
   { Delphi RTL }
   System.SysUtils, System.Types, System.UITypes, System.Classes, FMX.Types,
   System.IOUtils, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Ani,
-  FMX.Objects, ShellAPI, FMX.Layouts, FMX.Controls.Presentation, FMX.StdCtrls,
-  FMX.Effects, System.Win.Registry, System.Skia, FMX.Skia, System.ImageList,
-  FMX.ImgList, FMX.ListBox, FMX.Colors, FMX.Edit, FMX.EditBox, FMX.SpinBox,
-  Windows, Messages, FMX.Menus,
+  FMX.Objects, ShellAPI, FMX.Layouts, FMX.StdCtrls, System.Skia, FMX.Skia,
+  FMX.ImgList, FMX.ListBox, FMX.Colors, FMX.EditBox, FMX.SpinBox, Windows,
+  Messages,
   { SkFlow Components }
-  uSkFlowmotion, uSkFlowEffects, uSkFlowButtons;
+  uSkFlowmotion, uSkFlowEffects, uSkFlowButtons, System.ImageList, FMX.Edit,
+  FMX.Controls.Presentation;
 
 type
   { TfrmMain }
@@ -110,7 +110,6 @@ type
     rbifoarrow: TRadioButton;
     Panel3: TPanel;
     rbinfhot: TRadioButton;
-    Button14: TButton;
     Button1: TButton;
     Button2: TButton;
     Button15: TButton;
@@ -135,6 +134,9 @@ type
     CheckBox17: TCheckBox;
     CheckBox5: TCheckBox;
     rbfps: TRadioButton;
+    Button14: TButton;
+    Timer3: TTimer;
+    procedure FormDestroy(Sender: TObject);
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
     procedure Button11Click(Sender: TObject);
@@ -189,6 +191,7 @@ type
     procedure fanFadeOutTransitionFinish(Sender: TObject);
     procedure saiAnimatedLogoAnimationFinished(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormResize(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure lytcontrolsResize(Sender: TObject);
     procedure rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
@@ -196,10 +199,13 @@ type
     procedure SpinBox1Change(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
     procedure Timer2Timer(Sender: TObject);
+    procedure Timer3Timer(Sender: TObject);
   private
     { Private declarations }
     Loadedwithparams: Boolean;
     ParamsTxtFile: string;
+    FStreamFiles: TStringList;
+    FStreamindex: Integer;
     { Components }
     FTestPanel: TFlowButtonPanel;
     skfmFlowGallery: TSkFlowmotion;
@@ -229,6 +235,12 @@ var
 
 implementation
 {$R *.fmx}
+
+procedure TfrmMain.FormDestroy(Sender: TObject);
+begin
+  FStreamFiles.Free;
+end;
+
 { *******************************************************************************
   EVENT HANDLERS: BUTTON CLICKS
   ******************************************************************************* }
@@ -264,15 +276,28 @@ end;
 
 procedure TfrmMain.Button14Click(Sender: TObject);
 begin
-  { Video Capture Mode Toggle }
-  if skfmFlowGallery.CaptureVideo then
-    skfmFlowGallery.CaptureVideo := False
-  else if Opendialog1.Execute then
+  if Timer3.Enabled then
   begin
-    if skfmFlowGallery.SelectedImage = nil then
-      Button2Click(Self); { Select something if nothing is selected }
-    skfmFlowGallery.TestVideoFile := Opendialog1.FileName;
-    skfmFlowGallery.CaptureVideo := True;
+    Timer3.Enabled := False;
+    skfmFlowGallery.ExternalStreamImage := nil;
+  end
+  else
+
+  { 1. Select the files }
+    if OpenDialog1.Execute then
+  begin
+    if (skfmFlowGallery.SelectedImage = nil) then
+      skfmFlowGallery.SelectNextImage;
+
+    { 2. Fill our list }
+    FStreamFiles.Clear;
+    FStreamFiles.AddStrings(OpenDialog1.Files);
+
+    { 3. Reset counter }
+    FStreamindex := 0;
+
+    { 4. Start Timer3 }
+    Timer3.Enabled := True;
   end;
 end;
 
@@ -604,6 +629,8 @@ begin
   lytcontrols.Visible := False;
   Layout1.Visible := False;
   LoadedWithParams := False;
+  FStreamFiles := TStringList.Create;
+  FStreamindex := 0;
   { Check if started with parameters (Slave Mode) }
   if ParamCount >= 1 then
   begin
@@ -632,7 +659,8 @@ end;
 procedure TfrmMain.saiAnimatedLogoAnimationFinished(Sender: TObject);
 begin
   { Called when intro animation ends }
-  saiAnimatedLogo.Visible := False;;
+  saiAnimatedLogo.Visible := False;
+  ;
   lytcontrols.Visible := not Loadedwithparams;
   Layout1.Visible := not Loadedwithparams;
   lytContent.Visible := True;
@@ -751,10 +779,13 @@ end;
 procedure TfrmMain.Button20Click(Sender: TObject);
 begin
   Timer2.Enabled := not Timer2.Enabled;
-  if TImer2.Enabled then begin
+  if TImer2.Enabled then
+  begin
     Button20.text := 'Show Mode on';
     skfmFlowGallery.SelectNextImage;
-  end else Button20.text := 'Show Mode off';
+  end
+  else
+    Button20.text := 'Show Mode off';
 end;
 
 procedure TfrmMain.Button2Click(Sender: TObject);
@@ -868,12 +899,18 @@ end;
 
 procedure TfrmMain.CheckBox22Change(Sender: TObject);
 begin
-   skfmFlowGallery.InfoIndicatorOnlyOnHover := CheckBox22.IsChecked;
+  skfmFlowGallery.InfoIndicatorOnlyOnHover := CheckBox22.IsChecked;
 end;
 
 procedure TfrmMain.CheckBox23Change(Sender: TObject);
 begin
   skfmFlowGallery.MitchellQuality := CheckBox23.IsChecked;
+end;
+
+procedure TfrmMain.FormResize(Sender: TObject);
+begin
+  if visible and assigned(skfmFlowGallery) then
+    skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
 end;
 
 procedure TfrmMain.skfmFlowGalleryMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
@@ -1118,10 +1155,41 @@ end;
 
 procedure TfrmMain.Timer2Timer(Sender: TObject);
 begin
-if skfmFlowGallery.CurrentSelectedIndex <= skfmFlowGallery.ImageCount -1 then skfmFlowGallery.SelectNextImage
- else begin
-   skfmFlowGallery.DeselectZoomedImage;
- end;
+  if skfmFlowGallery.CurrentSelectedIndex <= skfmFlowGallery.ImageCount - 1 then
+    skfmFlowGallery.SelectNextImage
+  else
+  begin
+    skfmFlowGallery.DeselectZoomedImage;
+  end;
+end;
+
+procedure TfrmMain.Timer3Timer(Sender: TObject);
+var
+  NextFile: string;
+  NewImage: ISkImage;
+begin
+  { 1. Check if list is empty }
+  if (FStreamFiles.Count = 0) or (skfmFlowGallery.SelectedImage = nil) then
+  begin
+    Timer3.Enabled := False;
+    skfmFlowGallery.ExternalStreamImage := nil;
+    Exit;
+  end;
+
+  { 2. Get next file }
+  NextFile := FStreamFiles[FStreamindex];
+
+  { 3. Load Image }
+  NewImage := TSkImage.MakeFromEncodedFile(NextFile);
+
+  { 4. Push to Pipeline }
+  if Assigned(NewImage) then
+    skfmFlowGallery.ExternalStreamImage := NewImage;
+
+  { 5. Advance Index (Loop) }
+  Inc(FStreamindex);
+  if FStreamindex >= FStreamFiles.Count then
+    FStreamindex := 0;
 end;
 
 end.
