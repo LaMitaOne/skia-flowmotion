@@ -1,16 +1,9 @@
 {*******************************************************************************
   SkFlowEffects
-********************************************************************************
-  A collection of visual effects utilizing the Skia4Delphi library.
-  Features include:
-  - Matrix Rain (Digital Rain) effect with data binding.
-  - Holographic distortion effects.
-  - Cross-fade background transitions.
-  - Particle systems (Simple and Image-based).
-  - Technical UI bracket rendering.
+
+  - background effects, particles, tech bracket border
 
   part of skFlowmotion
-
   written by: Lara Miriam Tamy Reschke
 *******************************************************************************}
 
@@ -20,127 +13,150 @@ interface
 
 uses
   System.Types, System.UITypes, System.Math, System.SysUtils, System.Classes,
-  System.Generics.Collections, FMX.Types, FMX.Graphics, FMX.Controls,
-  System.Skia, FMX.Skia;
+  System.Generics.Collections, FMX.Graphics, FMX.Controls, System.Skia, FMX.Skia,
+  System.SyncObjs;
 
 const
-  { Maximum number of steps for the background cross-fade animation }
   MAX_BG_FADE_STEPS = 2000;
 
 type
-  { Available background effect types }
-  TBackgroundEffect = (beHolographic, beRealMatrix, beFade);
+  TBackgroundEffect = (beHolographic, beRealMatrix, beFade, beNeuralLinks);
 
-  { Base control class for Skia flow effects (Reserved for future expansion) }
   TSkFlowControl = class(TComponent);
 
-  { Record representing a single column in the Matrix effect }
   TMatrixColumn = record
-    X: Single;              { Horizontal position }
-    Y: Single;              { Vertical position (head of the stream) }
-    Speed: Single;          { Fall speed }
-    Length: Integer;        { Number of characters in this column }
-    Chars: string;          { The actual character data string }
-    TargetImageIndex: Integer; { Index associated with the data source }
+    X: Single;
+    Y: Single;
+    Speed: Single;
+    Length: Integer;
+    Chars: string;
+    TargetImageIndex: Integer;
   end;
 
-  { === PARTICLE TYPES === }
-
-  { Simple rectangular particle }
   TParticle = record
-    X, Y: Single;       { Position }
-    VX, VY: Single;     { Velocity vector }
-    Life: Single;       { Life remaining: 1.0 (new) down to 0.0 (dead) }
-    Color: TAlphaColor; { Particle color }
-    Size: Single;       { Width/Height of the particle }
+    X, Y: Single;
+    VX, VY: Single;
+    Life: Single;
+    Color: TAlphaColor;
+    Size: Single;
   end;
 
-  { Image-based particle (sprite) }
   TSmallPicParticle = record
-    Index: Integer;    { Index of the image in the source collection }
-    X, Y: Single;      { Position }
-    VX, VY: Single;    { Velocity vector }
-    Life: Single;      { Life remaining: 1.0 (new) down to 0.0 (dead) }
-    Angle: Single;     { Current rotation angle in degrees }
-    VAngle: Single;    { Rotation velocity }
+    Index: Integer;
+    X, Y: Single;
+    VX, VY: Single;
+    Life: Single;
+    Angle: Single;
+    VAngle: Single;
   end;
 
-  { === CALLBACKS === }
+  TNeuralLink = record
+    StartX, StartY: Single;
+    EndX, EndY: Single;
+    Alpha: Single;
+    LineColor: TAlphaColor;
+  end;
 
-  { Delegate to retrieve string data for a specific matrix column index }
   TGetMatrixDataFunc = reference to function(Index: Integer): string;
 
-  { Delegate to retrieve an ISkImage for a specific particle index }
   TGetSmallPicSkImageFunc = reference to function(Index: Integer): ISkImage;
 
-  { === MATRIX EFFECT FUNCTIONS === }
+procedure InitMatrix(var MatrixCols: TArray<TMatrixColumn>; AWidth, AHeight, AMatrixFontSize: Single; ImageCount: Integer; GetDataFunc: TGetMatrixDataFunc);
 
-  { Initializes the matrix columns based on screen dimensions. }
-  procedure InitMatrix(var MatrixCols: TArray<TMatrixColumn>; AWidth, AHeight, AMatrixFontSize: Single; ImageCount: Integer; GetDataFunc: TGetMatrixDataFunc);
+procedure UpdateMatrixPhysics(var MatrixCols: TArray<TMatrixColumn>; AWidth, AHeight, MatrixSpeed, MatrixFontSize: Single; ImageCount: Integer; Animated: Boolean; GetDataFunc: TGetMatrixDataFunc; DeltaTime: Double);
 
-  { Updates the position and content of matrix columns. }
-  procedure UpdateMatrixPhysics(var MatrixCols: TArray<TMatrixColumn>; AWidth, AHeight, MatrixSpeed, MatrixFontSize: Single; ImageCount: Integer; Animated: Boolean; GetDataFunc: TGetMatrixDataFunc; DeltaTime: Double);
+procedure DrawMatrixBackground(ACanvas: ISkCanvas; const MatrixCols: TArray<TMatrixColumn>; MatrixFont: TFont; MatrixColor, MatrixHeadColor: TAlphaColor; MatrixFontSize, MatrixSpeed: Single; AHeight: Single; Animated: Boolean);
 
-  { Renders the matrix effect to the canvas. }
-  procedure DrawMatrixBackground(ACanvas: ISkCanvas; const MatrixCols: TArray<TMatrixColumn>; MatrixFont: TFont; MatrixColor, MatrixHeadColor: TAlphaColor; MatrixFontSize, MatrixSpeed: Single; AHeight: Single; Animated: Boolean);
+function DrawFadeBackground(ACanvas: ISkCanvas; FBackgroundSkImage: ISkImage; FBackgroundNEWSkImage: ISkImage; FBackgroundFadestage: Integer; FBackgroundColor: TAlphaColor; const ADest: TRectF; const Paint: ISkPaint; owner: TSkCustomControl): Integer;
 
-  { === FADE EFFECT FUNCTIONS === }
+function GetDominantColor(const Img: ISkImage): TAlphaColor;
 
-  { Handles cross-fading between two background images. }
-  function DrawFadeBackground(ACanvas: ISkCanvas; FBackgroundSkImage : ISkImage; FBackgroundNEWSkImage : ISkImage; FBackgroundFadestage : Integer; FBackgroundColor : TAlphaColor; const ADest: TRectF; const Paint: ISkPaint; owner : TSkCustomControl) : Integer;
+procedure DrawHolographicBackground(ACanvas: ISkCanvas; const ADest: TRectF; const Paint: ISkPaint; BackgroundSkImage: ISkImage; var GridOffsetY: Single; Animated: Boolean);
 
-  { Calculates the dominant color of an image by downscaling it to 1x1 pixel. }
-  function GetDominantColor(const Img: ISkImage): TAlphaColor;
+procedure DrawTechBrackets(ACanvas: ISkCanvas; const VisualRect: TRectF; Paint: ISkPaint; BracketWidth: Integer; ImageAlpha: Byte; IsSelected: Boolean; GlowColor, HotTrackColor: TAlphaColor; GlowWidth, HotTrackWidth: Integer);
 
-  { === HOLOGRAPHIC EFFECT FUNCTIONS === }
+procedure UpdateSimpleParticles(var List: TList<TParticle>; DeltaTime: Double);
 
-  { Renders a holographic distortion effect over a background image. }
-  procedure DrawHolographicBackground(ACanvas: ISkCanvas; const ADest: TRectF; const Paint: ISkPaint; BackgroundSkImage: ISkImage; var GridOffsetY: Single; Animated: Boolean);
+procedure DrawSimpleParticles(ACanvas: ISkCanvas; var List: TList<TParticle>);
 
-  { === TECH BRACKET === }
+procedure UpdateSmallPicParticles(var List: TList<TSmallPicParticle>; DeltaTime: Double; GetBmp: TGetSmallPicSkImageFunc);
 
-  { Draws sci-fi style corner brackets around a rectangle. }
-  procedure DrawTechBrackets(ACanvas: ISkCanvas; const VisualRect: TRectF; Paint: ISkPaint; BracketWidth: Integer; ImageAlpha: Byte; IsSelected: Boolean; GlowColor, HotTrackColor: TAlphaColor; GlowWidth, HotTrackWidth: Integer);
+procedure DrawSmallPicParticles(ACanvas: ISkCanvas; var List: TList<TSmallPicParticle>; GetBmp: TGetSmallPicSkImageFunc);
 
-  { === PARTICLE SYSTEM FUNCTIONS === }
+procedure SpawnParticles(var ParticlesList: TList<TParticle>; X, Y: Single; Count: Integer; Color: TAlphaColor);
 
-  { Updates physics for simple square particles. }
-  procedure UpdateSimpleParticles(var List: TList<TParticle>; DeltaTime: Double);
+procedure DrawCyberpunkGlitch(ACanvas: ISkCanvas; const Img: ISkImage; const Rect: TRectF; Intensity: Single; BaseSampling: TSkSamplingOptions);
 
-  { Renders simple square particles. }
-  procedure DrawSimpleParticles(ACanvas: ISkCanvas; var List: TList<TParticle>);
+procedure DrawNeuralLinks(ACanvas: ISkCanvas; Center: TPointF; Links: TList<TNeuralLink>; AFont: ISkFont; MaxLineWidth: Single);
 
-  { Updates physics for image-based particles. }
-  procedure UpdateSmallPicParticles(var List: TList<TSmallPicParticle>; DeltaTime: Double; GetBmp: TGetSmallPicSkImageFunc);
-
-  { Renders image-based particles with rotation and scaling. }
-  procedure DrawSmallPicParticles(ACanvas: ISkCanvas; var List: TList<TSmallPicParticle>; GetBmp: TGetSmallPicSkImageFunc);
-
-  { Spawns a burst of simple particles at a specific location. }
-  procedure SpawnParticles(var ParticlesList: TList<TParticle>; X, Y: Single; Count: Integer; Color: TAlphaColor);
+var
+  GNeuralLinksLock: TCriticalSection;
 
 implementation
+
+var
+  GFontCache: TDictionary<string, ISkFont>;
+  GFontCacheLock: TCriticalSection;
+  GDominantColorSurface: ISkSurface;
+  GDominantColorLock: TCriticalSection;
+
+procedure InitGlobals;
+begin
+  GFontCache := TDictionary<string, ISkFont>.Create;
+  GFontCacheLock := TCriticalSection.Create;
+  GDominantColorLock := TCriticalSection.Create;
+end;
+
+procedure FreeGlobals;
+begin
+  GFontCache.Free;
+  GFontCacheLock.Free;
+  GDominantColorLock.Free;
+end;
+
+function GetCachedSkFont(AFont: TFont; ASize: Single): ISkFont;
+var
+  CacheKey: string;
+  LTypeface: ISkTypeface;
+begin
+  Result := nil;
+  if AFont = nil then
+    Exit;
+
+  CacheKey := AFont.Family + '_' + FloatToStr(ASize);
+
+  GFontCacheLock.Enter;
+  try
+    if not GFontCache.TryGetValue(CacheKey, Result) then
+    begin
+      LTypeface := TSkTypeface.MakeFromName(AFont.Family, TSkFontStyle.Normal);
+      if Assigned(LTypeface) then
+        Result := TSkFont.Create(LTypeface, ASize);
+
+      if Assigned(Result) then
+        GFontCache.Add(CacheKey, Result);
+    end;
+  finally
+    GFontCacheLock.Leave;
+  end;
+end;
 
 { ==========================================
   MATRIX EFFECT IMPLEMENTATION
   ========================================== }
-
 procedure InitMatrix(var MatrixCols: TArray<TMatrixColumn>; AWidth, AHeight, AMatrixFontSize: Single; ImageCount: Integer; GetDataFunc: TGetMatrixDataFunc);
 var
-  i, j, ColsCount: Integer;
+  i, ColsCount: Integer;
   SourceData: string;
 begin
-  { Basic validation }
   if (AWidth <= 0) or (ImageCount = 0) then
     Exit;
 
-  { Calculate number of columns based on font width (approx 0.6 aspect ratio for monospace) }
   if AMatrixFontSize <= 0 then
     ColsCount := Trunc(AWidth / 10)
   else
     ColsCount := Trunc(AWidth / (AMatrixFontSize * 0.6));
 
-  { Limit column count to prevent performance issues }
   if ColsCount < 1 then
     ColsCount := 1;
   if ColsCount > 300 then
@@ -148,44 +164,27 @@ begin
 
   SetLength(MatrixCols, ColsCount);
 
-  { Initialize each column }
   for i := 0 to ColsCount - 1 do
   begin
-    { Calculate X position }
     MatrixCols[i].X := i * (AMatrixFontSize * 0.6);
-
-    { Randomize Y start position (start above screen) }
     MatrixCols[i].Y := -Random(Trunc(AHeight * 2));
-
-    { Randomize speed: 5.0 to 20.0 units per tick (adjusted by DeltaTime later) }
     MatrixCols[i].Speed := 5.0 + Random(15);
 
-    { Assign a random image/data index }
     if ImageCount > 1 then
       MatrixCols[i].TargetImageIndex := Random(ImageCount - 1)
     else
       MatrixCols[i].TargetImageIndex := 0;
 
-    { Retrieve data content }
     if Assigned(GetDataFunc) then
       SourceData := GetDataFunc(MatrixCols[i].TargetImageIndex)
     else
       SourceData := 'NO_DATA';
 
-    { Truncate length to prevent excessively long strings }
     MatrixCols[i].Length := Length(SourceData);
     if MatrixCols[i].Length > 30 then
       MatrixCols[i].Length := 30;
 
-    { Build character array }
-    MatrixCols[i].Chars := '';
-    for j := 1 to MatrixCols[i].Length do
-    begin
-      if j <= Length(SourceData) then
-        MatrixCols[i].Chars := MatrixCols[i].Chars + SourceData[j]
-      else
-        MatrixCols[i].Chars := MatrixCols[i].Chars + ' ';
-    end;
+    MatrixCols[i].chars := Copy(SourceData, 1, MatrixCols[i].Length);
   end;
 end;
 
@@ -196,53 +195,41 @@ var
 begin
   if (Length(MatrixCols) = 0) or (ImageCount = 0) then
     Exit;
+  if not Animated then
+    Exit;
 
-  if Animated then
+  for i := 0 to High(MatrixCols) do
   begin
-    for i := 0 to High(MatrixCols) do
+    MatrixCols[i].Y := MatrixCols[i].Y + (MatrixCols[i].Speed * DeltaTime * 3.0 * MatrixSpeed * 0.5);
+
+    if MatrixCols[i].Y > (AHeight + (MatrixCols[i].Length * MatrixFontSize)) then
     begin
-      { 1. MOVE DOWN }
-      { DeltaTime adjustment ensures smooth movement regardless of framerate }
-      MatrixCols[i].Y := MatrixCols[i].Y + (MatrixCols[i].Speed * DeltaTime * 3.0 * MatrixSpeed * 0.5);
+      MatrixCols[i].Y := -Random(Trunc(AHeight * 2));
+      MatrixCols[i].Speed := 5.0 + Random(15);
 
-      { 2. RESET IF OFF SCREEN }
-      { If the tail of the column goes below the screen, reset to top }
-      if MatrixCols[i].Y > (AHeight + (MatrixCols[i].Length * MatrixFontSize)) then
+      if (MatrixCols[i].TargetImageIndex < 0) or (MatrixCols[i].TargetImageIndex >= ImageCount) then
       begin
-        MatrixCols[i].Y := -Random(Trunc(AHeight * 2));
-        MatrixCols[i].Speed := 5.0 + Random(15);
-
-        { Sanity check for image index bounds }
-        if (MatrixCols[i].TargetImageIndex < 0) or (MatrixCols[i].TargetImageIndex >= ImageCount) then
-        begin
-          if ImageCount > 1 then
-            MatrixCols[i].TargetImageIndex := Random(ImageCount - 1)
-          else
-            MatrixCols[i].TargetImageIndex := 0;
-        end;
-
-        { Refresh data on reset }
-        if Assigned(GetDataFunc) then
-        begin
-          SourceData := GetDataFunc(MatrixCols[i].TargetImageIndex);
-          MatrixCols[i].Chars := SourceData;
-          MatrixCols[i].Length := Length(SourceData);
-          if MatrixCols[i].Length > 30 then
-            MatrixCols[i].Length := 30;
-        end;
+        if ImageCount > 1 then
+          MatrixCols[i].TargetImageIndex := Random(ImageCount - 1)
+        else
+          MatrixCols[i].TargetImageIndex := 0;
       end;
 
-      { 3. LIVE DATA UPDATES }
-      { Occasionally update the characters while falling to simulate data changes }
-      if Assigned(GetDataFunc) and (MatrixCols[i].TargetImageIndex >= 0) and (MatrixCols[i].TargetImageIndex < ImageCount) then
+      if Assigned(GetDataFunc) then
       begin
-        if Random(100) < 15 then { 15% chance per frame to refresh text }
-        begin
-          SourceData := GetDataFunc(MatrixCols[i].TargetImageIndex);
-          MatrixCols[i].Chars := SourceData;
-          if Length(MatrixCols[i].Chars) > 30 then
-            MatrixCols[i].Chars := Copy(MatrixCols[i].Chars, 1, 30);
-        end;
+        SourceData := GetDataFunc(MatrixCols[i].TargetImageIndex);
+        MatrixCols[i].Chars := Copy(SourceData, 1, 30);
+        MatrixCols[i].Length := Length(MatrixCols[i].Chars);
+      end;
+    end;
+
+    if Assigned(GetDataFunc) and (MatrixCols[i].TargetImageIndex >= 0) and (MatrixCols[i].TargetImageIndex < ImageCount) then
+    begin
+      if Random(100) < 10 then
+      begin
+        SourceData := GetDataFunc(MatrixCols[i].TargetImageIndex);
+        MatrixCols[i].Chars := Copy(SourceData, 1, 30);
+        MatrixCols[i].Length := Length(MatrixCols[i].Chars);
       end;
     end;
   end;
@@ -259,59 +246,70 @@ begin
   if Length(MatrixCols) = 0 then
     Exit;
 
+  LSkFont := GetCachedSkFont(MatrixFont, MatrixFontSize);
+  if not Assigned(LSkFont) then
+    Exit;
+
   LPaint := TSkPaint.Create;
   LPaint.AntiAlias := True;
   LPaint.Style := TSkPaintStyle.Fill;
 
-  { Create font object }
-  LSkFont := TSkFont.Create(TSkTypeface.MakeFromName(MatrixFont.Family, TSkFontStyle.Normal), MatrixFontSize);
+  { PASS 1: TRAILS }
+  LPaint.Color := MatrixColor;
+  LPaint.AlphaF := 0.6;
 
-  try
-    for i := 0 to High(MatrixCols) do
+  for i := 0 to High(MatrixCols) do
+  begin
+    for j := 1 to MatrixCols[i].Length - 1 do
     begin
-      { Iterate through characters in the column }
-      for j := 1 to Length(MatrixCols[i].Chars) do
+      CharY := MatrixCols[i].Y + ((j - 1) * MatrixFontSize);
+      if (CharY > -MatrixFontSize) and (CharY < AHeight + MatrixFontSize) then
       begin
-        CharY := MatrixCols[i].Y + ((j - 1) * MatrixFontSize);
-
-        { Optimization: Only draw if vertically visible }
-        if (CharY > -MatrixFontSize) and (CharY < AHeight + MatrixFontSize) then
-        begin
-          CurrentChar := MatrixCols[i].Chars[j];
-
-          { The last character is the "head" of the stream, drawn white/bright }
-          if j = Length(MatrixCols[i].Chars) then
-          begin
-            LPaint.Color := MatrixHeadColor;
-            LPaint.AlphaF := 1.0;
-          end
-          else
-          begin
-            LPaint.Color := MatrixColor;
-            LPaint.AlphaF := 0.6; { Trail transparency }
-          end;
-
-          { Draw the character }
-          ACanvas.DrawSimpleText(CurrentChar, MatrixCols[i].X, CharY, LSkFont, LPaint);
-        end;
+        if j <= Length(MatrixCols[i].Chars) then
+          CurrentChar := MatrixCols[i].Chars[j]
+        else
+          CurrentChar := ' ';
+        ACanvas.DrawSimpleText(CurrentChar, MatrixCols[i].X, CharY, LSkFont, LPaint);
       end;
     end;
-  except
-    { Silent fail to prevent UI crashes during rendering errors }
+  end;
+
+  { PASS 2: HEADS }
+  LPaint.Color := MatrixHeadColor;
+  LPaint.AlphaF := 1.0;
+
+  for i := 0 to High(MatrixCols) do
+  begin
+    if MatrixCols[i].Length > 0 then
+    begin
+      j := MatrixCols[i].Length;
+      CharY := MatrixCols[i].Y + ((j - 1) * MatrixFontSize);
+      if (CharY > -MatrixFontSize) and (CharY < AHeight + MatrixFontSize) then
+      begin
+        if j <= Length(MatrixCols[i].Chars) then
+          CurrentChar := MatrixCols[i].Chars[j]
+        else
+          CurrentChar := ' ';
+        ACanvas.DrawSimpleText(CurrentChar, MatrixCols[i].X, CharY, LSkFont, LPaint);
+      end;
+    end;
   end;
 end;
 
 { ==========================================
   HOLOGRAPHIC EFFECT IMPLEMENTATION
   ========================================== }
-
 procedure DrawHolographicBackground(ACanvas: ISkCanvas; const ADest: TRectF; const Paint: ISkPaint; BackgroundSkImage: ISkImage; var GridOffsetY: Single; Animated: Boolean);
 var
   WaveX, WaveY: Single;
   RRect: TRectF;
+  LLinearSampling: TSkSamplingOptions;
 begin
   if not Assigned(BackgroundSkImage) then
     Exit;
+
+  { Pre-create sampling options to avoid struct creation overhead in loop }
+  LLinearSampling := TSkSamplingOptions.Create(TSkFilterMode.Linear, TSkMipmapMode.None);
 
   if Animated then
   begin
@@ -319,33 +317,32 @@ begin
     Paint.ImageFilter := nil;
     Paint.Alpha := 255;
 
-    { Animate the wave offset }
     GridOffsetY := GridOffsetY + 1.0;
     if GridOffsetY > 1000 then
       GridOffsetY := 0;
 
-    { Calculate Sine wave offset for "jitter" effect }
     WaveX := Sin(GridOffsetY * 0.02) * 10;
     WaveY := Sin(GridOffsetY * 0.03) * 10;
 
-    { 1. Draw Base Image }
+    { 1. Draw Base Image (High Quality) }
+    // Using High sampling for the main background to look crisp
     ACanvas.DrawImageRect(BackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
 
-    { 2. Draw Offset Copy 1 (Ghost effect) }
+    { 2. Draw Offset Copy 1 (Linear is faster and good enough for ghost) }
     Paint.Alpha := 100;
     RRect := ADest;
     OffsetRect(RRect, WaveX, WaveY);
-    ACanvas.DrawImageRect(BackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
+    // Corrected API: Image, Dest, Sampling, Paint
+    ACanvas.DrawImageRect(BackgroundSkImage, RRect, LLinearSampling, Paint);
 
-    { 3. Draw Offset Copy 2 (Ghost effect opposite direction) }
+    { 3. Draw Offset Copy 2 }
     Paint.Alpha := 40;
     RRect := ADest;
     OffsetRect(RRect, -WaveX, -WaveY);
-    ACanvas.DrawImageRect(BackgroundSkImage, RRect, TSkSamplingOptions.High, Paint);
+    ACanvas.DrawImageRect(BackgroundSkImage, RRect, LLinearSampling, Paint);
   end
   else
   begin
-    { Static rendering }
     ACanvas.DrawImageRect(BackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
   end;
 end;
@@ -353,104 +350,80 @@ end;
 { ==========================================
   FADE EFFECT IMPLEMENTATION
   ========================================== }
-
 function DrawFadeBackground(ACanvas: ISkCanvas; FBackgroundSkImage: ISkImage; FBackgroundNEWSkImage: ISkImage; FBackgroundFadestage: Integer; FBackgroundColor: TAlphaColor; const ADest: TRectF; const Paint: ISkPaint; owner: TSkCustomControl): Integer;
 var
   CurrentPaint: ISkPaint;
 begin
   Result := FBackgroundFadestage;
-
-  { 1. Check if fading is in progress (< MAX_STEPS) }
   if (FBackgroundFadestage < MAX_BG_FADE_STEPS) then
   begin
     if Assigned(FBackgroundNEWSkImage) then
     begin
       CurrentPaint := TSkPaint.Create;
-
-      { 2. Draw OLD image (Opaque) as the base }
       if Assigned(FBackgroundSkImage) then
       begin
         CurrentPaint.AlphaF := 255;
-        ACanvas.DrawImageRect(FBackgroundSkImage, RectF(0, 0, Owner.Width, Owner.Height), TSkSamplingOptions.High, CurrentPaint);
+        ACanvas.DrawImageRect(FBackgroundSkImage, RectF(0, 0, owner.Width, owner.Height), TSkSamplingOptions.High, CurrentPaint);
       end;
 
-      { 3. Draw NEW image (Fading IN) on top }
-      { Calculate Alpha based on current stage (0 to 1) }
       CurrentPaint.AlphaF := FBackgroundFadestage / MAX_BG_FADE_STEPS;
-      ACanvas.DrawImageRect(FBackgroundNEWSkImage, RectF(0, 0, Owner.Width, Owner.Height), TSkSamplingOptions.High, CurrentPaint);
+      ACanvas.DrawImageRect(FBackgroundNEWSkImage, RectF(0, 0, owner.Width, owner.Height), TSkSamplingOptions.High, CurrentPaint);
 
-      { Increment stage for next frame }
       Inc(FBackgroundFadestage);
       Result := FBackgroundFadestage;
     end;
   end
   else
   begin
-    { 4. Fading is finished (Stage >= MAX_STEPS), draw NEW image statically }
     if Assigned(FBackgroundNEWSkImage) then
     begin
       CurrentPaint := TSkPaint.Create;
       CurrentPaint.AlphaF := 1.0;
-      ACanvas.DrawImageRect(FBackgroundNEWSkImage, RectF(0, 0, Owner.Width, Owner.Height), TSkSamplingOptions.High, CurrentPaint);
+      ACanvas.DrawImageRect(FBackgroundNEWSkImage, RectF(0, 0, owner.Width, owner.Height), TSkSamplingOptions.High, CurrentPaint);
     end
     else if Assigned(FBackgroundSkImage) then
     begin
-      { Fallback if New Image is missing }
       CurrentPaint := TSkPaint.Create;
       CurrentPaint.AlphaF := 1.0;
-      ACanvas.DrawImageRect(FBackgroundSkImage, RectF(0, 0, Owner.Width, Owner.Height), TSkSamplingOptions.High, CurrentPaint);
+      ACanvas.DrawImageRect(FBackgroundSkImage, RectF(0, 0, owner.Width, owner.Height), TSkSamplingOptions.High, CurrentPaint);
     end;
   end;
 end;
 
 function GetDominantColor(const Img: ISkImage): TAlphaColor;
 var
-  Surface: ISkSurface;
-  Pixmap: ISkPixmap;
   Info: TSkImageInfo;
   P: PByte;
 begin
-  { Default fallback color }
   Result := TAlphaColors.Black;
   if not Assigned(Img) then
     Exit;
 
+  GDominantColorLock.Enter;
   try
-    { 1. Create Image Info for a single pixel (RGBA8888, Premultiplied Alpha) }
-    Info := TSkImageInfo.Create(1, 1, TSkColorType.RGBA8888, TSkAlphaType.Premul);
-
-    { 2. Create a 1x1 pixel raster surface }
-    Surface := TSkSurface.MakeRaster(Info);
-    if not Assigned(Surface) then
-      Exit;
-
-    { 3. Draw the full source image onto the 1x1 surface.
-        Skia's high-quality sampling automatically averages the pixels
-        resulting in the average color. }
-    Surface.Canvas.Clear(TAlphaColors.Black);
-    Surface.Canvas.DrawImageRect(Img, RectF(0, 0, Img.Width, Img.Height), RectF(0, 0, 1, 1), TSkSamplingOptions.High);
-
-    { 4. Read the single pixel data back }
-    Pixmap := Surface.PeekPixels;
-    if Assigned(Pixmap) then
+    if not Assigned(GDominantColorSurface) then
     begin
-      P := Pixmap.Pixels;
-      if Assigned(P) then
-      begin
-        { Map bytes (R,G,B,A) to TAlphaColor (AABBGGRR) }
-        Result := (P[3] shl 24) or (P[2] shl 16) or (P[1] shl 8) or P[0];
-      end;
+      Info := TSkImageInfo.Create(1, 1, TSkColorType.RGBA8888, TSkAlphaType.Premul);
+      GDominantColorSurface := TSkSurface.MakeRaster(Info);
     end;
-  except
-    { Fallback to black on any rendering or read errors }
-    Result := TAlphaColors.Black;
+
+    if Assigned(GDominantColorSurface) then
+    begin
+      GDominantColorSurface.Canvas.Clear(TAlphaColors.Black);
+      GDominantColorSurface.Canvas.DrawImageRect(Img, RectF(0, 0, Img.Width, Img.Height), RectF(0, 0, 1, 1), TSkSamplingOptions.High);
+
+      P := GDominantColorSurface.PeekPixels.Pixels;
+      if Assigned(P) then
+        Result := (P[3] shl 24) or (P[2] shl 16) or (P[1] shl 8) or P[0];
+    end;
+  finally
+    GDominantColorLock.Leave;
   end;
 end;
 
 { ==========================================
   TECH BRACKET IMPLEMENTATION
   ========================================== }
-
 procedure DrawTechBrackets(ACanvas: ISkCanvas; const VisualRect: TRectF; Paint: ISkPaint; BracketWidth: Integer; ImageAlpha: Byte; IsSelected: Boolean; GlowColor, HotTrackColor: TAlphaColor; GlowWidth, HotTrackWidth: Integer);
 var
   Len: Single;
@@ -459,20 +432,17 @@ begin
   if IsRectEmpty(VisualRect) then
     Exit;
 
-  { Setup local variables for coordinates }
   Len := BracketWidth;
   L := VisualRect.Left;
   T := VisualRect.Top;
   Rgt := VisualRect.Right;
   B := VisualRect.Bottom;
 
-  { Configure Paint Style }
   Paint.Style := TSkPaintStyle.Stroke;
   Paint.ImageFilter := nil;
   Paint.AntiAlias := True;
   Paint.Alpha := ImageAlpha;
 
-  { Determine color and width based on selection state }
   if IsSelected then
   begin
     Paint.Color := GlowColor;
@@ -484,20 +454,12 @@ begin
     Paint.StrokeWidth := HotTrackWidth;
   end;
 
-  { Draw Corners }
-  // Top Left
   ACanvas.DrawLine(L, T, L + Len, T, Paint);
   ACanvas.DrawLine(L, T, L, T + Len, Paint);
-
-  // Top Right
   ACanvas.DrawLine(Rgt - Len, T, Rgt, T, Paint);
   ACanvas.DrawLine(Rgt, T, Rgt, T + Len, Paint);
-
-  // Bottom Left
   ACanvas.DrawLine(L, B - Len, L, B, Paint);
   ACanvas.DrawLine(L, B, L + Len, B, Paint);
-
-  // Bottom Right
   ACanvas.DrawLine(Rgt - Len, B, Rgt, B, Paint);
   ACanvas.DrawLine(Rgt, B, Rgt, B - Len, Paint);
 end;
@@ -505,7 +467,6 @@ end;
 { ==========================================
   SIMPLE PARTICLE SYSTEM IMPLEMENTATION
   ========================================== }
-
 procedure UpdateSimpleParticles(var List: TList<TParticle>; DeltaTime: Double);
 var
   i: Integer;
@@ -513,20 +474,12 @@ var
 begin
   if List.Count = 0 then
     Exit;
-
-  { Iterate backwards to allow safe deletion }
   for i := List.Count - 1 downto 0 do
   begin
     P := List[i];
-
-    { Apply velocity }
     P.X := P.X + (P.VX * DeltaTime * 10.0);
     P.Y := P.Y + (P.VY * DeltaTime * 10.0);
-
-    { Decay life }
     P.Life := P.Life - (DeltaTime * 2.0);
-
-    { Remove dead particles }
     if P.Life <= 0 then
       List.Delete(i)
     else
@@ -549,12 +502,8 @@ begin
   for i := 0 to List.Count - 1 do
   begin
     P := List[i];
-
-    { Apply life to alpha for fade out effect }
     PPaint.Color := P.Color;
     PPaint.AlphaF := Max(0, P.Life);
-
-    { Draw particle as a rectangle }
     ACanvas.DrawRect(TRectF.Create(P.X, P.Y, P.X + P.Size, P.Y + P.Size), PPaint);
   end;
 end;
@@ -567,22 +516,14 @@ var
 begin
   for i := 0 to Count - 1 do
   begin
-    { Random direction }
     Angle := Random * 2 * Pi;
-
-    { Initialize Position }
     P.X := X;
     P.Y := Y;
-
-    { Calculate Velocity Vector with random speed }
     P.VX := Cos(Angle) * (2 + Random * 3);
     P.VY := Sin(Angle) * (2 + Random * 3);
-
-    { Initialize Properties }
     P.Life := 1.0;
     P.Color := Color;
     P.Size := 0.8 + Random * 1.5;
-
     ParticlesList.Add(P);
   end;
 end;
@@ -590,7 +531,6 @@ end;
 { ==========================================
   IMAGE PARTICLE SYSTEM IMPLEMENTATION
   ========================================== }
-
 procedure UpdateSmallPicParticles(var List: TList<TSmallPicParticle>; DeltaTime: Double; GetBmp: TGetSmallPicSkImageFunc);
 var
   i: Integer;
@@ -602,22 +542,14 @@ begin
   if not Assigned(GetBmp) then
     Exit;
 
-  { Iterate backwards to allow safe deletion }
   for i := List.Count - 1 downto 0 do
   begin
     SP := List[i];
-
-    { Update Position }
     SP.X := SP.X + (SP.VX * DeltaTime * 10.0);
     SP.Y := SP.Y + (SP.VY * DeltaTime * 10.0);
-
-    { Update Rotation }
     SP.Angle := SP.Angle + (SP.VAngle * DeltaTime * 10.0);
-
-    { Update Life }
     SP.Life := SP.Life - (DeltaTime * 0.8);
 
-    { Validate image existence; kill particle if image is missing }
     if (SP.Index < 0) then
       SP.Life := 0
     else if Assigned(GetBmp) then
@@ -627,7 +559,6 @@ begin
         SP.Life := 0;
     end;
 
-    { Update or Remove }
     if SP.Life <= 0 then
       List.Delete(i)
     else
@@ -642,6 +573,7 @@ var
   IconSkImg: ISkImage;
   Paint: ISkPaint;
   ScaleW, ScaleH: Single;
+  DestRect: TRectF;
 begin
   if List.Count = 0 then
     Exit;
@@ -655,39 +587,156 @@ begin
   for i := 0 to List.Count - 1 do
   begin
     SP := List[i];
-
     if (SP.Index >= 0) then
     begin
       IconSkImg := GetBmp(SP.Index);
       if Assigned(IconSkImg) then
       begin
-        { Set opacity based on life (fade out) }
         Paint.AlphaF := Max(0, SP.Life) * 0.5;
 
-        { Save Canvas state to apply local transformations }
-        ACanvas.Save;
+        { Optimization: If not rotating/scaling significantly, use fast draw }
+        if (IsZero(SP.Angle) and IsZero(SP.VAngle) and (SP.Life > 0.95)) then
+        begin
+          DestRect := TRectF.Create(SP.X, SP.Y, SP.X + IconSkImg.Width, SP.Y + IconSkImg.Height);
+           // Image, Dest, Sampling, Paint (No sampling specified = default)
+          ACanvas.DrawImageRect(IconSkImg, DestRect, Paint);
+        end
+        else
+        begin
+          ScaleW := Max(0.2, SP.Life);
+          ScaleH := Max(0.2, SP.Life);
 
-        { 1. Move to particle position }
-        ACanvas.Translate(SP.X, SP.Y);
-
-        { 2. Scale based on life (shrink effect) }
-        ScaleW := Max(0.2, SP.Life);
-        ScaleH := Max(0.2, SP.Life);
-
-        { 3. Center the scaling/rotation on the image center }
-        ACanvas.Translate(IconSkImg.Width / 2, IconSkImg.Height / 2);
-        ACanvas.Scale(ScaleW, ScaleH);
-        ACanvas.Rotate(SP.Angle);
-        ACanvas.Translate(-IconSkImg.Width / 2, -IconSkImg.Height / 2);
-
-        { 4. Draw the image }
-        ACanvas.DrawImageRect(IconSkImg, TRectF.Create(0, 0, IconSkImg.Width, IconSkImg.Height), TSkSamplingOptions.High, Paint);
-
-        { Restore Canvas state }
-        ACanvas.Restore;
+          ACanvas.Save;
+          ACanvas.Translate(SP.X, SP.Y);
+          ACanvas.Translate(IconSkImg.Width / 2, IconSkImg.Height / 2);
+          ACanvas.Scale(ScaleW, ScaleH);
+          ACanvas.Rotate(SP.Angle);
+          ACanvas.Translate(-IconSkImg.Width / 2, -IconSkImg.Height / 2);
+           // Image, Src, Dest, Paint
+          ACanvas.DrawImageRect(IconSkImg, TRectF.Create(0, 0, IconSkImg.Width, IconSkImg.Height), Paint);
+          ACanvas.Restore;
+        end;
       end;
     end;
   end;
 end;
 
+{ ==========================================
+  CYBERPUNK GLITCH IMPLEMENTATION
+  ========================================== }
+procedure DrawCyberpunkGlitch(ACanvas: ISkCanvas; const Img: ISkImage; const Rect: TRectF; Intensity: Single; BaseSampling: TSkSamplingOptions);
+var
+  LPaint: ISkPaint;
+  OffsetX, OffsetY: Single;
+  TmpRect: TRectF;
+  LColorFilter: ISkColorFilter;
+begin
+  if not Assigned(Img) then
+    Exit;
+  // Safety cutoff if intensity is too low to matter
+  if Intensity <= 0.01 then
+    Exit;
+
+  // 1. CALCULATE RANDOM OFFSETS
+  // We use Random() inside the draw call so the glitch "shakes" every frame
+  OffsetX := (10.0 * Intensity) * (0.5 + Random); // 5px to 15px range scaled
+  OffsetY := (Random - 0.5) * (10.0 * Intensity); // Random vertical jitter
+
+  LPaint := TSkPaint.Create;
+  LPaint.Style := TSkPaintStyle.Fill;
+  LPaint.AntiAlias := True;
+
+  // 2. RED CHANNEL (Shifted Left)
+  // Create a filter that blends the image color with Red
+  // Note: We use static methods on the class type
+  LColorFilter := TSkColorFilter.MakeBlend(TAlphaColors.Red, TSkBlendMode.SrcIn);
+
+  LPaint.ColorFilter := LColorFilter;
+  LPaint.Alpha := Round(200 * Intensity); // Semi-transparent red
+
+  TmpRect := Rect;
+  TmpRect.Offset(-OffsetX, OffsetY);
+  ACanvas.DrawImageRect(Img, TmpRect, BaseSampling, LPaint);
+
+  // 3. BLUE CHANNEL (Shifted Right)
+  // Create a filter that blends the image color with Blue
+  LColorFilter := TSkColorFilter.MakeBlend(TAlphaColors.Blue, TSkBlendMode.SrcIn);
+
+  LPaint.ColorFilter := LColorFilter;
+  LPaint.Alpha := Round(100 * Intensity); // Semi-transparent blue
+
+  TmpRect := Rect;
+  TmpRect.Offset(OffsetX, -OffsetY);
+  ACanvas.DrawImageRect(Img, TmpRect, BaseSampling, LPaint);
+
+  // 4. MAIN IMAGE (Centered - White/Light)
+  // We remove the color filter to draw the original image on top
+  LPaint.ColorFilter := nil;
+  LPaint.Color := TAlphaColors.NULL;
+  LPaint.Alpha := 255 - Round(100 * Intensity); // Fade out slightly when glitching to let colors bleed
+
+  ACanvas.DrawImageRect(Img, Rect, BaseSampling, LPaint);
+end;
+
+
+{ ==========================================
+  NEURAL LINKS IMPLEMENTATION
+  ========================================== }
+procedure DrawNeuralLinks(ACanvas: ISkCanvas; Center: TPointF; Links: TList<TNeuralLink>; AFont: ISkFont; MaxLineWidth: Single);
+var
+  i: Integer;
+  Paint: ISkPaint;
+  Link: TNeuralLink;
+  MidX, MidY: Single;
+begin
+  if (Links = nil) or (Links.Count = 0) then
+    Exit;
+
+  // --- START CRITICAL SECTION ---
+  // Prevent GenerateNeuralLinks from modifying while we read
+  GNeuralLinksLock.Enter;
+  try
+    Paint := TSkPaint.Create;
+    try
+      Paint.AntiAlias := True;
+      Paint.StrokeWidth := MaxLineWidth;
+      for i := 0 to Links.Count - 1 do
+      begin
+        Link := Links[i];
+
+        Paint.Style := TSkPaintStyle.Stroke;
+        Paint.Color := Link.LineColor;
+        Paint.Alpha := 120;
+
+        ACanvas.DrawLine(TPointF.Create(Link.StartX, Link.StartY), TPointF.Create(Link.EndX, Link.EndY), Paint);
+
+        MidX := (Link.StartX + Link.EndX) / 2;
+        MidY := (Link.StartY + Link.EndY) / 2;
+
+        Paint.Style := TSkPaintStyle.Fill;
+        Paint.Color := Link.LineColor;
+        Paint.Alpha := 160;
+
+        ACanvas.DrawOval(TRectF.Create(MidX - 2, MidY - 2, MidX + 2, MidY + 2), Paint);
+      end;
+    finally
+
+    end;
+  finally
+    // --- END CRITICAL SECTION ---
+    GNeuralLinksLock.Leave;
+  end;
+end;
+
+initialization
+  InitGlobals;
+  GNeuralLinksLock := TCriticalSection.Create;
+
+
+finalization
+  FreeGlobals;
+  if Assigned(GNeuralLinksLock) then
+    FreeAndNil(GNeuralLinksLock);
+
 end.
+

@@ -21,10 +21,10 @@ uses
   System.IOUtils, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Ani,
   FMX.Objects, ShellAPI, FMX.Layouts, FMX.StdCtrls, System.Skia, FMX.Skia,
   FMX.ImgList, FMX.ListBox, FMX.Colors, FMX.EditBox, FMX.SpinBox, Windows,
-  Messages,
+  Messages, System.ImageList, FMX.Edit,
+  FMX.Controls.Presentation,
   { SkFlow Components }
-  uSkFlowmotion, uSkFlowEffects, uSkFlowButtons, System.ImageList, FMX.Edit,
-  FMX.Controls.Presentation;
+  uSkFlowmotion, uSkFlowEffects, uSkFlowButtons;
 
 type
   { TfrmMain }
@@ -136,6 +136,9 @@ type
     rbfps: TRadioButton;
     Button14: TButton;
     Timer3: TTimer;
+    Button21: TButton;
+    Button22: TButton;
+    Button23: TButton;
     procedure FormDestroy(Sender: TObject);
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
@@ -150,6 +153,9 @@ type
     procedure Button19Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button20Click(Sender: TObject);
+    procedure Button21Click(Sender: TObject);
+    procedure Button22Click(Sender: TObject);
+    procedure Button23Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
@@ -535,6 +541,8 @@ begin
       skfmFlowGallery.BackgroundEffect := beHolographic;
     2:
       skfmFlowGallery.BackgroundEffect := beFade;
+    3:
+      skfmFlowGallery.BackgroundEffect := beNeuralLinks;
   end;
 end;
 
@@ -788,6 +796,23 @@ begin
     Button20.text := 'Show Mode off';
 end;
 
+procedure TfrmMain.Button21Click(Sender: TObject);
+begin
+  skfmFlowGallery.SendAliveHighlighterToImage(Random(skfmFlowGallery.ImageCount-1));
+end;
+
+procedure TfrmMain.Button22Click(Sender: TObject);
+begin
+  skfmFlowGallery.ExitAliveHighlighter;
+end;
+
+procedure TfrmMain.Button23Click(Sender: TObject);
+begin
+  { Adds a single random image from AppDir using 'iesReplicatorLaser' entry animation }
+  skfmFlowGallery.ImageEntryStyle := iesReplicatorLaser;
+  skfmFlowGallery.AddImageAsync(ExtractFilePath(ParamStr(0)) + inttostr(random(13) + 1) + '.jpg');
+end;
+
 procedure TfrmMain.Button2Click(Sender: TObject);
 begin
   skfmFlowGallery.SelectNextImage;
@@ -987,7 +1012,7 @@ begin
       Pathlist.add('Folder or whatever');
       Captionlist.add('Caption');
       Hintlist.Add('Hint');
-      Infoslist.Add('Movie infos or whatever you want to show here |pipe for new line | |...........  bit more to see if it works right....  ....');
+      Infoslist.Add('TEST_1 Artist: | | pipe for new line ... ');
     end;
     for i := 14 downto 0 do
     begin
@@ -996,7 +1021,7 @@ begin
       Pathlist.add('Folder or whatever');
       Captionlist.add('Caption');
       Hintlist.Add('Hint');
-      Infoslist.Add('Movie infos or whatever you want to show here || pipe for new line |  ...........  |bit more to see if it works right.... ....');
+      Infoslist.Add('TEST_2');
       smallimgindex.Add(Pointer(rndX));
     end;
     skfmFlowGallery.AddImages(IMList, Captionlist, Pathlist, Hintlist, Infoslist, smallimgindex);
