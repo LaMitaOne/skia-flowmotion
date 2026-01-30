@@ -104,12 +104,12 @@ If you want to tip me a coffee.. :)
   the same InfoText    
 - Animated Lines: Connections are recalculated in real-time,    
   allowing them to follow images during layout changes,    
-  zooming, and dragging.    
+  zooming, and dragging.
+- Color Coding: Connections are color-coded based on the    
+  group name (InfoText). Same text = Same Color.    
 - Added new ImageEntryStyle: iesReplicatorLaser.    
   "Replicator/Laser Printer" effect where the image is scanned into existence.    
   *Note: Currently working but still annoys me really heavy with some eeeeevil bug.*    
-- Color Coding: Connections are color-coded based on the    
-  group name (InfoText). Same text = Same Color.    
 - Added new AliveHighlighter (uSkiaAliveHighlighter.pas).    
   An organic, physics-based entity that navigates obstacles and orbits targets naturally.    
     
