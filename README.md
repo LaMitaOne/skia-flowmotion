@@ -1,8 +1,8 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.53**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.54**    
     
-<img width="1377" height="1062" alt="Unbenannt" src="https://github.com/user-attachments/assets/6c73681d-89ef-412e-a9de-509642097c74" />
-  
+  <img width="1749" height="1139" alt="Unbenannt" src="https://github.com/user-attachments/assets/9f297642-b8c4-4840-9db8-94497714da21" />
+
     
 # Skia-FlowMotion   
    
@@ -30,7 +30,7 @@ maybe at least i spread out some new ideas :)
    
 static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly for me :D       
       
-### Features at a glance (v0.53)   
+### Features at a glance (v0.54)   
    
 - **Pinterest-like masonry layout**     
 - **Animated appearance** (slide-in, “falling” effects, breathing)  
@@ -44,7 +44,8 @@ static smart phone/tv, desktop and all that starting to look really ugly boring 
 - **Realistic drop shadows** (dynamic scaling based on zoom/breath)  
 - **ZoomSelectedToFull**, RotateAllBy, PutAllToAngle and more functions  
 - **Holographic background** effect (triple layer sine-wave refraction)   
-- **RealMatrix background** effect (using live data of items)    
+- **RealMatrix background** effect (using live data of items)
+- **NeuralLink background** effect (connections between each with same infotxt)  
 - **InfoPanel** with animated slide-in on selected pic from any direction with different styles    
 - **HoverAlive** – gentle micro-hovering (floating around center)  
 - **Wall Sliding** physics (respect screen edges)  
@@ -90,8 +91,28 @@ If you want to tip me a coffee.. :)
   </a>
 </p>
     
-### Latest Changes   
+### Latest Changes     
    
+**v 0.54**   
+- Implemented Idle-Skip Physics (CPU+GPU optimization).    
+  The animation loop now intelligently skips heavy math if the UI is static (no animations, background, hoveralive),    
+  reducing idle CPU+GPU usage to zero.     
+- Optimized text caching to prevent redundant re-rasterization every animation cycle.    
+- Optimized Matrix Data String generation and Particle Drawing.    
+- Added new animated background: beNeuralLinks    
+- Automatically draws connection lines between items that share    
+  the same InfoText    
+- Animated Lines: Connections are recalculated in real-time,    
+  allowing them to follow images during layout changes,    
+  zooming, and dragging.    
+- Added new ImageEntryStyle: iesReplicatorLaser.    
+  "Replicator/Laser Printer" effect where the image is scanned into existence.    
+  *Note: Currently working but still annoys me really heavy with some eeeeevil bug.*    
+- Color Coding: Connections are color-coded based on the    
+  group name (InfoText). Same text = Same Color.    
+- Added new AliveHighlighter (uSkiaAliveHighlighter.pas).    
+  An organic, physics-based entity that navigates obstacles and orbits targets naturally.    
+    
 **v 0.53**   
 - New SetExternalStreamImage -> Pipeline for override selected img, show video snapshot or whatever   
 - Added Texture Caching for UI Text.   
