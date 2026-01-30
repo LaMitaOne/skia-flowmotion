@@ -32,8 +32,7 @@ static smart phone/tv, desktop and all that starting to look really ugly boring 
       
 ### Features at a glance (v0.53)   
    
-- **Pinterest-like masonry layout**   
-- **Freefloat layout** with save/load positions (not fully stable atm)    
+- **Pinterest-like masonry layout**     
 - **Animated appearance** (slide-in, “falling” effects, breathing)  
 - **HotTrack & HotZoom** hover effects  
 - **Dragging** selected     
