@@ -3378,38 +3378,30 @@ var
 begin
   if not Assigned(AItem) then
     Exit;
-
   if AItem.FInfoProgress <= 0.01 then
     Exit;
-
   // 1. Create Paint & Font
   LPaint := TSkPaint.Create;
   LPaint.AntiAlias := True;
-
   LSkStyle := TSkFontStyle.Normal;
   if TFontStyle.fsBold in FInfoFont.Style then
     LSkStyle := TSkFontStyle.Bold;
   if TFontStyle.fsItalic in FInfoFont.Style then
     LSkStyle := TSkFontStyle.Italic;
   LSkFont := TSkFont.Create(TSkTypeface.MakeFromName(FInfoFont.Family, LSkStyle), FInfoFont.Size);
-
   // 2. Setup Memory Objects
   LocalBmp := nil;
   InfoLines := nil;
-
   try
     LocalBmp := TBitmap.Create;
     LocalBmp.Canvas.Font.Family := FInfoFont.Family;
     LocalBmp.Canvas.Font.Size := FInfoFont.Size;
     LocalBmp.Canvas.Font.Style := FInfoFont.Style;
-
     // MANUAL TEXT PARSING
     CleanInfoText := AItem.FInfoText;
     CleanInfoText := StringReplace(CleanInfoText, '\n', #10, [rfReplaceAll]);
-
     InfoLines := TStringList.Create;
     LineSpacing := FInfoFont.Size * 1.4;
-
     // ==========================================================
     // CALCULATE BASE GEOMETRY (Stable Reference)
     // ==========================================================
@@ -3424,7 +3416,6 @@ begin
       BaseImageW := VisualRect.Right - VisualRect.Left;
       BaseImageH := VisualRect.Bottom - VisualRect.Top;
     end;
-
     // ==========================================================
     // CALCULATE TARGET DIMENSIONS (W and H)
     // ==========================================================
@@ -3437,12 +3428,10 @@ begin
       else
         ActualDirection := ipdBottom;
     end;
-
     // 2. Calculate Target Width and Height
     // NOTE: ipdLeft/Right are vertical strips. ipdTop/Bottom are horizontal strips.
     // Vertical strips use Image Width (Full height, % width).
     // Horizontal strips use Image Height (Full width, % height).
-
     case ActualDirection of
       ipdLeft, ipdRight:
         begin
@@ -3455,29 +3444,24 @@ begin
           TargetPanelH := BaseImageH * FInfoPanelWidthPercent; // % of Height
         end;
     end;
-
     // Round Panel Dimensions to prevent sub-pixel box jitter
     TargetPanelW := Round(TargetPanelW);
     TargetPanelH := Round(TargetPanelH);
-
     if TargetPanelW < 10 then
       TargetPanelW := 10;
     if TargetPanelH < 10 then
       TargetPanelH := 10;
-
     // 3. Calculate Max Text Width (Based on Target Panel Width)
     // Margin: 20px left, 20px right. Total 40px.
     MaxCaptionWidth := Trunc(TargetPanelW - 40);
     if MaxCaptionWidth < 10 then
       MaxCaptionWidth := 10;
-
     // ==========================================================
     // MANUAL TEXT PARSING (CHARACTER BY CHARACTER)
     // ==========================================================
     CurrentLine := '';
     CurrentWord := '';
     CharI := 1;
-
     while CharI <= Length(CleanInfoText) do
     begin
       // 1. Check for NEW LINE CHARACTERS (\n)
@@ -3488,7 +3472,6 @@ begin
         Inc(CharI);
         Continue;
       end;
-
       // 2. Check for PIPE (|) -> Forces New Line
       if CleanInfoText[CharI] = '|' then
       begin
@@ -3497,7 +3480,6 @@ begin
         Inc(CharI);
         Continue;
       end;
-
       // 3. Check for SPACE
       if CleanInfoText[CharI] = ' ' then
       begin
@@ -3507,7 +3489,6 @@ begin
             LineWidth := LocalBmp.Canvas.TextWidth(CurrentWord)
           else
             LineWidth := LocalBmp.Canvas.TextWidth(CurrentLine + ' ' + CurrentWord);
-
           if LineWidth > MaxCaptionWidth then
           begin
             if CurrentLine <> '' then
@@ -3526,11 +3507,9 @@ begin
         Inc(CharI);
         Continue;
       end;
-
       // 4. Normal Character
       CurrentWord := CurrentWord + CleanInfoText[CharI];
       Inc(CharI);
-
       // 5. End of String Check
       if CharI > Length(CleanInfoText) then
       begin
@@ -3540,7 +3519,6 @@ begin
             LineWidth := Trunc(LocalBmp.Canvas.TextWidth(CurrentWord))
           else
             LineWidth := Trunc(LocalBmp.Canvas.TextWidth(CurrentLine + ' ' + CurrentWord));
-
           if LineWidth > MaxCaptionWidth then
           begin
             if CurrentLine <> '' then
@@ -3557,17 +3535,14 @@ begin
         end;
       end;
     end;
-
     if CurrentLine <> '' then
       InfoLines.Add(CurrentLine);
-
     // ==========================================================
     // GEOMETRY CALCULATION (Slide In Logic)
     // ==========================================================
     ZoomFactor := Max(1.0, AItem.FHotZoom);
     Amplitude := 5.0 * ZoomFactor;
     BreathingPulse := 1.0 + (Sin(FBreathingPhase * 2 * PI) * 0.1);
-
     // 1. Determine Target Position (Based on Direction + NO PANEL OFFSETS)
     case ActualDirection of
       ipdLeft:
@@ -3599,7 +3574,6 @@ begin
           TargetPanelR := VisualRect.Right;
         end;
     end;
-
     // 2. Determine Animated Position (Based on Progress)
     case ActualDirection of
       ipdLeft: // Expanding to Right (Fixed L)
@@ -3635,16 +3609,13 @@ begin
           CurrentPanelR := TargetPanelR;
         end;
     end;
-
     // ==========================================================
     // CALCULATE WAVE POSITIONS (For Blur Edge)
     // ==========================================================
     CenterX := (CurrentPanelL + CurrentPanelR) / 2;
     CenterY := (CurrentPanelT + CurrentPanelB) / 2;
-
     WaveX := CurrentPanelL; // Default
     WaveY := CurrentPanelT; // Default
-
     if Self.FInfoPanelStyle = iasBlurEdge then
     begin
       case ActualDirection of
@@ -3657,14 +3628,12 @@ begin
         ipdBottom:
           WaveY := CurrentPanelT; // Top edge moving
       end;
-
       // Apply Sine wave to the relevant coordinate
       if ActualDirection in [ipdLeft, ipdRight] then
         WaveX := WaveX + Sin((CenterY * 0.05)) * Amplitude
       else
         WaveY := WaveY + Sin((CenterX * 0.05)) * Amplitude;
     end;
-
     // ==========================================================
     // 3. Draw based on Style
     // ==========================================================
@@ -3672,17 +3641,14 @@ begin
     LPaint.ImageFilter := nil;
     LPaint.Style := TSkPaintStyle.Fill;
     LPaint.AntiAlias := True;
-
     var TotalLines: Integer;
     TotalLines := InfoLines.Count;
-
     if Self.FInfoPanelStyle = iasStatic then
       DrawFluidInfo_Static(AItem, VisualRect, ACanvas, LocalBmp, CurrentPanelL, CurrentPanelR, CurrentPanelT, CurrentPanelB, BreathingPulse, ZoomFactor, InfoLines, LineSpacing, LPaint, LSkFont, TotalLines, ActualDirection)
     else if Self.FInfoPanelStyle = iasBlurEdge then
       DrawFluidInfo_BlurEdge(AItem, VisualRect, ACanvas, LocalBmp, CurrentPanelL, CurrentPanelR, CurrentPanelT, CurrentPanelB, WaveX, WaveY, BreathingPulse, ZoomFactor, InfoLines, LineSpacing, LPaint, LSkFont, TotalLines, ActualDirection)
     else if Self.FInfoPanelStyle = iasTransparent then
       DrawFluidInfo_Transparent(AItem, VisualRect, ACanvas, LocalBmp, CurrentPanelL, CurrentPanelR, CurrentPanelT, CurrentPanelB, BreathingPulse, ZoomFactor, InfoLines, LineSpacing, LPaint, LSkFont, TotalLines, ActualDirection);
-
   finally
     if Assigned(LocalBmp) then
       LocalBmp.Free;
@@ -3711,48 +3677,37 @@ var
 begin
   ACanvas.Save;
   ACanvas.ClipRect(TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom));
-
   LocalPaint := TSkPaint.Create(Paint);
-
   LocalPaint.Style := TSkPaintStyle.Fill;
   LocalPaint.Color := TAlphaColors.Black;
   LocalPaint.ImageFilter := nil;
-
   PanelAlpha := 110.0 * BreathingPulse * ZoomFactor;
   if PanelAlpha > 180.0 then
     PanelAlpha := 180.0;
   if PanelAlpha < 10 then
     PanelAlpha := 10;
-
   LocalPaint.Alpha := Round(PanelAlpha);
-
   StripRect := TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom);
   ACanvas.DrawRect(StripRect, LocalPaint);
-
   LocalPaint.Color := FInfoTextColor;
   LocalPaint.Style := TSkPaintStyle.Fill;
   LocalPaint.Alpha := 255;
-
   ActualMaxLines := Min(InfoLines.Count, MaxLines);
   BaseMargin := 25.0;
-
   // ==========================================================
   // BAKING STRATEGY (For Smooth Zoom/Breath)
   // ==========================================================
   // 1. Create Surface sized to the Panel
   SnapshotInfo := TSkImageInfo.Create(Round(CurrentPanelRight - CurrentPanelLeft), Round(CurrentPanelBottom - CurrentPanelTop), TSkColorType.RGBA8888, TSkAlphaType.Premul);
   TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
-
   // 2. Clear Surface
   TextSurface.Canvas.Clear(TAlphaColors.Null);
-
   // 3. Draw Text onto Surface
   for i := 0 to ActualMaxLines - 1 do
   begin
     // Use SkFont.MeasureText for exact Skia width
     LineTextWidth := SkFont.MeasureText(InfoLines[i], Paint);
     TextHeight := LocalBmp.Canvas.TextHeight(InfoLines[i]);
-
     // Align Left for ALL directions to ensure maximum stability during breathing
     if ActualDirection = ipdLeft then
       TextDrawX := CurrentPanelLeft + BaseMargin
@@ -3761,26 +3716,21 @@ begin
     else
       // Top or Bottom: Align Left
       TextDrawX := CurrentPanelLeft + BaseMargin;
-
     DrawY := (CurrentPanelTop + BaseMargin) + (i * LineSpacing);
-
     if DrawY + TextHeight > CurrentPanelBottom then
       Break;
-
     // IMPORTANT: Draw relative to Surface (0,0)
     TextSurface.Canvas.DrawSimpleText(InfoLines[i], TextDrawX - CurrentPanelLeft, DrawY - CurrentPanelTop, SkFont, LocalPaint);
   end;
-
   // 4. Snapshot and Draw
   TextSnapshot := TextSurface.MakeImageSnapshot;
   ACanvas.DrawImageRect(TextSnapshot, StripRect, TSkSamplingOptions.High, LocalPaint);
-
   ACanvas.Restore;
 end;
-
 // -----------------------------------------------------------------------------
 // DRAW FLUID INFO: STATIC STYLE (Helper)
 // -----------------------------------------------------------------------------
+
 procedure TSkFlowmotion.DrawFluidInfo_Static(const AItem: TImageItem; const VisualRect: TRectF; ACanvas: ISkCanvas; LocalBmp: TBitmap; const CurrentPanelLeft, CurrentPanelRight, CurrentPanelTop, CurrentPanelBottom: Single; const BreathingPulse: Single; const ZoomFactor: Single; const InfoLines: TStringList; const LineSpacing: Single; const Paint: ISkPaint; const SkFont: ISkFont; const MaxLines: Integer; const ActualDirection: TInfoPanelDirection);
 var
   StripRect: TRectF;
@@ -3798,43 +3748,33 @@ var
 begin
   ACanvas.Save;
   ACanvas.ClipRect(TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom));
-
   LocalPaint := TSkPaint.Create(Paint);
-
   LocalPaint.Style := TSkPaintStyle.Fill;
   LocalPaint.Color := TAlphaColors.Black;
-
   PanelAlpha := 240.0;
   LocalPaint.Alpha := Round(PanelAlpha);
-
   StripRect := TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom);
   ACanvas.DrawRect(StripRect, LocalPaint);
-
   LocalPaint.ImageFilter := nil;
   LocalPaint.Color := FInfoTextColor;
   LocalPaint.Style := TSkPaintStyle.Fill;
   LocalPaint.Alpha := 255;
-
   ActualMaxLines := Min(InfoLines.Count, MaxLines);
   BaseMargin := 25.0;
-
   // ==========================================================
   // BAKING STRATEGY (For Smooth Zoom/Breath)
   // ==========================================================
   // 1. Create Surface sized to the Panel
   SnapshotInfo := TSkImageInfo.Create(Round(CurrentPanelRight - CurrentPanelLeft), Round(CurrentPanelBottom - CurrentPanelTop), TSkColorType.RGBA8888, TSkAlphaType.Premul);
   TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
-
   // 2. Clear Surface
   TextSurface.Canvas.Clear(TAlphaColors.Null);
-
   // 3. Draw Text onto Surface
   for i := 0 to ActualMaxLines - 1 do
   begin
     // Use SkFont.MeasureText for exact Skia width
     LineTextWidth := SkFont.MeasureText(InfoLines[i], Paint);
     TextHeight := LocalBmp.Canvas.TextHeight(InfoLines[i]);
-
     // Align Left for ALL directions to ensure maximum stability during breathing
     if ActualDirection = ipdLeft then
       TextDrawX := CurrentPanelLeft + BaseMargin
@@ -3843,26 +3783,21 @@ begin
     else
       // Top or Bottom: Align Left
       TextDrawX := CurrentPanelLeft + BaseMargin;
-
     DrawY := (CurrentPanelTop + BaseMargin) + (i * LineSpacing);
-
     if DrawY + TextHeight > CurrentPanelBottom then
       Break;
-
     // IMPORTANT: Draw relative to Surface (0,0)
     TextSurface.Canvas.DrawSimpleText(InfoLines[i], TextDrawX - CurrentPanelLeft, DrawY - CurrentPanelTop, SkFont, LocalPaint);
   end;
-
   // 4. Snapshot and Draw
   TextSnapshot := TextSurface.MakeImageSnapshot;
   ACanvas.DrawImageRect(TextSnapshot, StripRect, TSkSamplingOptions.High, LocalPaint);
-
   ACanvas.Restore;
 end;
-
 // -----------------------------------------------------------------------------
 // DRAW FLUID INFO: BLUR EDGE STYLE (Helper)
 // -----------------------------------------------------------------------------
+
 procedure TSkFlowmotion.DrawFluidInfo_BlurEdge(const AItem: TImageItem; const VisualRect: TRectF; ACanvas: ISkCanvas; LocalBmp: TBitmap; const CurrentPanelLeft, CurrentPanelRight, CurrentPanelTop, CurrentPanelBottom: Single; const WaveX, WaveY: Single; const BreathingPulse: Single; const ZoomFactor: Single; const InfoLines: TStringList; const LineSpacing: Single; const Paint: ISkPaint; const SkFont: ISkFont; const MaxLines: Integer; const ActualDirection: TInfoPanelDirection);
 var
   Builder: ISkPathBuilder;
@@ -3885,10 +3820,8 @@ var
 begin
   ACanvas.Save;
   ACanvas.ClipRect(TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom));
-
   // 1. Draw Blur Edge (Line)
   Builder := TSkPathBuilder.Create;
-
   case ActualDirection of
     ipdLeft, ipdRight:
       begin
@@ -3902,7 +3835,6 @@ begin
       end;
   end;
   Path := Builder.Snapshot;
-
   GlowPaint := TSkPaint.Create;
   GlowPaint.Style := TSkPaintStyle.Stroke;
   GlowPaint.StrokeWidth := 15.0;
@@ -3911,7 +3843,6 @@ begin
   Filter := TSkImageFilter.MakeBlur(20.0, 20.0, nil, TSkTileMode.Clamp);
   GlowPaint.ImageFilter := Filter;
   ACanvas.DrawPath(Path, GlowPaint);
-
   LocalPaint := TSkPaint.Create(Paint);
   LocalPaint.Style := TSkPaintStyle.Stroke;
   LocalPaint.StrokeWidth := 3.0;
@@ -3920,10 +3851,8 @@ begin
   Filter := TSkImageFilter.MakeBlur(4.0, 4.0, nil, TSkTileMode.Clamp);
   LocalPaint.ImageFilter := Filter;
   ACanvas.DrawPath(Path, LocalPaint);
-
   // 2. Draw Inside Panel
   Filter := TSkImageFilter.MakeBlur(2.0, 2.0, nil, TSkTileMode.Clamp);
-
   if Assigned(AItem.SkImage) then
   begin
     LocalPaint.ImageFilter := Filter;
@@ -3932,13 +3861,11 @@ begin
     LocalPaint.Color := TAlphaColors.White;
     ACanvas.DrawImageRect(AItem.SkImage, VisualRect, TSkSamplingOptions.High, LocalPaint);
   end;
-
   // 3. Draw Black Overlay (Gradient Fog)
   LocalPaint := TSkPaint.Create(Paint);
   LocalPaint.Style := TSkPaintStyle.Fill;
   LocalPaint.ImageFilter := nil;
   LocalPaint.Color := TAlphaColors.Black;
-
   if ActualDirection in [ipdLeft, ipdRight] then
   begin
     for X := Round(WaveX) to Round(CurrentPanelRight) do
@@ -3948,13 +3875,11 @@ begin
         StripAlpha := (Dist / 30.0) * BreathingPulse
       else
         StripAlpha := BreathingPulse;
-
       PanelAlpha := 255.0 * StripAlpha * ZoomFactor;
       if PanelAlpha > 255.0 then
         PanelAlpha := 255.0;
       if PanelAlpha < 0 then
         PanelAlpha := 0;
-
       LocalPaint.Alpha := Round(PanelAlpha);
       if LocalPaint.Alpha > 5 then
       begin
@@ -3972,13 +3897,11 @@ begin
         StripAlpha := (Dist / 30.0) * BreathingPulse
       else
         StripAlpha := BreathingPulse;
-
       PanelAlpha := 255.0 * StripAlpha * ZoomFactor;
       if PanelAlpha > 255.0 then
         PanelAlpha := 255.0;
       if PanelAlpha < 0 then
         PanelAlpha := 0;
-
       LocalPaint.Alpha := Round(PanelAlpha);
       if LocalPaint.Alpha > 5 then
       begin
@@ -3987,36 +3910,29 @@ begin
       end;
     end;
   end;
-
   // 4. Draw Text
   LocalPaint.ImageFilter := nil;
   LocalPaint.Color := FInfoTextColor;
   LocalPaint.Style := TSkPaintStyle.Fill;
   LocalPaint.Alpha := 255;
-
   ActualMaxLines := Min(InfoLines.Count, MaxLines);
   BaseMargin := 30.0;
-
   // Define the rect where text will be drawn (for snapshot sizing)
   TextSurfaceRect := TRectF.Create(CurrentPanelLeft, CurrentPanelTop, CurrentPanelRight, CurrentPanelBottom);
-
   // ==========================================================
   // BAKING STRATEGY (For Smooth Zoom/Breath)
   // ==========================================================
   // 1. Create Surface sized to the Panel
   SnapshotInfo := TSkImageInfo.Create(Round(TextSurfaceRect.Width), Round(TextSurfaceRect.Height), TSkColorType.RGBA8888, TSkAlphaType.Premul);
   TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
-
   // 2. Clear Surface
   TextSurface.Canvas.Clear(TAlphaColors.Null);
-
   // 3. Draw Text onto Surface
   for i := 0 to ActualMaxLines - 1 do
   begin
     // Use SkFont.MeasureText for exact Skia width
     LineTextWidth := SkFont.MeasureText(InfoLines[i], Paint);
     TextHeight := LocalBmp.Canvas.TextHeight(InfoLines[i]);
-
     // Align Left for ALL directions to ensure maximum stability during breathing
     if ActualDirection = ipdLeft then
       TextDrawX := CurrentPanelLeft + BaseMargin
@@ -4025,20 +3941,15 @@ begin
     else
       // Top or Bottom: Align Left
       TextDrawX := CurrentPanelLeft + BaseMargin;
-
     DrawY := (CurrentPanelTop + BaseMargin) + (i * LineSpacing);
-
     if DrawY + TextHeight > CurrentPanelBottom then
       Break;
-
     // IMPORTANT: Draw relative to Surface (0,0)
     TextSurface.Canvas.DrawSimpleText(InfoLines[i], TextDrawX - CurrentPanelLeft, DrawY - CurrentPanelTop, SkFont, LocalPaint);
   end;
-
   // 4. Snapshot and Draw
   TextSnapshot := TextSurface.MakeImageSnapshot;
   ACanvas.DrawImageRect(TextSnapshot, TextSurfaceRect, TSkSamplingOptions.High, LocalPaint);
-
   ACanvas.Restore;
 end;
 
@@ -4542,12 +4453,12 @@ const
   // --------------------------------------------------------------
   // Renders Caption with Word Wrapping & Alpha Background
   // Uses "Text Baking" for Selected/Hot items to prevent jitter during zoom/breath animations.
+
   procedure DrawCaption(Item: TImageItem; const DrawRect: TRectF);
   var
     LocalBmp: TBitmap;
     Lines: TStringList;
-    MaxCaptionWidth, MaxCaptionHeight,
-    LineHeight, LineWidth: Single;
+    MaxCaptionWidth, MaxCaptionHeight, LineHeight, LineWidth: Single;
     CurrentLine, Word: string;
     i, WordStart, WordEnd: Integer;
     ActualLinesToShow, MaxLinesToShow: Integer;
@@ -4560,37 +4471,27 @@ const
     SnapshotInfo: TSkImageInfo;
     TextSurface: ISkSurface;
     TextSnapshot: ISkImage;
-    BakingNeeded: Boolean;
   begin
     if not FShowCaptions or (Item.Caption = '') then
       Exit;
     if FCaptionOnHoverOnly and (Item <> FHotItem) and (Item <> FSelectedImage) then
       Exit;
-
-    // OPTIMIZATION: Only bake text if the item is animating/zooming (Selected or Hot).
-    // Static items draw directly for max performance.
-    BakingNeeded := Item.IsSelected or (Item = FHotItem);
-
     LocalBmp := nil;
     TextSurface := nil;
     TextSnapshot := nil;
-
     try
       // 1. Measure Text (Keep LocalBmp logic to ensure Wrapping matches exactly)
       LocalBmp := TBitmap.Create;
       LocalBmp.Canvas.Font.Family := FCaptionFont.Family;
       LocalBmp.Canvas.Font.Size := FCaptionFont.Size;
       LocalBmp.Canvas.Font.Style := FCaptionFont.Style;
-
       MaxCaptionHeight := Trunc(LocalBmp.Canvas.TextHeight('Hg') * 1.4) + 12;
       MaxCaptionWidth := Trunc(DrawRect.Right - DrawRect.Left) - 30;
       if MaxCaptionWidth < 30 then
         MaxCaptionWidth := 40;
-
       Lines := TStringList.Create;
       CurrentLine := '';
       i := 1;
-
       // --- Word Wrapping Logic ---
       while i <= Length(Item.Caption) do
       begin
@@ -4603,12 +4504,10 @@ const
           Inc(i);
         WordEnd := i - 1;
         Word := Copy(Item.Caption, WordStart, WordEnd - WordStart + 1);
-
         if CurrentLine = '' then
           LineWidth := LocalBmp.Canvas.TextWidth(Word)
         else
           LineWidth := LocalBmp.Canvas.TextWidth(CurrentLine + ' ' + Word);
-
         if LineWidth > MaxCaptionWidth then
         begin
           if CurrentLine <> '' then
@@ -4625,7 +4524,6 @@ const
       end;
       if CurrentLine <> '' then
         Lines.Add(CurrentLine);
-
       // --- Geometry Calculation ---
       LineHeight := Trunc(LocalBmp.Canvas.TextHeight('Hg')) + 2;
       MaxCaptionHeight := Max(MaxCaptionHeight, LineHeight * 2);
@@ -4633,12 +4531,10 @@ const
       if MaxLinesToShow < 1 then
         MaxLinesToShow := 1;
       ActualLinesToShow := Min(MaxLinesToShow, Lines.Count);
-
       if Lines.Count > MaxLinesToShow then
         MaxCaptionHeight := MaxCaptionHeight
       else
         MaxCaptionHeight := Lines.Count * LineHeight + 12;
-
       InflatedDrawRect := DrawRect;
       if (InflatedDrawRect.Bottom - InflatedDrawRect.Top) < MaxCaptionHeight + FCaptionOffsetY then
       begin
@@ -4657,7 +4553,6 @@ const
         TextRect.Left := InflatedDrawRect.Left;
         TextRect.Right := InflatedDrawRect.Right;
       end;
-
       MaxLineWidth := 0;
       for i := 0 to ActualLinesToShow - 1 do
       begin
@@ -4665,10 +4560,8 @@ const
         if LineWidth > MaxLineWidth then
           MaxLineWidth := LineWidth;
       end;
-
       TextRect.Left := TextRect.Left + ((TextRect.Right - TextRect.Left) - (MaxLineWidth + 24)) / 2.0;
       TextRect.Right := TextRect.Left + (MaxLineWidth + 24);
-
       if TextRect.Bottom > Height then
       begin
         TextRect.Bottom := Height;
@@ -4678,7 +4571,6 @@ const
       end;
       if TextRect.Top < 0 then
         TextRect.Top := 0;
-
       // --- Draw Background ---
       Paint.Style := TSkPaintStyle.Fill;
       if Item.IsSelected then
@@ -4690,68 +4582,45 @@ const
       Paint.Alpha := FCaptionAlpha;
       Paint.ImageFilter := nil;
       ACanvas.DrawRoundRect(TextRect, 4.0, 4.0, Paint);
-
       // --- Prepare Skia Font ---
       SkStyle := TSkFontStyle.Normal;
       if TFontStyle.fsBold in FCaptionFont.Style then
         SkStyle := TSkFontStyle.Bold;
       if TFontStyle.fsItalic in FCaptionFont.Style then
         SkStyle := TSkFontStyle.Italic;
-
       SkFont := TSkFont.Create(TSkTypeface.MakeFromName(FCaptionFont.Family, SkStyle), FCaptionFont.Size);
-
       Paint.Style := TSkPaintStyle.Fill;
       Paint.AlphaF := 1.0;
       if Item.IsSelected then
         Paint.Color := FSelectedCaptionColor
       else
         Paint.Color := FCaptionColor;
+      // --- DRAW TEXT ---
 
-      // --- DRAW TEXT STRATEGY ---
-      if BakingNeeded then
+      // BAKE TO SURFACE (Prevents Jitter during Zoom/Breath)
+      // 1. Create a temporary Surface sized to the TextRect
+      SnapshotInfo := TSkImageInfo.Create(Round(TextRect.Width), Round(TextRect.Height), TSkColorType.RGBA8888, TSkAlphaType.Premul);
+      TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
+      // 2. Clear Surface
+      TextSurface.Canvas.Clear(TAlphaColors.Null);
+      // 3. Draw Text onto Surface
+      for i := 0 to ActualLinesToShow - 1 do
       begin
-        // STRATEGY A: BAKE TO SURFACE (Prevents Jitter during Zoom/Breath)
-        // 1. Create a temporary Surface sized to the TextRect
-        SnapshotInfo := TSkImageInfo.Create(Round(TextRect.Width), Round(TextRect.Height), TSkColorType.RGBA8888, TSkAlphaType.Premul);
-        TextSurface := TSkSurface.MakeRaster(SnapshotInfo);
-
-        // 2. Clear Surface
-        TextSurface.Canvas.Clear(TAlphaColors.Null);
-
-        // 3. Draw Text onto Surface
-        for i := 0 to ActualLinesToShow - 1 do
-        begin
-          // Use SkFont.MeasureText to get exact width for alignment
-          // We use the overload that returns a Single directly.
-          var SkiaLineW: Single;
-          SkiaLineW := SkFont.MeasureText(Lines[i], Paint);
-
-          // Center inside the box (Box Width - 24 Margins) / 2
-          DrawX := (TextRect.Left + 12) + ((TextRect.Right - TextRect.Left - 24) - SkiaLineW) / 2.0;
-          DrawY := (TextRect.Top + 6 + (i * LineHeight)) + LineHeight - (LineHeight * 0.25);
-
-          // IMPORTANT: Subtract TextRect.Top/Left to draw relative to Surface (0,0)
-          TextSurface.Canvas.DrawSimpleText(Lines[i], DrawX - TextRect.Left, DrawY - TextRect.Top, SkFont, Paint);
-        end;
-
-        // 4. Snapshot the Surface to an Image
-        TextSnapshot := TextSurface.MakeImageSnapshot;
-
-        // 5. Draw the Snapshot onto the Main Canvas (Smooth scaling)
-        // We use High quality sampling so the text looks crisp even when scaled
-        ACanvas.DrawImageRect(TextSnapshot, TextRect, TSkSamplingOptions.High, Paint);
-      end
-      else
-      begin
-        // STRATEGY B: DIRECT DRAW (Fastest for static items)
-        for i := 0 to ActualLinesToShow - 1 do
-        begin
-          LineWidth := LocalBmp.Canvas.TextWidth(Lines[i]);
-          DrawX := TextRect.Left + 12 + ((TextRect.Right - TextRect.Left) - 24 - LineWidth) / 2.0;
-          DrawY := (TextRect.Top + 6 + (i * LineHeight)) + LineHeight - (LineHeight * 0.25);
-          ACanvas.DrawSimpleText(Lines[i], DrawX, DrawY, SkFont, Paint);
-        end;
+        // Use SkFont.MeasureText to get exact width for alignment
+        // We use the overload that returns a Single directly.
+        var SkiaLineW: Single;
+        SkiaLineW := SkFont.MeasureText(Lines[i], Paint);
+        // Center inside the box (Box Width - 24 Margins) / 2
+        DrawX := (TextRect.Left + 12) + ((TextRect.Right - TextRect.Left - 24) - SkiaLineW) / 2.0;
+        DrawY := (TextRect.Top + 6 + (i * LineHeight)) + LineHeight - (LineHeight * 0.25);
+        // IMPORTANT: Subtract TextRect.Top/Left to draw relative to Surface (0,0)
+        TextSurface.Canvas.DrawSimpleText(Lines[i], DrawX - TextRect.Left, DrawY - TextRect.Top, SkFont, Paint);
       end;
+      // 4. Snapshot the Surface to an Image
+      TextSnapshot := TextSurface.MakeImageSnapshot;
+      // 5. Draw the Snapshot onto the Main Canvas (Smooth scaling)
+      // We use High quality sampling so the text looks crisp even when scaled
+      ACanvas.DrawImageRect(TextSnapshot, TextRect, TSkSamplingOptions.High, Paint);
 
     finally
       Lines.Free;
