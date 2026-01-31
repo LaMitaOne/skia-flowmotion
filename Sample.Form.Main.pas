@@ -2,15 +2,19 @@
   Sample.Form.Main
 ********************************************************************************
   Main Application Form demonstrating the usage of TSkFlowmotion.
+
   Features Demonstrated:
   - Initialization and configuration of the FlowMotion Gallery.
   - Loading images.
   - Dynamic layout changes and styling (Colors, Fonts, Borders).
   - Inter-Process Communication (WM_COPYDATA) for external control.
   - Parameter-based loading for standalone/slave execution modes.
+
   part of skFlowmotion
+
   written by: Lara Miriam Tamy Reschke
 *******************************************************************************}
+
 unit Sample.Form.Main;
 
 interface
@@ -737,6 +741,8 @@ end;
 procedure TfrmMain.MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean);
 begin
   inherited;
+  if not assigned(skfmFlowGallery) then Exit;
+
   { Map Mouse Wheel to Image Selection }
   if WheelDelta > 0 then
     skfmFlowGallery.SelectPreviousImage

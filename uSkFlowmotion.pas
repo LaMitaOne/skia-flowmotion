@@ -10,7 +10,7 @@
   - Interactive features (Selection, Dragging, Rotation, Info Panels).
   - Background effects integration (Matrix, Holographic).
 *******************************************************************************}
-{ Skia-Flowmotion v0.54 alpha                                                  }
+{ Skia-Flowmotion v0.55 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -21,6 +21,13 @@
 
 {
  ----Latest Changes
+   v 0.55
+    - AliveHighlighter now respects all screen edges
+    - New AliveHighlighter TAliveStyle: asSnake, asEnergyBeam, asFirefly
+    - New properties: AliveHighlighterColor, AliveHighlighterShadowColor, AliveHighlighterGlowAmount, AliveHighlighterBlur, AliveHighlighterOffset
+    - AliveHighlighter AI upgrade: gets sometimes grumpy when mouse too close – bites, tries to smash glass or runs away…
+      mostly cool tho… don't push him too far :D
+    - Improved NeuralLinks rendering
    v 0.54
     - Implemented Idle-Skip Physics (CPU+GPU optimization).
       The animation loop now intelligently skips heavy math if the UI is static (no animations, background, hoveralive),
@@ -33,11 +40,11 @@
     - Animated Lines: Connections are recalculated in real-time,
       allowing them to follow images during layout changes,
       zooming, and dragging.
-    - Color Coding: Connections are color-coded based on the
-      group name (InfoText). Same text = Same Color.
     - Added new ImageEntryStyle: iesReplicatorLaser.
       "Replicator/Laser Printer" effect where the image is scanned into existence.
       *Note: Currently working but still annoys me really heavy with some eeeeevil bug.*
+    - Color Coding: Connections are color-coded based on the
+      group name (InfoText). Same text = Same Color.
     - Added new AliveHighlighter (uSkiaAliveHighlighter.pas).
       An organic, physics-based entity that navigates obstacles and orbits targets naturally.
 
@@ -59,6 +66,7 @@ uses
   { System }
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Math,
   System.IOUtils, System.Generics.Defaults, System.Generics.Collections,
+  System.SyncObjs,
   { FMX }
   FMX.Types, FMX.Controls, FMX.Graphics, FMX.Forms, FMX.ImgList,
   { Skia }
@@ -369,6 +377,14 @@ type
     FPrevRect: TRect;
     FFreeFloat: Boolean;
 
+    { --- AliveHighlighter Config --- }
+    FAliveHighlighterStyle: TAliveStyle;
+    FAliveHighlighterColor: TAlphaColor;
+    FAliveHighlighterShadowColor: TAlphaColor;
+    FAliveHighlighterShadowBlur: Single;
+    FAliveHighlighterShadowOffset: TPointF;
+    FAliveHighlighterGlowAmount: Single;
+
     { --- Picture Pipeline --- }
     // Swap Chain for Thread Safety
     FExternalImage_A: ISkImage;
@@ -392,10 +408,6 @@ type
     FGlowWidth: Integer;
     FItemBorderColor: TAlphaColor;
     FMitchellQuality: Boolean;
-    FIsScanning: Boolean;
-    FScannerY: Single;
-    FScannerSpeed: Single;
-    FLaserColor: TAlphaColor;
 
     { Caption Properties }
     FCaptionFont: TFont;
@@ -656,6 +668,12 @@ type
     procedure SetMitchellQuality(const Value: Boolean);
     procedure SetInfoIndicatorOnlyOnHover(const Value: Boolean);
     procedure SetExternalStreamImage(const Value: ISkImage);
+    procedure SetAliveHighlighterStyle(const Value: TAliveStyle);
+    procedure SetAliveHighlighterColor(const Value: TAlphaColor);
+    procedure SetAliveHighlighterShadowColor(const Value: TAlphaColor);
+    procedure SetAliveHighlighterShadowBlur(const Value: Single);
+    procedure SetAliveHighlighterShadowOffset(const Value: TPointF);
+    procedure SetAliveHighlighterGlowAmount(const Value: Single);
   protected
     { Paint Overrides }
     procedure Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single); override;
@@ -903,6 +921,14 @@ type
     property MatrixHeadColor: TAlphaColor read FMatrixHeadColor write SetMatrixHeadColor;
     property MatrixSpeed: Single read FMatrixSpeed write SetMatrixSpeed;
     property MatrixFontSize: Single read FMatrixFontSize write SetMatrixFontSize;
+
+    { AliveHighlighter Properties }
+    property HighlighterStyle: TAliveStyle read FAliveHighlighterStyle write SetAliveHighlighterStyle default asSnake;
+    property HighlighterColor: TAlphaColor read FAliveHighlighterColor write SetAliveHighlighterColor default TAlphaColors.Cyan;
+    property HighlighterShadowColor: TAlphaColor read FAliveHighlighterShadowColor write SetAliveHighlighterShadowColor default TAlphaColors.Black;
+    property HighlighterShadowBlur: Single read FAliveHighlighterShadowBlur write SetAliveHighlighterShadowBlur;
+    property HighlighterShadowOffset: TPointF read FAliveHighlighterShadowOffset write SetAliveHighlighterShadowOffset;
+    property HighlighterGlowAmount: Single read FAliveHighlighterGlowAmount write SetAliveHighlighterGlowAmount;
 
     { Events }
     property OnFullscreenEnter: TImageFullscreenEvent read FOnFullscreenEnter write FOnFullscreenEnter;
@@ -1359,6 +1385,13 @@ begin
   FInfoFont.Style := [TFontStyle.fsBold]; // BOLD BY DEFAULT
   FInfoTextColor := TAlphaColors.Aqua; // DEFAULT COLOR
   FInfoPanelWidthPercent := 0.3; // COVERS 30% OF IMAGE
+  { --- Defaults - AliveHighlighter --- }
+  FAliveHighlighterStyle := asSnake;    //asSnake, asEnergyBeam, asFirefly
+  FAliveHighlighterColor := TAlphaColors.Aqua;
+  FAliveHighlighterShadowColor := TAlphaColors.Black;
+  FAliveHighlighterShadowBlur := 4.0;
+  FAliveHighlighterShadowOffset := TPointF.Create(6.0, 6.0);
+  FAliveHighlighterGlowAmount := 5.0;
   { --- Initialize Lists --- }
   FImages := TList.Create;
   FLoadingThreads := TList.Create;
@@ -1615,6 +1648,69 @@ end;
 // -----------------------------------------------------------------------------
 // INTERNAL METHODS: PROPERTY SETTERS
 // -----------------------------------------------------------------------------
+
+procedure TSkFlowmotion.SetAliveHighlighterStyle(const Value: TAliveStyle);
+begin
+  if FAliveHighlighterStyle <> Value then
+  begin
+    FAliveHighlighterStyle := Value;
+    // Optional: Update live instance if active
+    if Assigned(FAliveHighlighter) then
+      FAliveHighlighter.Style := Value;
+  end;
+end;
+
+procedure TSkFlowmotion.SetAliveHighlighterColor(const Value: TAlphaColor);
+begin
+  if FAliveHighlighterColor <> Value then
+  begin
+    FAliveHighlighterColor := Value;
+    if Assigned(FAliveHighlighter) then
+    begin
+      FAliveHighlighter.Color := Value;
+    end;
+  end;
+end;
+
+procedure TSkFlowmotion.SetAliveHighlighterShadowColor(const Value: TAlphaColor);
+begin
+  if FAliveHighlighterShadowColor <> Value then
+  begin
+    FAliveHighlighterShadowColor := Value;
+    if Assigned(FAliveHighlighter) then
+      FAliveHighlighter.ShadowColor := Value;
+  end;
+end;
+
+procedure TSkFlowmotion.SetAliveHighlighterShadowBlur(const Value: Single);
+begin
+  if FAliveHighlighterShadowBlur <> Value then
+  begin
+    FAliveHighlighterShadowBlur := Value;
+    if Assigned(FAliveHighlighter) then
+      FAliveHighlighter.ShadowBlur := Value;
+  end;
+end;
+
+procedure TSkFlowmotion.SetAliveHighlighterShadowOffset(const Value: TPointF);
+begin
+  if (FAliveHighlighterShadowOffset.X <> Value.X) or (FAliveHighlighterShadowOffset.Y <> Value.Y) then
+  begin
+    FAliveHighlighterShadowOffset := Value;
+    if Assigned(FAliveHighlighter) then
+      FAliveHighlighter.ShadowOffset := Value;
+  end;
+end;
+
+procedure TSkFlowmotion.SetAliveHighlighterGlowAmount(const Value: Single);
+begin
+  if FAliveHighlighterGlowAmount <> Value then
+  begin
+    FAliveHighlighterGlowAmount := Value;
+    if Assigned(FAliveHighlighter) then
+      FAliveHighlighter.GlowAmount := Value;
+  end;
+end;
 
 procedure TSkFlowmotion.SetExternalStreamImage(const Value: ISkImage);
 begin
@@ -2305,11 +2401,19 @@ begin
   if FAliveHighlighter = nil then
     FAliveHighlighter := TAliveHighlighter.Create;
 
-  // 2. Get the item
+  // 2. APPLY CONFIGURATION FROM MAIN COMPONENT
+  // This ensures the highlighter uses the colors/styles set in the Main Unit
+  FAliveHighlighter.Style := FAliveHighlighterStyle;
+  FAliveHighlighter.Color := FAliveHighlighterColor;
+  FAliveHighlighter.ShadowColor := FAliveHighlighterShadowColor;
+  FAliveHighlighter.ShadowBlur := FAliveHighlighterShadowBlur;
+  FAliveHighlighter.ShadowOffset := FAliveHighlighterShadowOffset;
+  FAliveHighlighter.GlowAmount := FAliveHighlighterGlowAmount;
+
+  // 3. Get the item
   TargetItem := TImageItem(FImages[Index]);
 
-  // 3. Send the RECT (The Box)
-  // We use CurrentRect because that's where the image physically is right now
+  // 4. Send the RECT (The Box)
   if Assigned(TargetItem) then
     FAliveHighlighter.SendToRect(TargetItem.CurrentRect);
 end;
@@ -2319,19 +2423,31 @@ var
   I: Integer;
   Obstacles: TArray<TObstacle>;
   ImgItem: TImageItem;
+  LocalMousePos: TPointF;
 begin
   if (FAliveHighlighter = nil) or (not FAliveHighlighter.Active) then
     Exit;
 
-  SetLength(Obstacles, FImages.Count);
+  // 1. Update Bounds (Screen Size)
+  FAliveHighlighter.SetBounds(Self.Width, Self.Height);
 
+  // 2. Get Mouse Position (FMX Way)
+  // We take the global screen mouse position and adjust it to our control's coordinates
+  // Screen.MousePos is global in FMX
+  LocalMousePos := AbsoluteToLocal(Screen.MousePos);
+
+  // 3. Pass Mouse Position to Snake
+  FAliveHighlighter.UpdateMousePos(LocalMousePos.X, LocalMousePos.Y);
+
+  // 4. Build Obstacles
+  SetLength(Obstacles, FImages.Count);
   for I := 0 to FImages.Count - 1 do
   begin
     ImgItem := TImageItem(FImages[I]);
     Obstacles[I].Rect := ImgItem.CurrentRect;
   end;
 
-  // Pass the list to the Brain
+  // 5. Update Snake
   FAliveHighlighter.Update(DeltaTime, Obstacles);
 end;
 
@@ -3240,15 +3356,15 @@ begin
         StartX := CenterX;
         StartY := CenterY;
       end;
-  iesReplicatorLaser:
-    begin
+    iesReplicatorLaser:
+      begin
       // Start exactly at the target position (no flying in from sides)
-      StartX := Target.Left;
-      StartY := Target.Top;
+        StartX := Target.Left;
+        StartY := Target.Top;
       // We use a tiny single-pixel rect as the start size
       // so the system expands it to TargetRect smoothly.
-      ImageItem.StartRect := Rect(StartX + (W div 2), StartY + (H div 2), StartX + (W div 2) + 1, StartY + (H div 2) + 1);
-    end;
+        ImageItem.StartRect := Rect(StartX + (W div 2), StartY + (H div 2), StartX + (W div 2) + 1, StartY + (H div 2) + 1);
+      end;
   else
     begin
       StartX := Target.Left;
@@ -4639,7 +4755,6 @@ const
     TextSnapshot: ISkImage;
     CurrentHash: Cardinal;
     TextW, TextH: Single;
-
     // Helper for simple hashing
 
     function CalcHash(const AStr: string; W, H: Integer): Cardinal;
@@ -4786,9 +4901,9 @@ const
         Paint.Style := TSkPaintStyle.Fill;
         Paint.AlphaF := 1.0;
         if Item.IsSelected then
-          Paint.Color := FSelectedCaptionColor  // <--- Fixed this
+          Paint.Color := FSelectedCaptionColor
         else
-          Paint.Color := FCaptionColor;       // <--- And this
+          Paint.Color := FCaptionColor;
 
         ACanvas.DrawImageRect(Item.FCachedTextSnapshot, TextRect, TSkSamplingOptions.High, Paint);
         Exit;
@@ -4914,7 +5029,6 @@ const
       begin
         LocalHQOpts.UseCubic := False;
       end;
-
       // Call the effect
       uSkFlowEffects.DrawCyberpunkGlitch(ACanvas, Item.FSkImage, VisRect, Item.FGlitchIntensity, LocalHQOpts);
     end;      }
@@ -5071,58 +5185,49 @@ begin
   // =========================================================================
   // 2. DRAW LASER REPLICATOR BEAMS
   // =========================================================================
-  if Assigned(AnimatingImages) then
-  begin
-    for i := 0 to AnimatingImages.Count - 1 do
+    if Assigned(AnimatingImages) then
     begin
-      ImageItem := TImageItem(AnimatingImages[i]);
-
-      // Check if this specific item is entering via Laser
-      if (ImageItem <> nil) and ImageItem.Visible and (ImageItem.Direction = iesReplicatorLaser) and (ImageItem.AnimationProgress < 1.0) then
+      for i := 0 to AnimatingImages.Count - 1 do
       begin
-        var ScanY: Single;
-        var ImgLeft, ImgRight, ImgTop: Single;
-
-        ImgLeft := ImageItem.TargetRect.Left;
-        ImgRight := ImageItem.TargetRect.Right;
-        ImgTop := ImageItem.TargetRect.Top;
-
+        ImageItem := TImageItem(AnimatingImages[i]);
+      // Check if this specific item is entering via Laser
+        if (ImageItem <> nil) and ImageItem.Visible and (ImageItem.Direction = iesReplicatorLaser) and (ImageItem.AnimationProgress < 1.0) then
+        begin
+          var ScanY: Single;
+          var ImgLeft, ImgRight, ImgTop: Single;
+          ImgLeft := ImageItem.TargetRect.Left;
+          ImgRight := ImageItem.TargetRect.Right;
+          ImgTop := ImageItem.TargetRect.Top;
         // Calculate current Scan Position (Y)
-        ScanY := ImgTop + (ImgTop - ImgTop) * ImageItem.AnimationProgress;
-        ScanY := ImgTop + (ImageItem.TargetRect.Bottom - ImgTop) * ImageItem.AnimationProgress;
-
+          ScanY := ImgTop + (ImageItem.TargetRect.Bottom - ImgTop) * ImageItem.AnimationProgress;
         // --- Draw the SCANNER BAR (The Printer Head) ---
-        var LaserPaint: ISkPaint;
-        LaserPaint := TSkPaint.Create;
-        LaserPaint.Style := TSkPaintStyle.Stroke;
-        LaserPaint.Color := TAlphaColors.Lime; // Green Laser
-        LaserPaint.StrokeWidth := 2.0;
-        LaserPaint.Alpha := 255;
-
+          var LaserPaint: ISkPaint;
+          LaserPaint := TSkPaint.Create;
+          LaserPaint.Style := TSkPaintStyle.Stroke;
+          LaserPaint.Color := TAlphaColors.Lime; // Green Laser
+          LaserPaint.StrokeWidth := 2.0;
+          LaserPaint.Alpha := 255;
         // Draw horizontal line across the FULL width of the image
-        ACanvas.DrawLine(TPointF.Create(ImgLeft, ScanY), TPointF.Create(ImgRight, ScanY), LaserPaint);
-
+          ACanvas.DrawLine(TPointF.Create(ImgLeft, ScanY), TPointF.Create(ImgRight, ScanY), LaserPaint);
         // --- Draw the GLOW (The "Heat" of the laser) ---
-        LaserPaint.StrokeWidth := 15.0; // Thicker blur
-        LaserPaint.Color := TAlphaColors.Lime;
-        LaserPaint.ImageFilter := TSkImageFilter.MakeBlur(5.0, 5.0, nil, TSkTileMode.Clamp);
-        ACanvas.DrawLine(TPointF.Create(ImgLeft, ScanY), TPointF.Create(ImgRight, ScanY), LaserPaint);
-
+          LaserPaint.StrokeWidth := 15.0; // Thicker blur
+          LaserPaint.Color := TAlphaColors.Lime;
+          LaserPaint.ImageFilter := TSkImageFilter.MakeBlur(5.0, 5.0, nil, TSkTileMode.Clamp);
+          ACanvas.DrawLine(TPointF.Create(ImgLeft, ScanY), TPointF.Create(ImgRight, ScanY), LaserPaint);
         // --- Draw the BURNING WHITE EDGE (The Cutter) ---
-        LaserPaint.StrokeWidth := 2.0;
-        LaserPaint.Color := TAlphaColors.White;
-        LaserPaint.ImageFilter := nil; // Sharp
-        ACanvas.DrawLine(TPointF.Create(ImgLeft, ScanY), TPointF.Create(ImgRight, ScanY), LaserPaint);
+          LaserPaint.StrokeWidth := 2.0;
+          LaserPaint.Color := TAlphaColors.White;
+          LaserPaint.ImageFilter := nil; // Sharp
+          ACanvas.DrawLine(TPointF.Create(ImgLeft, ScanY), TPointF.Create(ImgRight, ScanY), LaserPaint);
 
-
-            if (ImageItem.AnimationProgress = 0.99) then
-            begin
-                ImageItem.AnimationProgress := 1.0;
-                ImageItem.FHotZoom := 1.0;
-            end;
+          if (ImageItem.AnimationProgress = 0.99) then
+          begin
+            ImageItem.AnimationProgress := 1.0;
+            ImageItem.FHotZoom := 1.0;
+          end;
+        end;
       end;
     end;
-  end;
 
 
     // Sort the static list for Z-ordering
@@ -5764,6 +5869,10 @@ begin
     FScaledBgSkImage := nil;
   end;
 
+    { --- Update Highlighter (Snake) --- }
+  if Assigned(FAliveHighlighter) then
+    FAliveHighlighter.SetBounds(Self.Width, Self.Height);
+
   CalculateLayout;
   Repaint;
 end;
@@ -5787,6 +5896,7 @@ begin
   if FisClearing or FPageChangeInProgress then
     Exit;
   WasEmpty := (FAllFiles.Count = 0);
+  ExitAliveHighlighter;
   { Always add to Master Lists }
   if FileName <> '' then
   begin
@@ -6060,6 +6170,7 @@ begin
     Exit;
 
   // 2. Stop any other interfering processes
+  ExitAliveHighlighter;
   StopAnimationThread;
 
   if not animated then
@@ -6195,6 +6306,7 @@ begin
   AnimSpeed := 18;
   StopAnimationThread;
   FInFallAnimation := True;
+  ExitAliveHighlighter;
 
   { --- STOP AND FREE LOADING THREADS --- }
   try
@@ -6794,7 +6906,7 @@ begin
       begin
         //animated destroy
         // DoAnimateBoom(ImageItem, False);
-
+        ExitAliveHighlighter;
         if (FSelectedImage.FImageIndex >= 0) and (FSelectedImage.FImageIndex < FAllFiles.Count) then
         begin
           FAllFiles.Delete(FSelectedImage.FImageIndex);
@@ -7986,6 +8098,8 @@ begin
   if (Index < 0) or (Index >= FImages.Count) then
     Exit;
 
+  ExitAliveHighlighter;
+
   AbsIndex := GetPageStartIndex + Index;
   if (AbsIndex < 0) or (AbsIndex >= FAllFiles.Count) then
     Exit;
@@ -8451,10 +8565,8 @@ var
   CPUTick: Cardinal;
   CurrentCPU: Double;
   PerfTick: Cardinal;
-
   { LOCAL LIST REFERENCE - Critical for Thread Safety }
   LocalImagesList: TList;
-
   { Helper to check if we need to run the heavy physics loop }
 
   function NeedsInterpolationMath: Boolean;
@@ -8555,7 +8667,8 @@ begin
   PerfTick := GetTickCount;
 
   { --- Update Highlighter (Snake) --- }
-  UpdateHighlighter(DeltaTime);
+  if Assigned(FAliveHighlighter) and FAliveHighlighter.Active then
+    UpdateHighlighter(DeltaTime);
 
   // ==========================================================
   // PHASE 1: SMALL PIC SPAWNING (Only once)
@@ -8776,35 +8889,28 @@ begin
       ImageItem := TImageItem(LocalImagesList[i]);
       if ImageItem = nil then
         Continue;
-
       // Only process if we are using Laser style AND we haven't finished yet
       if (ImageItem.Direction = iesReplicatorLaser) and (ImageItem.AnimationProgress < 1.0) then
       begin
         var ScanY: Single;
         var ImgTop, ImgBottom: Single;
-
         ImgTop := ImageItem.TargetRect.Top;
         ImgBottom := ImageItem.TargetRect.Bottom;
-
         // 1. INCREASE PROGRESS
         // We use a speed factor so it feels like a scanning printer
         ImageItem.AnimationProgress := ImageItem.AnimationProgress + (FAnimationSpeed / 100);
-
         // 2. HARD CLAMP TO 1.0
         // This ensures we never exceed the limit
         if ImageItem.AnimationProgress > 1.0 then
           ImageItem.AnimationProgress := 1.0;
-
         // 3. SYNC ALPHA TO PROGRESS
         // The image is transparent at 0 progress, fully visible at 1.0
         ImageItem.Alpha := Round(ImageItem.AnimationProgress * 255);
-
         // Mark that we need to repaint the screen
         NeedRepaint := True;
       end;
-
       // ==========================================================
-      // FIX: CHECK FOR COMPLETION OUTSIDE THE < 1.0 BLOCK
+      // CHECK FOR COMPLETION OUTSIDE THE < 1.0 BLOCK
       // ==========================================================
       // Once progress hits 1.0, we must explicitly turn off the
       // 'Animating' flag so the engine stops processing this item
@@ -9753,5 +9859,4 @@ begin
 end;
 
 end.
-
 
