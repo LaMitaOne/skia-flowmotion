@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.54**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.55**    
     
   <img width="1749" height="1139" alt="Unbenannt" src="https://github.com/user-attachments/assets/9f297642-b8c4-4840-9db8-94497714da21" />
 
@@ -30,7 +30,7 @@ maybe at least i spread out some new ideas :)
    
 static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly for me :D       
       
-### Features at a glance (v0.54)   
+### Features at a glance (v0.55)   
    
 - **Pinterest-like masonry layout**     
 - **Animated appearance** (slide-in, “falling” effects, breathing)  
@@ -92,6 +92,14 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
+   
+**v 0.55**    
+- AliveHighlighter now respects all screen edges    
+- New AliveHighlighter TAliveStyle: asSnake, asEnergyBeam, asFirefly    
+- New properties: AliveHighlighterColor, AliveHighlighterShadowColor, AliveHighlighterGlowAmount, AliveHighlighterBlur, AliveHighlighterOffset    
+- AliveHighlighter AI upgrade: gets sometimes grumpy when mouse too close – bites, tries to smash glass or runs away…    
+  mostly cool tho… don't push him too far :D   
+- Improved NeuralLinks rendering   
    
 **v 0.54**   
 - Implemented Idle-Skip Physics (CPU+GPU optimization).    
