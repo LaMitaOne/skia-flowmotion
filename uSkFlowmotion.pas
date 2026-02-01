@@ -10,7 +10,7 @@
   - Interactive features (Selection, Dragging, Rotation, Info Panels).
   - Background effects integration (Matrix, Holographic).
 *******************************************************************************}
-{ Skia-Flowmotion v0.55 alpha                                                  }
+{ Skia-Flowmotion v0.56 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -21,6 +21,13 @@
 
 {
  ----Latest Changes
+   v 0.56
+    - Added propertys: AliveHighlighterAllowMoodSwings, AliveHighlighterRageColor
+    - Added TriggerHotZoomWave -> Wave Propagation Logic to HotZoom physics
+      Introduced FWaveActive, FWaveRadius, and FWaveWidth states.
+      The animation loop calculates distance from a dynamic wave center
+      to modulate FHotZoomTarget for individual items in real-time.
+    - Some small bugfixes and improvements/fine tuning
    v 0.55
     - AliveHighlighter now respects all screen edges
     - New AliveHighlighter TAliveStyle: asSnake, asEnergyBeam, asFirefly
@@ -384,6 +391,8 @@ type
     FAliveHighlighterShadowBlur: Single;
     FAliveHighlighterShadowOffset: TPointF;
     FAliveHighlighterGlowAmount: Single;
+    FAliveHighlighterAllowMoodSwings: Boolean;
+    FAliveHighlighterRageColor: TAlphaColor;
 
     { --- Picture Pipeline --- }
     // Swap Chain for Thread Safety
@@ -392,7 +401,7 @@ type
     FUsingImageA: Boolean;
 
     { --- Visuals & Style --- }
-    //FBackgroundSkImage: ISkImage;
+    FBackgroundSkImage: ISkImage;
     FBackgroundNEWSkImage: ISkImage;
     FBackgroundColor: TAlphaColor;
     FBackgroundFadestage: Integer;
@@ -472,6 +481,13 @@ type
     FNeuralFont: TFont;
     FNeuralLinksMaxWidth: Single;
     FAliveHighlighter: TAliveHighlighter;
+
+    { WAVE HOTZOOM }
+    FWaveActive: Boolean;
+    FWaveCenter: TPointF;
+    FWaveRadius: Single;
+    FWaveSpeed: Single;
+    FWaveWidth: Single;
 
     { Selection & Interaction }
     FSelectedImage: TImageItem;
@@ -674,6 +690,9 @@ type
     procedure SetAliveHighlighterShadowBlur(const Value: Single);
     procedure SetAliveHighlighterShadowOffset(const Value: TPointF);
     procedure SetAliveHighlighterGlowAmount(const Value: Single);
+    procedure SetAliveHighlighterAllowMoodSwings(const Value: Boolean);
+    procedure SetAliveHighlighterRageColor(const Value: TAlphaColor);
+    procedure SetWaveActive(const Value: Boolean);
   protected
     { Paint Overrides }
     procedure Draw(const ACanvas: ISkCanvas; const ADest: TRectF; const AOpacity: Single); override;
@@ -778,6 +797,9 @@ type
     { --- AliveHighlighter --- }
     procedure SendAliveHighlighterToImage(Index: Integer);
     procedure ExitAliveHighlighter;
+
+    { --- HotZoomWave --- }
+    procedure TriggerHotZoomWave(const CenterX, CenterY: Single; Speed: Single = 500.0; Width: Single = 150.0);
 
     { --- Public Properties --- }
     property MaxZoomSize: Integer read FMaxZoomSize write SetMaxZoomSize default DEFAULT_MAX_ZOOM_SIZE;
@@ -929,6 +951,8 @@ type
     property HighlighterShadowBlur: Single read FAliveHighlighterShadowBlur write SetAliveHighlighterShadowBlur;
     property HighlighterShadowOffset: TPointF read FAliveHighlighterShadowOffset write SetAliveHighlighterShadowOffset;
     property HighlighterGlowAmount: Single read FAliveHighlighterGlowAmount write SetAliveHighlighterGlowAmount;
+    property HighlighterAllowMoodSwings: Boolean read FAliveHighlighterAllowMoodSwings write SetAliveHighlighterAllowMoodSwings default True;
+    property HighlighterRageColor: TAlphaColor read FAliveHighlighterRageColor write SetAliveHighlighterRageColor default TAlphaColors.Red;
 
     { Events }
     property OnFullscreenEnter: TImageFullscreenEvent read FOnFullscreenEnter write FOnFullscreenEnter;
@@ -966,6 +990,7 @@ implementation
 
 var
   GlobalSortHotItem: TImageItem;
+  GlobalSortSelectedItem: TImageItem;
   GMinFrameTime: Cardinal;
 { -------------------------------------------------------------------------------
   COMPONENT REGISTRATION
@@ -1392,6 +1417,8 @@ begin
   FAliveHighlighterShadowBlur := 4.0;
   FAliveHighlighterShadowOffset := TPointF.Create(6.0, 6.0);
   FAliveHighlighterGlowAmount := 5.0;
+  FAliveHighlighterAllowMoodSwings := True;
+  FAliveHighlighterRageColor := TAlphaColors.Red;
   { --- Initialize Lists --- }
   FImages := TList.Create;
   FLoadingThreads := TList.Create;
@@ -1649,6 +1676,29 @@ end;
 // INTERNAL METHODS: PROPERTY SETTERS
 // -----------------------------------------------------------------------------
 
+procedure TSkFlowmotion.SetWaveActive(const Value: Boolean);
+begin
+  if FWaveActive <> Value then
+  begin
+    FWaveActive := Value;
+    // If we stop the wave, we don't need to immediately reset targets,
+    // the physics loop will naturally decay them back to 1.0
+    if FWaveActive then
+      StartAnimationThread; // Ensure thread is running
+  end;
+end;
+
+procedure TSkFlowmotion.TriggerHotZoomWave(const CenterX, CenterY: Single; Speed: Single; Width: Single);
+begin
+  FWaveCenter := TPointF.Create(CenterX, CenterY);
+  FWaveRadius := 0; // Start from center
+  FWaveSpeed := Speed; // Pixels per second
+  FWaveWidth := Width; // The "band" of zoom
+  FWaveActive := True;
+
+  StartAnimationThread;
+end;
+
 procedure TSkFlowmotion.SetAliveHighlighterStyle(const Value: TAliveStyle);
 begin
   if FAliveHighlighterStyle <> Value then
@@ -1669,6 +1719,26 @@ begin
     begin
       FAliveHighlighter.Color := Value;
     end;
+  end;
+end;
+
+procedure TSkFlowmotion.SetAliveHighlighterAllowMoodSwings(const Value: Boolean);
+begin
+  if FAliveHighlighterAllowMoodSwings <> Value then
+  begin
+    FAliveHighlighterAllowMoodSwings := Value;
+    if Assigned(FAliveHighlighter) then
+      FAliveHighlighter.AllowMoodSwings := Value;
+  end;
+end;
+
+procedure TSkFlowmotion.SetAliveHighlighterRageColor(const Value: TAlphaColor);
+begin
+  if FAliveHighlighterRageColor <> Value then
+  begin
+    FAliveHighlighterRageColor := Value;
+    if Assigned(FAliveHighlighter) then
+      FAliveHighlighter.RageColor := Value;
   end;
 end;
 
@@ -2409,6 +2479,8 @@ begin
   FAliveHighlighter.ShadowBlur := FAliveHighlighterShadowBlur;
   FAliveHighlighter.ShadowOffset := FAliveHighlighterShadowOffset;
   FAliveHighlighter.GlowAmount := FAliveHighlighterGlowAmount;
+  FAliveHighlighter.AllowMoodSwings := FAliveHighlighterAllowMoodSwings;
+  FAliveHighlighter.RageColor := FAliveHighlighterRageColor;
 
   // 3. Get the item
   TargetItem := TImageItem(FImages[Index]);
@@ -3492,28 +3564,74 @@ end;
 
 function CompareZOrder(A, B: Pointer): Integer;
 var
-  Zoom1, Zoom2: Single;
-  Area1, Area2: Int64;
-  Y1, Y2: Single;          // Center Y-position used as tertiary sort key
-  Rect1, Rect2: TRectF;
   Img1, Img2: TImageItem;
+  IsAnim1, IsAnim2: Boolean;
+  Zoom1, Zoom2: Single;
+  Rect1, Rect2: TRectF;
+  Y1, Y2: Single;
 begin
   Img1 := TImageItem(A);
   Img2 := TImageItem(B);
 
-  // 1. Primary sort key: Zoom/HotZoom factor (highest zoom drawn on top)
+  // 1. FORCE SELECTED TO TOP (Using Global Variable)
+  // This prevents the selected item from flickering behind neighbors
+  if (Img1 = GlobalSortSelectedItem) and (Img2 <> GlobalSortSelectedItem) then
+  begin
+    Result := 1; // Img1 is Selected -> Draw Last (On Top)
+    Exit;
+  end;
+  if (Img2 = GlobalSortSelectedItem) and (Img1 <> GlobalSortSelectedItem) then
+  begin
+    Result := -1; // Img2 is Selected -> Draw Last
+    Exit;
+  end;
+
+  // 2. FORCE HOT ITEM TO TOP (Using Global Variable)
+  // If not selected, the hovered item is priority
+  if (Img1 = GlobalSortHotItem) and (Img2 <> GlobalSortSelectedItem) then
+  begin
+    Result := 1;
+    Exit;
+  end;
+  if (Img2 = GlobalSortHotItem) and (Img1 <> GlobalSortSelectedItem) then
+  begin
+    Result := -1;
+    Exit;
+  end;
+
+  // 3. CHECK ACTIVITY
+  // We define "Active" as: Animating, or just entered (Entry < 1.0)
+  IsAnim1 := Img1.Animating or (Img1.AnimationProgress < 0.99);
+  IsAnim2 := Img2.Animating or (Img2.AnimationProgress < 0.99);
+
+  // 4. STABLE SORT FOR STATIC ITEMS
+  // If BOTH are static (not animating, not selected, not hot),
+  // we sort by FImageIndex. This locks the Z-order to the grid index.
+  // Item 0 will ALWAYS be below Item 1. NO FLICKERING.
+  if (not IsAnim1) and (not IsAnim2) then
+  begin
+    if Img1.FImageIndex <> Img2.FImageIndex then
+    begin
+      Result := IfThen(Img1.FImageIndex > Img2.FImageIndex, 1, -1);
+      Exit;
+    end;
+  end;
+
+  // 5. DYNAMIC SORT FOR ACTIVE ITEMS
+  // If one or both are animating, we use the visual logic (Zoom/Position)
+  // so they overlap correctly while moving.
+
+  // Compare Zoom (Larger = Closer = On Top)
   Zoom1 := Img1.FHotZoom;
   Zoom2 := Img2.FHotZoom;
-
   if Zoom1 <> Zoom2 then
   begin
-    // Higher zoom wins ? return positive if Img1 is more zoomed
     Result := IfThen(Zoom1 > Zoom2, 1, -1);
     Exit;
   end;
 
-  // 2. Secondary sort key: Visible area size (larger area drawn on top)
-  // Prefer CurrentRect if available (during animation/drag), otherwise fall back to TargetRect
+  // Compare Center Y (Lower on screen = Closer = On Top)
+  // Use TargetRect if Current is empty (e.g. starting animation)
   if not IsRectEmpty(Img1.CurrentRect) then
     Rect1 := Img1.CurrentRect
   else
@@ -3524,35 +3642,23 @@ begin
   else
     Rect2 := Img2.TargetRect;
 
-  Area1 := Trunc(Rect1.Width * Rect1.Height);
-  Area2 := Trunc(Rect2.Width * Rect2.Height);
+  Y1 := Rect1.Top + Rect1.Height / 2;
+  Y2 := Rect2.Top + Rect2.Height / 2;
 
-  if Area1 <> Area2 then
+  if Abs(Y1 - Y2) > 1.0 then
   begin
-    Result := IfThen(Area1 > Area2, 1, -1);
+    Result := IfThen(Y1 > Y2, 1, -1);
     Exit;
   end;
 
-  // 3. Tertiary sort key: Vertical center position (higher Y = further back / lower on screen)
-  // This gives a natural "3D perspective" feel: items lower on screen appear closer
-  Y1 := Rect1.Top + Rect1.Height / 2;  // Center Y of item 1
-  Y2 := Rect2.Top + Rect2.Height / 2;  // Center Y of item 2
-
-  if Abs(Y1 - Y2) > 1.0 then  // Small tolerance to avoid floating-point noise
-  begin
-    Result := IfThen(Y1 > Y2, 1, -1);  // Higher Y (lower on screen) = drawn later (closer)
-    Exit;
-  end;
-
-  // 4. Final fallback: Master image index (stable order, prevents z-fighting/flicker)
-  // Items with higher index are drawn later (on top) when everything else is equal
+  // 6. FALLBACK: SORT BY INDEX
+  // If visual properties are identical, sort by Index to be deterministic
   if Img1.FImageIndex <> Img2.FImageIndex then
   begin
     Result := IfThen(Img1.FImageIndex > Img2.FImageIndex, 1, -1);
     Exit;
   end;
 
-  // Equal in all criteria ? same Z-order
   Result := 0;
 end;
 
@@ -4480,7 +4586,7 @@ begin
         if Assigned(FScaledBgSkImage) then
           ACanvas.DrawImageRect(FScaledBgSkImage, RectF(0, 0, self.Width, self.Height), TSkSamplingOptions.High, Paint);
       end;
-      {
+           {
     uSkFlowEffects.beFade:
       begin
         if (not assigned(FBackgroundSkImage)) and assigned(FBackgroundNEWSkImage) then
@@ -4497,8 +4603,8 @@ begin
             FBackgroundNEWSkImage := nil;               // Clear the temp reference
           end;
         end;
-      end;
-       }
+      end;        }
+
     uSkFlowEffects.beHolographic:
       begin
         uSkFlowEffects.DrawHolographicBackground(ACanvas, ADest, Paint, FScaledBgSkImage, FGridOffsetY, FAnimatedBackground);
@@ -4718,8 +4824,7 @@ var
   Paint: ISkPaint;
   ShadowFilter: ISkImageFilter;
   CenterX, CenterY: Single;
-  HandleRect: TRectF;
-  VisualRect: TRectF;
+  HandleRect, LGridRect, VisualRect: TRectF;
   ShadowRad, ShadowDx, ShadowDy: Single;
   // Z-Ordering Lists
   StaticImages: TList;
@@ -5108,6 +5213,7 @@ begin
 
   StaticImages := TList.Create;
   GlobalSortHotItem := FHotItem;
+  GlobalSortSelectedItem := FSelectedImage;
   AnimatingImages := TList.Create;
   EnteringImages := TList.Create;
   Paint := TSkPaint.Create;
@@ -5475,22 +5581,56 @@ begin
         DrawSmallPicOverlay(FSelectedImage, VisualRect, ACanvas, Paint);
       end;
 
-      // === CLIP PANEL TO ROUNDED CORNERS ===
-      if FRoundEdges > 0 then
-      begin
-        ACanvas.Save;
-        var RR: ISkRoundRect;
-        RR := TSkRoundRect.Create(VisualRect, FRoundEdges, FRoundEdges);
-        ACanvas.ClipRoundRect(RR, TSkClipOp.Intersect, True);
-
-        DrawFluidInfo(FSelectedImage, VisualRect, ACanvas);
-
-        ACanvas.Restore;
-      end
+      // === CALCULATE HYBRID RECT FOR INFO PANEL ===
+      // 1. Get Position from TargetRect (Grid Slot) -> Prevents "pop" to off-center
+      // 2. Get Size from VisualRect (Zoomed Image) -> Prevents "tiny" panel while zooming
+      var HybridInfoRect: TRectF;
+      // If we are fully centered or fullscreen, just use the VisualRect directly
+      if FIsZoomedToFill or (FSelectedImage.ZoomProgress > 0.98) then
+        HybridInfoRect := VisualRect
       else
       begin
-        // Square image, no special clipping needed
-        DrawFluidInfo(FSelectedImage, VisualRect, ACanvas);
+        // Calculate the offset of the Grid rect relative to the Zoomed Visual rect
+        var OffsetX: Single := FSelectedImage.TargetRect.Left - VisualRect.Left;
+        var OffsetY: Single := FSelectedImage.TargetRect.Top - VisualRect.Top;
+        // Apply that offset to the Visual Rect
+        // Result: A rect that is the SIZE of the zoomed image, but at the POSITION of the grid cell
+        HybridInfoRect := TRectF.Create(VisualRect.Left + OffsetX, VisualRect.Top + OffsetY, VisualRect.Right + OffsetX, VisualRect.Bottom + OffsetY);
+      end;
+      // === CALCULATE HYBRID RECT FOR INFO PANEL ===
+      // 1. Get Position from TargetRect (Grid Slot) -> Prevents "pop" to off-center
+      // 2. Get Size from VisualRect (Zoomed Image) -> Prevents "tiny" panel while zooming
+      // If we are fully centered or fullscreen, just use the VisualRect directly
+      if FIsZoomedToFill or (FSelectedImage.ZoomProgress > 0.98) then
+        HybridInfoRect := VisualRect
+      else
+      begin
+        // Calculate the offset of the Grid rect relative to the Zoomed Visual rect
+        var OffsetX: Single := FSelectedImage.TargetRect.Left - VisualRect.Left;
+        var OffsetY: Single := FSelectedImage.TargetRect.Top - VisualRect.Top;
+        // Apply that offset to the Visual Rect
+        // Result: A rect that is the SIZE of the zoomed image, but at the POSITION of the grid cell
+        HybridInfoRect := TRectF.Create(VisualRect.Left + OffsetX, VisualRect.Top + OffsetY, VisualRect.Right + OffsetX, VisualRect.Bottom + OffsetY);
+      end;
+      // === DRAW INFO PANEL ===
+      // IMPORTANT: We ONLY draw the panel if the Zoom animation is effectively FINISHED.
+      // This prevents it from showing up while the image is still flying to the center.
+      if (FSelectedImage.ZoomProgress > 0.99) or FIsZoomedToFill then
+      begin
+        if FRoundEdges > 0 then
+        begin
+          ACanvas.Save;
+          var RR: ISkRoundRect;
+          RR := TSkRoundRect.Create(VisualRect, FRoundEdges, FRoundEdges);
+          ACanvas.ClipRoundRect(RR, TSkClipOp.Intersect, True);
+          DrawFluidInfo(FSelectedImage, HybridInfoRect, ACanvas);
+          ACanvas.Restore;
+        end
+        else
+        begin
+          // Square image, no special clipping needed
+          DrawFluidInfo(FSelectedImage, HybridInfoRect, ACanvas);
+        end;
       end;
 
       ACanvas.Restore;
@@ -6834,6 +6974,12 @@ begin
   begin
     if ImageItem <> nil then
     begin
+      // --- SAFETY CHECK: Ignore if Zooming In/Out ---
+      // Only trigger if the animation is effectively finished (0.99 or higher)
+      // This prevents "snapping" if the user spams double-click.
+      if (ImageItem = FSelectedImage) and (ImageItem.ZoomProgress < 0.99) then
+        Exit;
+
       if FSelectedImage <> ImageItem then
         SetSelectedImage(ImageItem, ItemIndex);
 
@@ -7317,9 +7463,8 @@ begin
     Exit;
   end;
 
-  // --- 4. HOT TRACKING ---
+  // --- 4. HOT TRACKING --  // --- 4. HOT TRACKING ---
   NewHot := GetImageAtPoint(X, Y);
-
   //not at zooming back from just max zoomed
   if not (Assigned(FWasSelectedItem) and (NewHot = FWasSelectedItem) and (FSelectedImage = nil) and ((FWasSelectedItem.ZoomProgress > 0.001) or (FWasSelectedItem.Animating))) then
     if (NewHot <> FHotItem) then
@@ -7328,29 +7473,31 @@ begin
         FOnImageMouseEnter(Self, NewHot, FImages.IndexOf(NewHot));
       if (FHotItem <> nil) and (NewHot <> FHotItem) and Assigned(FOnImageMouseLeave) then
         FOnImageMouseLeave(Self, FHotItem, FImages.IndexOf(FHotItem));
-
       FHotItem := NewHot;
-
-      if ShowHint and (FHotItem <> nil) and (FHotItem.Hint <> '') then
-        Hint := FHotItem.Hint
-      else
-        Hint := '';
-
-      if FHotItem <> nil then
+      // ==========================================================
+      // DISABLE HOTZOOM ON ZOOMING SELECTED IMAGE
+      // ==========================================================
+      // If the item we just hovered over is the Selected Image AND it is currently
+      // Zooming In (AnimationProgress < 1), DO NOT trigger HotZoom.
+      // Let it finish the smooth Zoom animation first.
+      if (FHotItem <> nil) then
       begin
-        FHotItem.FHotZoomTarget := FHotZoomMaxFactor;
-        // ==========================================================
-        // WAKE UP THE ANIMATION THREAD
-        // ==========================================================
-        // We set the TargetZoom, but if the physics loop was sleeping (FHoverAlive was off),
-        // the HotZoom value will never interpolate. We must wake it up now.
-        StartAnimationThread;
-      end
-      else
-      begin
-        FHotItem := nil;
-        Hint := '';
-        StartAnimationThread;
+        if (FHotItem = FSelectedImage) and (FHotItem.ZoomProgress < 0.99) then
+        begin
+          // Do NOT set HotZoomTarget. Leave it at 1.0 (or whatever current state).
+          // Just ensure the animation loop is running (it will be due to Zoom).
+          // Explicitly do nothing here to prevent the 'pop' effect.
+        end
+        else
+        begin
+          // Normal case: Apply HotZoom
+          if ShowHint and (FHotItem.Hint <> '') then
+            Hint := FHotItem.Hint
+          else
+            Hint := '';
+          FHotItem.FHotZoomTarget := FHotZoomMaxFactor;
+          StartAnimationThread;
+        end;
       end;
     end
     else if (NewHot = nil) and (FHotItem <> nil) then
@@ -8295,9 +8442,8 @@ begin
     begin
       FBackgroundNEWSkImage := TSkImage.MakeFromEncodedFile(Path);
       FBackgroundFadestage := 0;
-
-      // Force regeneration of the scaled version
       Resize;
+      StartAnimationThread;
     end
     else
     begin
@@ -8669,6 +8815,20 @@ begin
   { --- Update Highlighter (Snake) --- }
   if Assigned(FAliveHighlighter) and FAliveHighlighter.Active then
     UpdateHighlighter(DeltaTime);
+
+  // --- UPDATE WAVE RADIUS ---
+  if FWaveActive then
+  begin
+    FWaveRadius := FWaveRadius + (FWaveSpeed * DeltaTime);
+
+    // Optional: Stop wave if it goes way off screen to save CPU
+    if FWaveRadius > Max(Width, Height) * 1.5 then
+      FWaveActive := False;
+
+    // Ensure repaint happens so we see the effect
+    NeedRepaint := True;
+  end;
+
 
   // ==========================================================
   // PHASE 1: SMALL PIC SPAWNING (Only once)
@@ -9143,7 +9303,7 @@ begin
     end;
 
     // ==========================================================
-    // PHASE 8: HOT TRACK ZOOM & BREATHING
+    // PHASE 8: HOT TRACK ZOOM, BREATHING & WAVE EFFECT
     // ==========================================================
     if Assigned(LocalImagesList) then
     begin
@@ -9153,6 +9313,9 @@ begin
         if ImageItem = nil then
           Continue;
 
+        // ---------------------------------------------------------
+        // 0. CHECK FULLSCREEN SELECTED (Lock zoom to 1.0)
+        // ---------------------------------------------------------
         if FIsZoomedToFill and (ImageItem = FSelectedImage) then
         begin
           ImageItem.FHotZoom := 1.0;
@@ -9160,52 +9323,157 @@ begin
           Continue;
         end;
 
+        // ---------------------------------------------------------
+        // 1. WAVE PHYSICS (The "Mexican Wave")
+        // ---------------------------------------------------------
+        // Only affects visible items that are NOT currently hovered by mouse
+        // (Real mouse hover takes priority over the wave)
+        var WaveHit: Boolean;
+        WaveHit := False;
+
+        if FWaveActive and (not FIsZoomedToFill) and (ImageItem <> FSelectedImage) and (ImageItem <> FHotItem) then
+        begin
+          var VisualRect: TRectF;
+          var ItemCenter: TPointF;
+          var DistToWave: Single;
+
+          VisualRect := GetVisualRect(ImageItem);
+          ItemCenter.X := (VisualRect.Left + VisualRect.Right) / 2;
+          ItemCenter.Y := (VisualRect.Top + VisualRect.Bottom) / 2;
+
+          // Distance from wave center (click point) to image center
+          DistToWave := Hypot(ItemCenter.X - FWaveCenter.X, ItemCenter.Y - FWaveCenter.Y);
+
+          // --- SOFT WAVE GRADIENT MATH ---
+          // We don't just do Yes/No (Hit or Miss).
+          // We calculate a 0.0 to 1.0 intensity based on how deep into the ring we are.
+
+          var WaveIntensity: Single;
+          var DistFromRingCenter: Single; // Distance from the perfect center line of the wave
+
+          // Distance of this item from the wave's center-line (Radius)
+          DistFromRingCenter := Abs(DistToWave - FWaveRadius);
+
+          // Check if we are roughly within the wave's influence
+          if DistFromRingCenter <= (FWaveWidth / 2) then
+          begin
+            // We are inside the wave!
+            // Calculate intensity:
+            // 0.0 (at the very edge) -> 1.0 (perfectly in the middle of the wave)
+            WaveIntensity := 1.0 - (DistFromRingCenter / (FWaveWidth / 2));
+
+            // Clamp it so we don't go negative or above 1.0
+            if WaveIntensity < 0.0 then
+              WaveIntensity := 0.0;
+            if WaveIntensity > 1.0 then
+              WaveIntensity := 1.0;
+
+            // --- APPLY WAVE ZOOM BASED ON INTENSITY ---
+            // If intensity is 1.0, we zoom to MaxFactor.
+            // If intensity is 0.5, we zoom halfway.
+            // Base is 1.0.
+            TargetZoom := 1.0 + ((FHotZoomMaxFactor - 1.0) * WaveIntensity);
+
+            // Mark as hit so logic below knows to use this target
+            WaveHit := True;
+          end
+          else
+          begin
+             // Outside wave, intensity is 0
+            WaveHit := False;
+          end;
+        end;
+
+        // ---------------------------------------------------------
+        // 2. DETERMINE BASE STATE (Is it static or interacting?)
+        // ---------------------------------------------------------
+
+        // If HotTrack is OFF globally, force target to 1.0 immediately
         if (not FHotTrackZoom) and (ImageItem <> FSelectedImage) then
         begin
-          if ImageItem.FHotZoom <> 1.0 then
+          // NOTE: We check WaveHit first!
+          // If WaveHit is true, we allow the zoom even if global HotTrack is off.
+          if not WaveHit then
           begin
-            ImageItem.FHotZoomTarget := 1.0;
-            NeedRepaint := True;
+            if ImageItem.FHotZoom <> 1.0 then
+            begin
+              ImageItem.FHotZoomTarget := 1.0;
+              NeedRepaint := True;
+            end;
+            Continue;
           end;
-          Continue;
         end;
 
         if not ImageItem.Visible then
           Continue;
 
+        // ---------------------------------------------------------
+        // 3. CALCULATE TARGET ZOOM
+        // ---------------------------------------------------------
+        // Priority: Mouse Hover > Wave Hit > Selected/Breathing > Static
+
         if FIsMouseOverHandle or FIsMouseOverInfoIndicator then
-          TargetZoom := ImageItem.FHotZoom
+        begin
+          // Keep current zoom (usually means holding it still)
+          TargetZoom := ImageItem.FHotZoom;
+        end
         else
         begin
-          if FBreathingEnabled and (ImageItem = FSelectedImage) and (ImageItem = FHotItem) then
+          // A. MOUSE HOVER (Highest Priority)
+          if (ImageItem = FHotItem) then
           begin
-            if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
-              TargetZoom := 1.0
-            else
-              TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0);
+            TargetZoom := FHotZoomMaxFactor;
           end
+          // B. WAVE HIT (Medium Priority - only if not hovered)
+          else if WaveHit then
+          begin
+            TargetZoom := FHotZoomMaxFactor;
+          end
+          // C. SELECTED ITEM (Breathing Logic)
           else if (ImageItem = FSelectedImage) then
-            TargetZoom := 1.0
-          else if (ImageItem = FHotItem) then
-            TargetZoom := FHotZoomMaxFactor
+          begin
+            if FBreathingEnabled and (ImageItem = FHotItem) then
+            begin
+              if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
+                TargetZoom := 1.0
+              else
+                TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0);
+            end
+            else
+            begin
+              TargetZoom := 1.0;
+            end;
+          end
+          // D. STATIC ITEM
           else
+          begin
             TargetZoom := 1.0;
+          end;
         end;
 
+        // ---------------------------------------------------------
+        // 4. APPLY PHYSICS (Smoothing)
+        // ---------------------------------------------------------
+        // Determine direction speed
         if ImageItem.FHotZoom < TargetZoom then
           Speed := HOT_ZOOM_IN_PER_SEC
         else
           Speed := HOT_ZOOM_OUT_PER_SEC;
 
+        // Interpolate
         ImageItem.FHotZoom := ImageItem.FHotZoom + (TargetZoom - ImageItem.FHotZoom) * Speed * DeltaTime;
 
+        // Update the "Public" Target variable used by other checks
         if not FHotTrackZoom then
           ImageItem.FHotZoomTarget := 1.0
         else
           ImageItem.FHotZoomTarget := TargetZoom;
 
+        // Clamp to Max (don't let them grow infinitely if Wave lingers)
         if (ImageItem <> FSelectedImage) and (ImageItem.FHotZoom > FHotZoomMaxFactor) then
           ImageItem.FHotZoom := FHotZoomMaxFactor;
+
+        // Clamp to Min (1.0)
         if ImageItem.FHotZoom < 1.0 then
           ImageItem.FHotZoom := 1.0;
 

@@ -29,16 +29,16 @@ uses
 type
   { Internal States for the Entity Logic }
   TSnakeState = (ssIdle, ssApproaching, ssOrbiting, ssStalking, ssBiting, ssRetreating, ssEnraged, ssExiting);
-
   { Simple record defining a rectangular obstacle for collision detection }
+
   TObstacle = record
     Rect: TRectF;
   end;
-
   { Visual flavor presets }
-  TAliveStyle = (asSnake, asEnergyBeam, asFirefly);
 
+  TAliveStyle = (asSnake, asEnergyBeam, asFirefly);
   { TAliveSnake: The physical state and properties of the entity }
+
   TAliveSnake = record
     HeadPos: TPointF;         // Current Head Position (World Coordinates)
     Velocity: TPointF;        // Current Velocity Vector (Direction * Speed)
@@ -70,15 +70,18 @@ type
     BiteTimer: Single;       // Duration of the "Bite" attack animation
     AngerCounter: Integer;   // Counts how many times he got angry
     RageTimer: Single;       // Duration of the Enraged state
+    RageColor: TAlphaColor;  // The color to use when raging
+    AggroCooldown: Single;    // Timer for "cooling down" (reducing anger over time)
   end;
-
   { TAliveHighlighter: Main controller class }
+
   TAliveHighlighter = class
   private
     FSnake: TAliveSnake;
     FState: TSnakeState;
     FStyle: TAliveStyle;
     FActive: Boolean;
+    FAllowMoodSwings: Boolean;
     FActiveCountdown: Single; // Auto-dismiss timer (seconds)
     FSelfDestruct: Boolean;  // Flag indicating the entity should leave the screen
     FBounds: TRectF;          // Screen boundaries (Width/Height)
@@ -128,6 +131,8 @@ type
     property Active: Boolean read FActive write FActive;
     property Style: TAliveStyle read FStyle write FStyle;
     property Color: TAlphaColor read FSnake.SnakeColor write SetSnakeColor;
+    property RageColor: TAlphaColor read FSnake.RageColor write FSnake.RageColor;
+    property AllowMoodSwings: Boolean read FAllowMoodSwings write FAllowMoodSwings;
 
     // Shadow Configuration
     property ShadowColor: TAlphaColor read FSnake.ShadowColor write FSnake.ShadowColor;
@@ -142,7 +147,6 @@ type
   end;
 
 implementation
-
 { TAliveHighlighter }
 
 constructor TAliveHighlighter.Create;
@@ -170,6 +174,7 @@ begin
   FSnake.Alpha := 0.0; // Starts invisible
   FSnake.SnakeColor := FSavedNormalColor; // Use the persistent color
   FSnake.Velocity := TPointF.Create(0, 0);
+  FAllowMoodSwings := True;
 
   // Initialize Interaction Logic
   FSnake.MousePos := TPointF.Create(-1000, -1000); // Off-screen initially
@@ -179,6 +184,8 @@ begin
   // Anger System
   FSnake.AngerCounter := 0;
   FSnake.RageTimer := 0;
+  FSnake.RageColor := TAlphaColors.Red; // <--- DEFAULT RAGE COLOR
+  FSnake.AggroCooldown := 0.0;
 
   // Initialize Default Visual FX
   FSnake.GlowAmount := 5.0;
@@ -206,10 +213,10 @@ begin
   FSnake.SnakeColor := Value;
 
   // 2. UPDATE THE PERSISTENT COLOR
-  // This ensures "normal" color changes too, so when he exits rage, he uses the NEW color.
   FSavedNormalColor := Value;
 
-  // 3. If we are NOT in Rage, apply it immediately
+  // 3. Only apply if we are NOT in Rage
+  // This prevents overwriting the Red Rage color with user changes mid-rage
   if (FState <> ssEnraged) then
     FSnake.SnakeColor := Value;
 end;
@@ -418,45 +425,78 @@ begin
   // ==========================================================
   // 1. AGGRO LOGIC (Proximity Trigger)
   // ==========================================================
-  if (FState = ssOrbiting) or (FState = ssApproaching) then
+
+  // --- A. CHECK MOOD SWING PERMISSION ---
+  if (not FAllowMoodSwings) then
   begin
-    DistToMouseHead := Hypot(FSnake.HeadPos.X - FSnake.MousePos.X, FSnake.HeadPos.Y - FSnake.MousePos.Y);
-
-    // If mouse is close, randomly decide to Chase or Flee
-    if DistToMouseHead < 100.0 then
+    // If mood swings are disabled, force him to be polite
+    FState := ssApproaching;
+    FSnake.AngerCounter := 0; // Keep anger at zero
+  end
+  else
+  begin
+    // --- B. NORMAL MOOD LOGIC ---
+    if (FState = ssOrbiting) or (FState = ssApproaching) then
     begin
-      if Random(50) = 1 then
+      DistToMouseHead := Hypot(FSnake.HeadPos.X - FSnake.MousePos.X, FSnake.HeadPos.Y - FSnake.MousePos.Y);
+
+      // If mouse is close...
+      if DistToMouseHead < 100.0 then
       begin
-        // Increment Anger Counter
-        Inc(FSnake.AngerCounter);
-
-        // CHECK FOR RAGE TRIGGER
-        if FSnake.AngerCounter >= (5 + Random(10)) then
+        if Random(50) = 1 then
         begin
-          FState := ssEnraged;
-          FSnake.RageTimer := 1+ Random (3); // few seconds of pure rage
-          FSnake.SnakeColor := TAlphacolors.Red; // Turn Red
-          FSnake.ScaleTarget := 2.5;
-          FSnake.ThicknessTarget := 20.0;
-          // Scream sound effect could go here
-        end
-        else if Random(2) = 1 then
-          FState := ssStalking  // Chase Mouse
-        else
-          FState := ssRetreating; // Run from Mouse
+          Inc(FSnake.AngerCounter);
 
-        // Get "Excited" (Visual feedback)
-        FSnake.ScaleTarget := 2.0;
-        FSnake.ThicknessTarget := 14.0;
+          // COOLDOWN CHECK: If he hasn't been annoyed recently, reduce anger
+          // This makes it so he only rages if annoyed QUICKLY in a short time.
+          if FSnake.AggroCooldown > 0 then
+          begin
+            // Decrease cooldown. If cooldown runs out, we start reducing anger effectively.
+            FSnake.AggroCooldown := FSnake.AggroCooldown - 0.016;
+          end
+          else
+          begin
+            // If no cooldown pending, anger naturally decays (Cool Down)
+          //  if (FSnake.AngerCounter > 0) and (Random(10) = 2) then
+           //   FSnake.AngerCounter := FSnake.AngerCounter - 1;
+          end;
+
+          // CHECK FOR RAGE TRIGGER
+          // Only rage if accumulated enough anger
+          if FSnake.AngerCounter >= (5 + Random(10)) then
+          begin
+            FState := ssEnraged;
+            FSnake.RageTimer := 1 + Random(3); // few seconds of pure rage
+            FSnake.SnakeColor := FSnake.RageColor; // USE THE RAGE COLOR PROPERTY
+            FSnake.ScaleTarget := 2.5;
+            FSnake.ThicknessTarget := 20.0;
+
+            // Reset cooldown so he stays angry for a bit before decaying again
+            FSnake.AggroCooldown := 2.0;
+          end
+          else if Random(2) = 1 then
+            FState := ssStalking  // Chase Mouse
+          else
+            FState := ssRetreating; // Run from Mouse
+
+          // Get "Excited" (Visual feedback)
+          FSnake.ScaleTarget := 2.0;
+          FSnake.ThicknessTarget := 14.0;
+        end
+        else
+        begin
+          FState := ssApproaching;
+        end;
       end
       else
       begin
+        // Mouse far away -> Calm down
         FState := ssApproaching;
+
+        // If far away, anger decays steadily        //too much, we must make different
+     //   if (FSnake.AngerCounter > 0) and (Random(10) = 2) then
+      //    FSnake.AngerCounter := FSnake.AngerCounter - 1;
       end;
-    end
-    else
-    begin
-      FState := ssApproaching;
     end;
   end;
 
@@ -722,8 +762,8 @@ begin
   // ==========================================================
   // GLOBAL WALL BOUNDARIES
   // ==========================================================
-  // Apply wall repulsion to all states EXCEPT Exiting (and maybe Enraged, to keep him trapped?)
-  // Let's keep Enraged inside too so he rages against the walls!
+  // Apply wall repulsion to all states EXCEPT Exiting
+  // If he is exiting, we want him to leave the screen, so we disable walls.
   if (FState <> ssExiting) then
   begin
     if FSnake.HeadPos.X < FBounds.Left + 10 then

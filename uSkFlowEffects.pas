@@ -6,7 +6,6 @@
   - UI Elements: Tech Brackets, Selection Glows
   - Particle Systems: Simple Squares, Image-based Debris
   - Post-FX: Cyberpunk Glitch / Chromatic Aberration
-
   written by: Lara Miriam Tamy Reschke
 *******************************************************************************}
 
@@ -25,15 +24,15 @@ const
 type
   { Enumeration of available background styles }
   TBackgroundEffect = (beHolographic, beRealMatrix, beFade, beNeuralLinks);
-
   { Forward declaration }
-  TSkFlowControl = class(TComponent);
 
+  TSkFlowControl = class(TComponent);
   { ==========================================
     DATA STRUCTURES
     ========================================== }
 
   { Record representing a single falling column of text (Matrix Rain) }
+
   TMatrixColumn = record
     X: Single;                 // Screen X position
     Y: Single;                 // Screen Y position (Top of the column)
@@ -42,8 +41,8 @@ type
     Chars: string;             // The actual characters to render
     TargetImageIndex: Integer; // ID of the item this column represents
   end;
-
   { Simple square particle for explosions/sparks }
+
   TParticle = record
     X, Y: Single;
     VX, VY: Single;
@@ -51,8 +50,8 @@ type
     Color: TAlphaColor;
     Size: Single;
   end;
-
   { Advanced particle that renders an actual image/icon }
+
   TSmallPicParticle = record
     Index: Integer;            // Index to retrieve the image
     X, Y: Single;
@@ -61,58 +60,58 @@ type
     Angle: Single;             // Current rotation
     VAngle: Single;            // Angular velocity
   end;
-
   { Connection line for the Neural Network effect }
+
   TNeuralLink = record
     StartX, StartY: Single;
     EndX, EndY: Single;
     Alpha: Single;
     LineColor: TAlphaColor;
   end;
-
   { Callback: Retrieves text data for a specific Matrix column }
+
   TGetMatrixDataFunc = reference to function(Index: Integer): string;
-
   { Callback: Retrieves a Skia image for a particle }
-  TGetSmallPicSkImageFunc = reference to function(Index: Integer): ISkImage;
 
+  TGetSmallPicSkImageFunc = reference to function(Index: Integer): ISkImage;
   { ==========================================
     PROCEDURE SIGNATURES
     ========================================== }
 
-  { --- MATRIX RAIN EFFECT --- }
+    { --- MATRIX RAIN EFFECT --- }
+
 procedure InitMatrix(var MatrixCols: TArray<TMatrixColumn>; AWidth, AHeight, AMatrixFontSize: Single; ImageCount: Integer; GetDataFunc: TGetMatrixDataFunc);
 
 procedure UpdateMatrixPhysics(var MatrixCols: TArray<TMatrixColumn>; AWidth, AHeight, MatrixSpeed, MatrixFontSize: Single; ImageCount: Integer; Animated: Boolean; GetDataFunc: TGetMatrixDataFunc; DeltaTime: Double);
 
 procedure DrawMatrixBackground(ACanvas: ISkCanvas; const MatrixCols: TArray<TMatrixColumn>; MatrixFont: TFont; MatrixColor, MatrixHeadColor: TAlphaColor; MatrixFontSize, MatrixSpeed: Single; AHeight: Single; Animated: Boolean);
+    { --- BACKGROUND MANAGEMENT --- }
 
-  { --- BACKGROUND MANAGEMENT --- }
 function DrawFadeBackground(ACanvas: ISkCanvas; FBackgroundSkImage: ISkImage; FBackgroundNEWSkImage: ISkImage; FBackgroundFadestage: Integer; FBackgroundColor: TAlphaColor; const ADest: TRectF; const Paint: ISkPaint; owner: TSkCustomControl): Integer;
 
 function GetDominantColor(const Img: ISkImage): TAlphaColor;
 
 procedure DrawHolographicBackground(ACanvas: ISkCanvas; const ADest: TRectF; const Paint: ISkPaint; BackgroundSkImage: ISkImage; var GridOffsetY: Single; Animated: Boolean);
+    { --- UI ELEMENTS --- }
 
-  { --- UI ELEMENTS --- }
 procedure DrawTechBrackets(ACanvas: ISkCanvas; const VisualRect: TRectF; Paint: ISkPaint; BracketWidth: Integer; ImageAlpha: Byte; IsSelected: Boolean; GlowColor, HotTrackColor: TAlphaColor; GlowWidth, HotTrackWidth: Integer);
+    { --- SIMPLE PARTICLES --- }
 
-  { --- SIMPLE PARTICLES --- }
 procedure UpdateSimpleParticles(var List: TList<TParticle>; DeltaTime: Double);
 
 procedure DrawSimpleParticles(ACanvas: ISkCanvas; var List: TList<TParticle>);
 
 procedure SpawnParticles(var ParticlesList: TList<TParticle>; X, Y: Single; Count: Integer; Color: TAlphaColor);
+    { --- IMAGE PARTICLES --- }
 
-  { --- IMAGE PARTICLES --- }
 procedure UpdateSmallPicParticles(var List: TList<TSmallPicParticle>; DeltaTime: Double; GetBmp: TGetSmallPicSkImageFunc);
 
 procedure DrawSmallPicParticles(ACanvas: ISkCanvas; var List: TList<TSmallPicParticle>; GetBmp: TGetSmallPicSkImageFunc);
+    { --- POST PROCESSING --- }
 
-  { --- POST PROCESSING --- }
 procedure DrawCyberpunkGlitch(ACanvas: ISkCanvas; const Img: ISkImage; const Rect: TRectF; Intensity: Single; BaseSampling: TSkSamplingOptions);
+    { --- NEURAL LINKS --- }
 
-  { --- NEURAL LINKS --- }
 procedure DrawNeuralLinks(ACanvas: ISkCanvas; Center: TPointF; Links: TList<TNeuralLink>; AFont: ISkFont; MaxLineWidth: Single);
 
 var
@@ -125,7 +124,6 @@ var
   GFontCacheLock: TCriticalSection;
   GDominantColorSurface: ISkSurface;
   GDominantColorLock: TCriticalSection;
-
 { ========================================================================
   GLOBAL INITIALIZATION & HELPERS
   ======================================================================== }
@@ -143,8 +141,8 @@ begin
   GFontCacheLock.Free;
   GDominantColorLock.Free;
 end;
-
 { Helper: Retrieves a cached Skia font to avoid repeated creation overhead }
+
 function GetCachedSkFont(AFont: TFont; ASize: Single): ISkFont;
 var
   CacheKey: string;
@@ -171,7 +169,6 @@ begin
     GFontCacheLock.Leave;
   end;
 end;
-
 { ========================================================================
   MATRIX RAIN EFFECT IMPLEMENTATION
   ======================================================================== }
@@ -339,7 +336,6 @@ begin
     end;
   end;
 end;
-
 { ========================================================================
   HOLOGRAPHIC EFFECT IMPLEMENTATION
   ======================================================================== }
@@ -391,7 +387,6 @@ begin
     ACanvas.DrawImageRect(BackgroundSkImage, ADest, TSkSamplingOptions.High, Paint);
   end;
 end;
-
 { ========================================================================
   FADE EFFECT IMPLEMENTATION
   ======================================================================== }
@@ -442,8 +437,8 @@ begin
     end;
   end;
 end;
-
 { Helper: Calculates the average color of an image }
+
 function GetDominantColor(const Img: ISkImage): TAlphaColor;
 var
   Info: TSkImageInfo;
@@ -477,7 +472,6 @@ begin
     GDominantColorLock.Leave;
   end;
 end;
-
 { ========================================================================
   TECH BRACKET IMPLEMENTATION
   ======================================================================== }
@@ -526,7 +520,6 @@ begin
   ACanvas.DrawLine(Rgt - Len, B, Rgt, B, Paint);
   ACanvas.DrawLine(Rgt, B, Rgt, B - Len, Paint);
 end;
-
 { ========================================================================
   SIMPLE PARTICLE SYSTEM IMPLEMENTATION
   ======================================================================== }
@@ -595,7 +588,6 @@ begin
     ParticlesList.Add(P);
   end;
 end;
-
 { ========================================================================
   IMAGE PARTICLE SYSTEM IMPLEMENTATION
   ======================================================================== }
@@ -690,7 +682,6 @@ begin
     end;
   end;
 end;
-
 { ========================================================================
   CYBERPUNK GLITCH EFFECT IMPLEMENTATION
   ======================================================================== }
@@ -740,7 +731,6 @@ begin
 
   ACanvas.DrawImageRect(Img, Rect, BaseSampling, LPaint);
 end;
-
 { ========================================================================
   NEURAL LINKS IMPLEMENTATION
   ======================================================================== }

@@ -143,6 +143,9 @@ type
     Button21: TButton;
     Button22: TButton;
     Button23: TButton;
+    Button24: TButton;
+    Timer4: TTimer;
+    CheckBox24: TCheckBox;
     procedure FormDestroy(Sender: TObject);
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
@@ -160,6 +163,7 @@ type
     procedure Button21Click(Sender: TObject);
     procedure Button22Click(Sender: TObject);
     procedure Button23Click(Sender: TObject);
+    procedure Button24Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
@@ -183,6 +187,7 @@ type
     procedure CheckBox21Change(Sender: TObject);
     procedure CheckBox22Change(Sender: TObject);
     procedure CheckBox23Change(Sender: TObject);
+    procedure CheckBox24Change(Sender: TObject);
     procedure CheckBox2Change(Sender: TObject);
     procedure CheckBox3Change(Sender: TObject);
     procedure CheckBox4Change(Sender: TObject);
@@ -210,6 +215,7 @@ type
     procedure Timer1Timer(Sender: TObject);
     procedure Timer2Timer(Sender: TObject);
     procedure Timer3Timer(Sender: TObject);
+    procedure Timer4Timer(Sender: TObject);
   private
     { Private declarations }
     Loadedwithparams: Boolean;
@@ -694,6 +700,7 @@ begin
     LoadFromTxtFile(ParamsTxtFile)
   else
     InitGallery;
+  Timer4.Enabled := True;
 end;
 
 procedure TfrmMain.lytcontrolsResize(Sender: TObject);
@@ -819,6 +826,11 @@ begin
   skfmFlowGallery.AddImageAsync(ExtractFilePath(ParamStr(0)) + inttostr(random(13) + 1) + '.jpg');
 end;
 
+procedure TfrmMain.Button24Click(Sender: TObject);
+begin
+  skfmFlowGallery.TriggerHotZoomWave(skfmFlowGallery.Width / 2, skfmFlowGallery.Height / 2, 400, 100);
+end;
+
 procedure TfrmMain.Button2Click(Sender: TObject);
 begin
   skfmFlowGallery.SelectNextImage;
@@ -936,6 +948,11 @@ end;
 procedure TfrmMain.CheckBox23Change(Sender: TObject);
 begin
   skfmFlowGallery.MitchellQuality := CheckBox23.IsChecked;
+end;
+
+procedure TfrmMain.CheckBox24Change(Sender: TObject);
+begin
+  skfmFlowGallery.HighlighterAllowMoodSwings := CheckBox24.isChecked;
 end;
 
 procedure TfrmMain.FormResize(Sender: TObject);
@@ -1221,6 +1238,13 @@ begin
   Inc(FStreamindex);
   if FStreamindex >= FStreamFiles.Count then
     FStreamindex := 0;
+end;
+
+procedure TfrmMain.Timer4Timer(Sender: TObject);
+begin
+  Timer4.Enabled := False;
+  Button24Click(Self);   //trigger hotzoomwave
+  Button21Click(Self);   //Send AliveHighlighter
 end;
 
 end.
