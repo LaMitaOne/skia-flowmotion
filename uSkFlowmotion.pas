@@ -7463,7 +7463,9 @@ begin
     Exit;
   end;
 
-  // --- 4. HOT TRACKING --  // --- 4. HOT TRACKING ---
+  // ==========================================================
+  // 4. HOT TRACKING
+  // ==========================================================
   NewHot := GetImageAtPoint(X, Y);
   //not at zooming back from just max zoomed
   if not (Assigned(FWasSelectedItem) and (NewHot = FWasSelectedItem) and (FSelectedImage = nil) and ((FWasSelectedItem.ZoomProgress > 0.001) or (FWasSelectedItem.Animating))) then
@@ -7474,12 +7476,10 @@ begin
       if (FHotItem <> nil) and (NewHot <> FHotItem) and Assigned(FOnImageMouseLeave) then
         FOnImageMouseLeave(Self, FHotItem, FImages.IndexOf(FHotItem));
       FHotItem := NewHot;
+
       // ==========================================================
       // DISABLE HOTZOOM ON ZOOMING SELECTED IMAGE
       // ==========================================================
-      // If the item we just hovered over is the Selected Image AND it is currently
-      // Zooming In (AnimationProgress < 1), DO NOT trigger HotZoom.
-      // Let it finish the smooth Zoom animation first.
       if (FHotItem <> nil) then
       begin
         if (FHotItem = FSelectedImage) and (FHotItem.ZoomProgress < 0.99) then
@@ -7502,7 +7502,19 @@ begin
     end
     else if (NewHot = nil) and (FHotItem <> nil) then
     begin
-      FHotItem.FHotZoomTarget := 1.0;
+      if (FHotItem = FSelectedImage) then
+      begin
+        // Target the "Low" breathing state.
+        // Formula from PerformAnimationUpdate: 1.02 + (Amplitude * 0.2 * -1.0)
+        // This ensures it glides down to the bottom of the breath.
+        FHotItem.FHotZoomTarget := 1.02 - (BREATHING_AMPLITUDE * 0.2);
+      end
+      else
+      begin
+        // Normal items shrink back to 1.0
+        FHotItem.FHotZoomTarget := 1.0;
+      end;
+
       FHotItem := nil;
       Hint := '';
       StartAnimationThread;
@@ -9312,7 +9324,6 @@ begin
         ImageItem := TImageItem(LocalImagesList[i]);
         if ImageItem = nil then
           Continue;
-
         // ---------------------------------------------------------
         // 0. CHECK FULLSCREEN SELECTED (Lock zoom to 1.0)
         // ---------------------------------------------------------
@@ -9322,7 +9333,6 @@ begin
           ImageItem.FHotZoomTarget := 1.0;
           Continue;
         end;
-
         // ---------------------------------------------------------
         // 1. WAVE PHYSICS (The "Mexican Wave")
         // ---------------------------------------------------------
@@ -9330,41 +9340,32 @@ begin
         // (Real mouse hover takes priority over the wave)
         var WaveHit: Boolean;
         WaveHit := False;
-
         if FWaveActive and (not FIsZoomedToFill) and (ImageItem <> FSelectedImage) and (ImageItem <> FHotItem) then
         begin
           var VisualRect: TRectF;
           var ItemCenter: TPointF;
           var DistToWave: Single;
-
           VisualRect := GetVisualRect(ImageItem);
           ItemCenter.X := (VisualRect.Left + VisualRect.Right) / 2;
           ItemCenter.Y := (VisualRect.Top + VisualRect.Bottom) / 2;
-
           // Distance from wave center (click point) to image center
           DistToWave := Hypot(ItemCenter.X - FWaveCenter.X, ItemCenter.Y - FWaveCenter.Y);
-
           // --- SOFT WAVE GRADIENT MATH ---
           var WaveIntensity: Single;
           var DistFromRingCenter: Single; // Distance from perfect center line of wave
-
           // Distance of this item from the wave's center-line (Radius)
           DistFromRingCenter := Abs(DistToWave - FWaveRadius);
-
           // Check if we are roughly within the wave's influence
           if DistFromRingCenter <= (FWaveWidth / 2) then
           begin
             // We are inside the wave!
             // Calculate intensity: 0.0 (at edge) -> 1.0 (in middle)
             WaveIntensity := 1.0 - (DistFromRingCenter / (FWaveWidth / 2));
-
             // Clamp it
             if WaveIntensity < 0.0 then WaveIntensity := 0.0;
             if WaveIntensity > 1.0 then WaveIntensity := 1.0;
-
             // --- APPLY WAVE ZOOM BASED ON INTENSITY ---
             TargetZoom := 1.0 + ((FHotZoomMaxFactor - 1.0) * WaveIntensity);
-
             // Mark as hit so logic below knows to use this target
             WaveHit := True;
           end
@@ -9374,11 +9375,9 @@ begin
             WaveHit := False;
           end;
         end;
-
         // ---------------------------------------------------------
         // 2. DETERMINE BASE STATE (Is it static or interacting?)
         // ---------------------------------------------------------
-
         // If HotTrack is OFF globally, force target to 1.0 immediately
         // (Unless Wave hit it)
         if (not FHotTrackZoom) and (ImageItem <> FSelectedImage) then
@@ -9393,15 +9392,12 @@ begin
             Continue;
           end;
         end;
-
         if not ImageItem.Visible then
           Continue;
-
         // ---------------------------------------------------------
         // 3. CALCULATE TARGET ZOOM
         // ---------------------------------------------------------
         // Priority: Mouse Hover > Wave Hit > Selected/Breathing > Static
-
         if FIsMouseOverHandle or FIsMouseOverInfoIndicator then
         begin
           // Keep current zoom (usually means holding it still)
@@ -9412,7 +9408,7 @@ begin
           // A. MOUSE HOVER (Highest Priority)
           if (ImageItem = FHotItem) then
           begin
-            // FIX: If hovered item is ALSO Selected, do Breathing, don't lock zoom
+            // If hovered item is ALSO Selected, do Breathing, don't lock zoom
             if (ImageItem = FSelectedImage) and FBreathingEnabled then
             begin
               if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
@@ -9432,14 +9428,35 @@ begin
           // C. SELECTED ITEM (Breathing Logic)
           else if (ImageItem = FSelectedImage) then
           begin
+
             if FBreathingEnabled then
             begin
               if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
                 TargetZoom := 1.0
               else
-                TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0);
-            end
-            else
+                TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.5; // Amplitude reduced to 0.5 to be safe (Max is 1.2)
+                // FORCE BREATHING WAVE TO START AT ZERO
+                if FBreathingPhase < PI then FBreathingPhase := 0;
+                // === FORCE TARGET TO EXACTLY 1.0 ===
+                // We use Min() because wave can jitter
+                TargetZoom := 1.0;
+            end;
+            // ==========================================================
+            // BREATHING DISABLED? => STATIC (Handled by else block)
+            // ==========================================================
+            if FBreathingEnabled and (not (FHotItem = FSelectedImage)) then
+            begin
+              if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
+                TargetZoom := 1.0
+              else
+                TargetZoom := 1.0;
+            end;
+            // ==========================================================
+            // Fallback: Static
+            TargetZoom := 1.0;
+            // ==========================================================
+            // If HotTrack is OFF globally, force to 1.0
+            if not FHotTrackZoom then
               TargetZoom := 1.0;
           end
           // D. STATIC ITEM
@@ -9448,7 +9465,6 @@ begin
             TargetZoom := 1.0;
           end;
         end;
-
         // ---------------------------------------------------------
         // 4. APPLY PHYSICS (Smoothing)
         // ---------------------------------------------------------
@@ -9457,24 +9473,19 @@ begin
           Speed := HOT_ZOOM_IN_PER_SEC
         else
           Speed := HOT_ZOOM_OUT_PER_SEC;
-
         // Interpolate
         ImageItem.FHotZoom := ImageItem.FHotZoom + (TargetZoom - ImageItem.FHotZoom) * Speed * DeltaTime;
-
         // Update the "Public" Target variable used by other checks
         if not FHotTrackZoom then
           ImageItem.FHotZoomTarget := 1.0
         else
           ImageItem.FHotZoomTarget := TargetZoom;
-
         // Clamp to Max (don't let them grow infinitely if Wave lingers)
         if (ImageItem <> FSelectedImage) and (ImageItem.FHotZoom > FHotZoomMaxFactor) then
           ImageItem.FHotZoom := FHotZoomMaxFactor;
-
         // Clamp to Min (1.0)
         if ImageItem.FHotZoom < 1.0 then
           ImageItem.FHotZoom := 1.0;
-
         NeedRepaint := True;
       end;
     end;
