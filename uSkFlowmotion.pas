@@ -1,4 +1,4 @@
-﻿{*******************************************************************************
+{*******************************************************************************
   uSkFlowmotion
 ********************************************************************************
   A high-performance, GPU-accelerated image flow control for Delphi FMX.
@@ -9345,11 +9345,8 @@ begin
           DistToWave := Hypot(ItemCenter.X - FWaveCenter.X, ItemCenter.Y - FWaveCenter.Y);
 
           // --- SOFT WAVE GRADIENT MATH ---
-          // We don't just do Yes/No (Hit or Miss).
-          // We calculate a 0.0 to 1.0 intensity based on how deep into the ring we are.
-
           var WaveIntensity: Single;
-          var DistFromRingCenter: Single; // Distance from the perfect center line of the wave
+          var DistFromRingCenter: Single; // Distance from perfect center line of wave
 
           // Distance of this item from the wave's center-line (Radius)
           DistFromRingCenter := Abs(DistToWave - FWaveRadius);
@@ -9358,20 +9355,14 @@ begin
           if DistFromRingCenter <= (FWaveWidth / 2) then
           begin
             // We are inside the wave!
-            // Calculate intensity:
-            // 0.0 (at the very edge) -> 1.0 (perfectly in the middle of the wave)
+            // Calculate intensity: 0.0 (at edge) -> 1.0 (in middle)
             WaveIntensity := 1.0 - (DistFromRingCenter / (FWaveWidth / 2));
 
-            // Clamp it so we don't go negative or above 1.0
-            if WaveIntensity < 0.0 then
-              WaveIntensity := 0.0;
-            if WaveIntensity > 1.0 then
-              WaveIntensity := 1.0;
+            // Clamp it
+            if WaveIntensity < 0.0 then WaveIntensity := 0.0;
+            if WaveIntensity > 1.0 then WaveIntensity := 1.0;
 
             // --- APPLY WAVE ZOOM BASED ON INTENSITY ---
-            // If intensity is 1.0, we zoom to MaxFactor.
-            // If intensity is 0.5, we zoom halfway.
-            // Base is 1.0.
             TargetZoom := 1.0 + ((FHotZoomMaxFactor - 1.0) * WaveIntensity);
 
             // Mark as hit so logic below knows to use this target
@@ -9389,10 +9380,9 @@ begin
         // ---------------------------------------------------------
 
         // If HotTrack is OFF globally, force target to 1.0 immediately
+        // (Unless Wave hit it)
         if (not FHotTrackZoom) and (ImageItem <> FSelectedImage) then
         begin
-          // NOTE: We check WaveHit first!
-          // If WaveHit is true, we allow the zoom even if global HotTrack is off.
           if not WaveHit then
           begin
             if ImageItem.FHotZoom <> 1.0 then
@@ -9422,17 +9412,8 @@ begin
           // A. MOUSE HOVER (Highest Priority)
           if (ImageItem = FHotItem) then
           begin
-            TargetZoom := FHotZoomMaxFactor;
-          end
-          // B. WAVE HIT (Medium Priority - only if not hovered)
-          else if WaveHit then
-          begin
-            TargetZoom := FHotZoomMaxFactor;
-          end
-          // C. SELECTED ITEM (Breathing Logic)
-          else if (ImageItem = FSelectedImage) then
-          begin
-            if FBreathingEnabled and (ImageItem = FHotItem) then
+            // FIX: If hovered item is ALSO Selected, do Breathing, don't lock zoom
+            if (ImageItem = FSelectedImage) and FBreathingEnabled then
             begin
               if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
                 TargetZoom := 1.0
@@ -9440,9 +9421,26 @@ begin
                 TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0);
             end
             else
+              TargetZoom := FHotZoomMaxFactor;
+          end
+          // B. WAVE HIT (Medium Priority - only if not hovered)
+          else if WaveHit then
+          begin
+            // TargetZoom is already set by the Wave Logic above
+            // We do nothing here, just fall through to Apply Physics
+          end
+          // C. SELECTED ITEM (Breathing Logic)
+          else if (ImageItem = FSelectedImage) then
+          begin
+            if FBreathingEnabled then
             begin
+              if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
+                TargetZoom := 1.0
+              else
+                TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.2 * (Sin(FBreathingPhase * 2 * Pi) + 1.0);
+            end
+            else
               TargetZoom := 1.0;
-            end;
           end
           // D. STATIC ITEM
           else
@@ -10127,4 +10125,3 @@ begin
 end;
 
 end.
-
