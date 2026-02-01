@@ -1,9 +1,8 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.55**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.56**    
     
-  <img width="1749" height="1139" alt="Unbenannt" src="https://github.com/user-attachments/assets/9f297642-b8c4-4840-9db8-94497714da21" />
-
-    
+<img width="1751" height="1141" alt="Unbenannt" src="https://github.com/user-attachments/assets/7ffa4882-3ed3-43b6-a960-3e11b56a3884" />
+        
 # Skia-FlowMotion   
    
 **Animated Image Flow Gallery – Delphi FMX + Skia4Delphi (Google's Skia)**   
@@ -30,7 +29,7 @@ maybe at least i spread out some new ideas :)
    
 static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly for me :D       
       
-### Features at a glance (v0.55)   
+### Features at a glance (v0.56)   
    
 - **Pinterest-like masonry layout**     
 - **Animated appearance** (slide-in, “falling” effects, breathing)  
@@ -48,7 +47,8 @@ static smart phone/tv, desktop and all that starting to look really ugly boring 
 - **NeuralLink background** effect (connections between each with same infotxt)  
 - **InfoPanel** with animated slide-in on selected pic from any direction with different styles    
 - **HoverAlive** – gentle micro-hovering (floating around center)  
-- **Wall Sliding** physics (respect screen edges)  
+- **Wall Sliding** physics (respect screen edges)   
+- **AliveHighlighter** - An organic, physics-based entity that orbits target    
 - **Collision avoidance** – images dynamically move out of the way   
 - **Full live editor** in demo (colors, sizes, toggles)  
        
@@ -92,6 +92,14 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
+    
+**v 0.56**   
+- Added propertys: AliveHighlighterAllowMoodSwings, AliveHighlighterRageColor
+- Added TriggerHotZoomWave -> Wave Propagation Logic to HotZoom physics
+  Introduced FWaveActive, FWaveRadius, and FWaveWidth states.
+  The animation loop calculates distance from a dynamic wave center
+  to modulate FHotZoomTarget for individual items in real-time.
+- Some small bugfixes and improvements/fine tuning
    
 **v 0.55**    
 - AliveHighlighter now respects all screen edges    
