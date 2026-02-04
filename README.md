@@ -80,7 +80,11 @@ If someone wants to try it on another OS right now and finds issues (or even get
 If you know **where** it breaks and **why**, or even send a PR/fix – that would be awesome and super helpful :)   
    
 No pressure though – Windows is the main focus for now.     
-   
+    
+Runs buttery smooth on a decent PC, but on my little 10-year-old Zenbook getting slowly to limit here with dual core...     
+Still works, but not really "fun" anymore – not smooth enough for daily use lol.     
+So yeah... enjoy it if your media pc hardware is stronger than mine :D    
+    
 **Zipped sample exe** (small enough for upload)    
    
 If you want to tip me a coffee.. :)   
@@ -308,7 +312,7 @@ and only in browser, like coding with a friend (who makes always again the same 
 - **z.ai** helps me some (and it has no problems when you throw 12k lines at once at it   
 - not bad for free AI, not saw any daily limit so far too        
       
-But mostly I am telling it **how it works** at the end – still, it speeds things up! 🚀i    
+But mostly I am telling it **how it works** at the end – still, it speeds things up! 🚀       
     
 Tip: Nice smooth radio stream without commercials, listening it all the time just:   
  [60 North Radio](https://60north.radio/)     
