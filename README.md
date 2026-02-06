@@ -1,6 +1,8 @@
 # skia-flowmotion  
 **Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.56**    
-    
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/LaMitaOne/skia-flowmotion)
+         
 <img width="1751" height="1141" alt="Unbenannt" src="https://github.com/user-attachments/assets/7ffa4882-3ed3-43b6-a960-3e11b56a3884" />
         
 # Skia-FlowMotion   
