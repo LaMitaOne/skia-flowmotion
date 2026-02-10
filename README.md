@@ -20,17 +20,7 @@ Started as a simple port of my D7 VCL Flowmotion component...which was "let only
 **3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background,    tech brackets...).   
    
 No big deal to port old code when delphi & Skia4delphi is involved 😉     
-btw its even my first component and... playing with canvas at all... ^^    
-just learning by doing, and having fun doing it   
-    
-**Delphi GUIs are boring and outdated?**    
-**Disproven.**    
-few days. Done.   
-   
-maybe at least i spread out some new ideas :)  
-   
-static smart phone/tv, desktop and all that starting to look really ugly boring somehow slowly for me :D       
-      
+          
 ### Features at a glance (v0.56)   
    
 - **Pinterest-like masonry layout**     
@@ -67,8 +57,8 @@ Tip: You can play memory on it now. Enable infopanel on some, unselect, and try 
 Alpha – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
 Lots bugs for sure crawling around everywhere, but hey its just few days old... but already impressive nice looking...     
      
-Especially **full freefloat layout** is still making problems with some things,  
-but **normal layout** is getting very stable now – even with SelectedDraggable and not zoom to center.   
+Especially **all draggable** is still making problems with some things,  
+but normal is getting very stable now – even with SelectedDraggable and not zoom to center.   
 Physics are running almost perfectly fine already.   
    
 Right now everything is being built and tested **only on Windows** (Delphi 11/12, FMX + Skia4Delphi).    
@@ -82,10 +72,6 @@ If someone wants to try it on another OS right now and finds issues (or even get
 If you know **where** it breaks and **why**, or even send a PR/fix – that would be awesome and super helpful :)   
    
 No pressure though – Windows is the main focus for now.     
-    
-Runs buttery smooth on a decent PC, but on my little 10-year-old Zenbook getting slowly to limit here with dual core...     
-Still works, but not really "fun" anymore – not smooth enough for daily use lol.     
-So yeah... enjoy it if your media pc hardware is stronger than mine :D    
     
 **Zipped sample exe** (small enough for upload)    
    
@@ -306,15 +292,7 @@ If you want to tip me a coffee.. :)
 - added lots more of functions from vcl version
    
    ------------------------      
-      
-And yes, I am using some AI help since my eyes are broke at 20% eyesight ability – but only free ones,   
-and only in browser, like coding with a friend (who makes always again the same errors lol but its really fun that way):      
-- At start mostly **Grok** at vcl d7 version (but no way anymore at that code size now to throw it all at once at it + daily limit)    
-- ChatGPT was **totally useless** somehow    
-- **z.ai** helps me some (and it has no problems when you throw 12k lines at once at it   
-- not bad for free AI, not saw any daily limit so far too        
-      
-But mostly I am telling it **how it works** at the end – still, it speeds things up! 🚀       
+    
     
 Tip: Nice smooth radio stream without commercials, listening it all the time just:   
  [60 North Radio](https://60north.radio/)     
