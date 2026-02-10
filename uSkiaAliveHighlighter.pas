@@ -408,7 +408,12 @@ begin
     // If rage timer expires, calm down
     if FSnake.RageTimer <= 0 then
     begin
-      FState := ssOrbiting;
+      // If mood swings are enabled, go back to orbiting.
+      // If mood swings are disabled, we should revert to Approaching (Polite mode).
+      if FAllowMoodSwings then
+        FState := ssOrbiting
+      else
+        FState := ssApproaching;
 
       // Return to the PERSISTENT saved color (synced with main form)
       FSnake.SnakeColor := FSavedNormalColor;
@@ -423,19 +428,28 @@ begin
   end;
 
   // ==========================================================
-  // 1. AGGRO LOGIC (Proximity Trigger)
+  // 1. AGGRO & MOOD LOGIC
   // ==========================================================
 
-  // --- A. CHECK MOOD SWING PERMISSION ---
+  // --- A. STRICT POLITE MODE (Mood Swings Disabled) ---
   if (not FAllowMoodSwings) then
   begin
-    // If mood swings are disabled, force him to be polite
-    FState := ssApproaching;
-    FSnake.AngerCounter := 0; // Keep anger at zero
+    // Force him to be polite.
+    // We override state to Approaching to ensure he moves towards targets
+    // and doesn't get stuck in orbit or idle states.
+    if (FState <> ssExiting) then
+      FState := ssApproaching;
+
+    // Suppress any accumulated anger
+    FSnake.AngerCounter := 0;
+
+    // In this mode, we skip all the random mouse checks below.
+    // We let him fall through to the Pathfinding section so he
+    // knows how to move towards the Exit target or a User target.
   end
   else
   begin
-    // --- B. NORMAL MOOD LOGIC ---
+    // --- B. NORMAL MOOD LOGIC (Mood Swings Enabled) ---
     if (FState = ssOrbiting) or (FState = ssApproaching) then
     begin
       DistToMouseHead := Hypot(FSnake.HeadPos.X - FSnake.MousePos.X, FSnake.HeadPos.Y - FSnake.MousePos.Y);
@@ -447,39 +461,25 @@ begin
         begin
           Inc(FSnake.AngerCounter);
 
-          // COOLDOWN CHECK: If he hasn't been annoyed recently, reduce anger
-          // This makes it so he only rages if annoyed QUICKLY in a short time.
+          // COOLDOWN CHECK
           if FSnake.AggroCooldown > 0 then
-          begin
-            // Decrease cooldown. If cooldown runs out, we start reducing anger effectively.
             FSnake.AggroCooldown := FSnake.AggroCooldown - 0.016;
-          end
-          else
-          begin
-            // If no cooldown pending, anger naturally decays (Cool Down)
-          //  if (FSnake.AngerCounter > 0) and (Random(10) = 2) then
-           //   FSnake.AngerCounter := FSnake.AngerCounter - 1;
-          end;
 
           // CHECK FOR RAGE TRIGGER
-          // Only rage if accumulated enough anger
           if FSnake.AngerCounter >= (5 + Random(10)) then
           begin
             FState := ssEnraged;
-            FSnake.RageTimer := 1 + Random(3); // few seconds of pure rage
-            FSnake.SnakeColor := FSnake.RageColor; // USE THE RAGE COLOR PROPERTY
+            FSnake.RageTimer := 1 + Random(3);
+            FSnake.SnakeColor := FSnake.RageColor;
             FSnake.ScaleTarget := 2.5;
             FSnake.ThicknessTarget := 20.0;
-
-            // Reset cooldown so he stays angry for a bit before decaying again
             FSnake.AggroCooldown := 2.0;
           end
           else if Random(2) = 1 then
-            FState := ssStalking  // Chase Mouse
+            FState := ssStalking
           else
-            FState := ssRetreating; // Run from Mouse
+            FState := ssRetreating;
 
-          // Get "Excited" (Visual feedback)
           FSnake.ScaleTarget := 2.0;
           FSnake.ThicknessTarget := 14.0;
         end
@@ -492,10 +492,6 @@ begin
       begin
         // Mouse far away -> Calm down
         FState := ssApproaching;
-
-        // If far away, anger decays steadily        //too much, we must make different
-     //   if (FSnake.AngerCounter > 0) and (Random(10) = 2) then
-      //    FSnake.AngerCounter := FSnake.AngerCounter - 1;
       end;
     end;
   end;
@@ -507,14 +503,13 @@ begin
   begin
     DistToMouseHead := Hypot(FSnake.HeadPos.X - FSnake.MousePos.X, FSnake.HeadPos.Y - FSnake.MousePos.Y);
 
-    // If very close, Lunge/Bite
     if DistToMouseHead < 30.0 then
     begin
       FState := ssBiting;
-      FSnake.BiteTimer := 0.3; // Duration of bite
-      FSnake.ScaleTarget := 3.0;     // Zoom in
-      FSnake.ThicknessTarget := 22.0; // Get fat
-      FSnake.Velocity := TPointF.Create(0, 0); // Stop movement for impact
+      FSnake.BiteTimer := 0.3;
+      FSnake.ScaleTarget := 3.0;
+      FSnake.ThicknessTarget := 22.0;
+      FSnake.Velocity := TPointF.Create(0, 0);
     end;
   end;
 
@@ -522,7 +517,6 @@ begin
   begin
     FSnake.BiteTimer := FSnake.BiteTimer - 0.016;
 
-    // Lunge towards mouse rapidly
     MouseVec := TPointF.Create(FSnake.MousePos.X - FSnake.HeadPos.X, FSnake.MousePos.Y - FSnake.HeadPos.Y);
     var Dist := Hypot(MouseVec.X, MouseVec.Y);
     if Dist > 0 then
@@ -535,8 +529,11 @@ begin
 
     if FSnake.BiteTimer <= 0 then
     begin
-      // Calm down and return to orbiting
-      FState := ssOrbiting;
+      if FAllowMoodSwings then
+        FState := ssOrbiting
+      else
+        FState := ssApproaching;
+
       FSnake.ScaleTarget := 1.0;
       FSnake.ThicknessTarget := 5.0;
     end;
@@ -549,16 +546,18 @@ begin
   begin
     DistToMouseHead := Hypot(FSnake.HeadPos.X - FSnake.MousePos.X, FSnake.HeadPos.Y - FSnake.MousePos.Y);
 
-    // If far enough away, return to normal
     if DistToMouseHead > 200.0 then
     begin
-      FState := ssOrbiting;
+      if FAllowMoodSwings then
+        FState := ssOrbiting
+      else
+        FState := ssApproaching;
+
       FSnake.ScaleTarget := 1.0;
       FSnake.ThicknessTarget := 5.0;
     end
     else
     begin
-      // 1. Calculate raw "Run Away" vector
       var RunVec := TPointF.Create(FSnake.HeadPos.X - FSnake.MousePos.X, FSnake.HeadPos.Y - FSnake.MousePos.Y);
 
       if Hypot(RunVec.X, RunVec.Y) > 0 then
@@ -566,28 +565,17 @@ begin
         RunVec.X := RunVec.X / Hypot(RunVec.X, RunVec.Y);
         RunVec.Y := RunVec.Y / Hypot(RunVec.X, RunVec.Y);
 
-        // 2. *** WALL AVOIDANCE WHILE RETREATING ***
-        // If running away means hitting a wall, we steer him ALONG the wall instead.
         const Margin = 60.0;
 
-        // Check Left Wall
         if (FSnake.HeadPos.X < FBounds.Left + Margin) and (RunVec.X < 0) then
-          RunVec.X := 0.5 // Force movement Right (along wall)
-
-        // Check Right Wall
+          RunVec.X := 0.5
         else if (FSnake.HeadPos.X > FBounds.Right - Margin) and (RunVec.X > 0) then
-          RunVec.X := -0.5 // Force movement Left (along wall)
-
-        // Check Top Wall
+          RunVec.X := -0.5
         else if (FSnake.HeadPos.Y < FBounds.Top + Margin) and (RunVec.Y < 0) then
-          RunVec.Y := 0.5 // Force movement Down (along wall)
-
-        // Check Bottom Wall
+          RunVec.Y := 0.5
         else if (FSnake.HeadPos.Y > FBounds.Bottom - Margin) and (RunVec.Y > 0) then
-          RunVec.Y := -0.5; // Force movement Up (along wall);
-        // ******************************************************
+          RunVec.Y := -0.5;
 
-        // 3. Accelerate using corrected Vector
         FSnake.Velocity.X := FSnake.Velocity.X + (RunVec.X * 2.0);
         FSnake.Velocity.Y := FSnake.Velocity.Y + (RunVec.Y * 2.0);
       end;
@@ -606,17 +594,19 @@ begin
     DirToTarget.Y := TargetCenter.Y - FSnake.HeadPos.Y;
     DistToTarget := Sqrt(Sqr(DirToTarget.X) + Sqr(DirToTarget.Y));
 
-    // Switch to Orbiting if close enough to target
+    // Calculate the radius where we switch from Approaching to Orbiting
     var TargetRadius := Max(FSnake.TargetRect.Width, FSnake.TargetRect.Height) / 2 + 20;
-    if DistToTarget < TargetRadius then
+
+    // Only switch to Orbiting if Mood Swings are ALLOWED ---
+    if (FState <> ssExiting) and (DistToTarget < TargetRadius) then
     begin
       FState := ssOrbiting;
     end;
+    // --------------------------------------------------------------
 
     // Look-Ahead Logic: Check if we are about to hit something
     var LookAheadDist := 60.0;
 
-    // Determine where we will be in the next few frames
     if (FSnake.Velocity.X = 0) and (FSnake.Velocity.Y = 0) then
       LookAheadPos := TPointF.Create(FSnake.HeadPos.X + DirToTarget.X, FSnake.HeadPos.Y + DirToTarget.Y)
     else
@@ -653,8 +643,7 @@ begin
       Exit;
     end;
 
-    // Still inside? Keep moving.
-    // We skip standard logic below.
+    // Still inside? Keep moving. Logic handled in UpdatePhysics.
     Exit;
   end;
 end;
