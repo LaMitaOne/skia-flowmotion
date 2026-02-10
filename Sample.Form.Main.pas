@@ -144,7 +144,6 @@ type
     Button22: TButton;
     Button23: TButton;
     Button24: TButton;
-    Timer4: TTimer;
     CheckBox24: TCheckBox;
     procedure FormDestroy(Sender: TObject);
     { --- Event Handlers --- }
@@ -215,7 +214,6 @@ type
     procedure Timer1Timer(Sender: TObject);
     procedure Timer2Timer(Sender: TObject);
     procedure Timer3Timer(Sender: TObject);
-    procedure Timer4Timer(Sender: TObject);
   private
     { Private declarations }
     Loadedwithparams: Boolean;
@@ -700,7 +698,6 @@ begin
     LoadFromTxtFile(ParamsTxtFile)
   else
     InitGallery;
-  Timer4.Enabled := True;
 end;
 
 procedure TfrmMain.lytcontrolsResize(Sender: TObject);
@@ -1238,13 +1235,6 @@ begin
   Inc(FStreamindex);
   if FStreamindex >= FStreamFiles.Count then
     FStreamindex := 0;
-end;
-
-procedure TfrmMain.Timer4Timer(Sender: TObject);
-begin
-  Timer4.Enabled := False;
-  Button24Click(Self);   //trigger hotzoomwave
-  Button21Click(Self);   //Send AliveHighlighter
 end;
 
 end.
