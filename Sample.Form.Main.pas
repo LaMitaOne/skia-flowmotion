@@ -145,6 +145,7 @@ type
     Button23: TButton;
     Button24: TButton;
     CheckBox24: TCheckBox;
+    Button25: TButton;
     procedure FormDestroy(Sender: TObject);
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
@@ -163,6 +164,7 @@ type
     procedure Button22Click(Sender: TObject);
     procedure Button23Click(Sender: TObject);
     procedure Button24Click(Sender: TObject);
+    procedure Button25Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
@@ -826,6 +828,11 @@ end;
 procedure TfrmMain.Button24Click(Sender: TObject);
 begin
   skfmFlowGallery.TriggerHotZoomWave(skfmFlowGallery.Width / 2, skfmFlowGallery.Height / 2, 400, 100);
+end;
+
+procedure TfrmMain.Button25Click(Sender: TObject);
+begin
+  skfmFlowGallery.TriggerHotZoomItem(1);
 end;
 
 procedure TfrmMain.Button2Click(Sender: TObject);

@@ -1,4 +1,4 @@
-{*******************************************************************************
+﻿{*******************************************************************************
   uSkFlowmotion
 ********************************************************************************
   A high-performance, GPU-accelerated image flow control for Delphi FMX.
@@ -10,7 +10,7 @@
   - Interactive features (Selection, Dragging, Rotation, Info Panels).
   - Background effects integration (Matrix, Holographic).
 *******************************************************************************}
-{ Skia-Flowmotion v0.56 alpha                                                  }
+{ Skia-Flowmotion v0.57 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -21,6 +21,14 @@
 
 {
  ----Latest Changes
+   v 0.57
+    - Fixed AliveHighlighter not wanted leave anymore when moodswings forbidden
+      (understandable that he not likes it)
+    - Added TriggerHotZoomItem (Hotzooms up only one imageitem)
+    - Fixed Info Panel hide gesture direction
+      (now correctly swipes opposite to panel position)
+    - Fixed TriggerHotZoomWave not working when nothing else was animating
+      cause of our idle-skip optimization
    v 0.56
     - Added propertys: AliveHighlighterAllowMoodSwings, AliveHighlighterRageColor
     - Added TriggerHotZoomWave -> Wave Propagation Logic to HotZoom physics
@@ -800,6 +808,7 @@ type
 
     { --- HotZoomWave --- }
     procedure TriggerHotZoomWave(const CenterX, CenterY: Single; Speed: Single = 500.0; Width: Single = 150.0);
+    procedure TriggerHotZoomItem(const ItemIndex: Integer);
 
     { --- Public Properties --- }
     property MaxZoomSize: Integer read FMaxZoomSize write SetMaxZoomSize default DEFAULT_MAX_ZOOM_SIZE;
@@ -1694,6 +1703,26 @@ begin
   FWaveRadius := 0; // Start from center
   FWaveSpeed := Speed; // Pixels per second
   FWaveWidth := Width; // The "band" of zoom
+  FWaveActive := True;
+
+  StartAnimationThread;
+end;
+
+procedure TSkFlowmotion.TriggerHotZoomItem(const ItemIndex: Integer);
+var
+  TargetItem: TImageItem;
+begin
+  if (ItemIndex < 0) or (ItemIndex >= FImages.Count) then Exit;
+  TargetItem := TImageItem(FImages[ItemIndex]);
+  if not Assigned(TargetItem) or not TargetItem.Visible then Exit;
+
+  FWaveCenter := TPointF.Create(
+    (TargetItem.CurrentRect.Left + TargetItem.CurrentRect.Right) / 2,
+    (TargetItem.CurrentRect.Top + TargetItem.CurrentRect.Bottom) / 2
+  );
+
+  // Radius = -1 means "Single Item, Do Not Expand"
+  FWaveRadius := -1.0;
   FWaveActive := True;
 
   StartAnimationThread;
@@ -7276,98 +7305,129 @@ begin
 
   ScaleDistance := 380.0;
 
-  // ==========================================================
-  // GESTURE LOGIC: Check for Swipes (Show Info Panel)
-  // ==========================================================
-  // ONLY RUNS IF WE STARTED A CLICK IN MOUSEDOWN and Fullscreen
-  if FGestureActive and Assigned(FSelectedImage) and (FIsZoomedToFill or (not SelectedMovable)) then
-  begin
-    SwipeDist := 200.0; // How many pixels to swipe
-    TriggerPanel := False;
-    TriggerZoom := False;
-
-    // Resolve Auto Direction (Portrait vs Landscape)
-    ActualDir := FInfoPanelDirection;
-    if ActualDir = ipdAuto then
+    // ==========================================================
+    // GESTURE LOGIC: Check for Swipes (Show Info Panel)
+    // ==========================================================
+    // ONLY RUNS IF WE STARTED A CLICK IN MOUSEDOWN and Fullscreen
+    if FGestureActive and Assigned(FSelectedImage) and (FIsZoomedToFill or (not SelectedMovable)) then
     begin
-      if FSelectedImage.CurrentRect.Width > FSelectedImage.CurrentRect.Height then
-        ActualDir := ipdRight // Landscape -> Panel Right
-      else
-        ActualDir := ipdBottom; // Portrait -> Panel Bottom
+      SwipeDist := 200.0; // How many pixels to swipe
+      TriggerPanel := False;
+      TriggerZoom := False;
+
+      // Resolve Auto Direction (Portrait vs Landscape)
+      ActualDir := FInfoPanelDirection;
+      if ActualDir = ipdAuto then
+      begin
+        if FSelectedImage.CurrentRect.Width > FSelectedImage.CurrentRect.Height then
+          ActualDir := ipdRight // Landscape -> Panel Right
+        else
+          ActualDir := ipdBottom; // Portrait -> Panel Bottom
+      end;
+
+      // Check Swipes based on Direction and State (Open vs Closed)
+      // Logic: We check to delta (Difference) from Start Point
+
+      // --- PANEL OPEN LOGIC (When currently closed) ---
+      if not FSelectedImage.FIsInfoShowing then
+      begin
+        case ActualDir of
+          ipdLeft:
+            begin  // Panel Left.  Swipe Right (X Increases) to open.
+              if (X - FGestureStartPos.X) > SwipeDist then
+                TriggerPanel := True;
+
+              // Secondary Axis (Vertical) for Zoom
+              if (FGestureStartPos.Y - Y) > SwipeDist then
+              begin
+                FIsGestureZoomed := not FIsGestureZoomed;
+                TriggerZoom := True;
+              end;
+            end;
+          ipdRight:
+            begin // Panel Right. Swipe Left (X Decreases) to open.
+              if (FGestureStartPos.X - X) > SwipeDist then
+                TriggerPanel := True;
+
+              // Secondary Axis (Vertical) for Zoom
+              if (FGestureStartPos.Y - Y) > SwipeDist then
+              begin
+                FIsGestureZoomed := not FIsGestureZoomed;
+                TriggerZoom := True;
+              end;
+            end;
+          ipdTop:
+            begin// Panel Top.   Swipe Down (Y Increases) to open.
+              if (Y - FGestureStartPos.Y) > SwipeDist then
+                TriggerPanel := True;
+
+              // Secondary Axis (Horizontal) for Zoom
+              // Swipe RIGHT to Zoom In
+              if (X - FGestureStartPos.X) > SwipeDist then
+              begin
+                FIsGestureZoomed := not FIsGestureZoomed;
+                TriggerZoom := True;
+              end;
+            end;
+          ipdBottom:
+            begin // Panel Bottom. Swipe Up (Y Decreases) to open.
+              if (FGestureStartPos.Y - Y) > SwipeDist then
+                TriggerPanel := True;
+
+              // Secondary Axis (Horizontal) for Zoom
+              if (X - FGestureStartPos.X) > SwipeDist then
+              begin
+                FIsGestureZoomed := not FIsGestureZoomed;
+                TriggerZoom := True;
+              end;
+            end;
+        end;
+      end
+      // --- PANEL HIDE LOGIC (When currently open) ---
+      else // FIsInfoShowing is True
+      begin
+        case ActualDir of
+          ipdLeft:
+            begin  // Panel Left. Swipe Left (X Decreases) to HIDE (Opposite of Open).
+              if (FGestureStartPos.X - X) > SwipeDist then
+                TriggerPanel := True;
+            end;
+          ipdRight:
+            begin // Panel Right. Swipe Right (X Increases) to HIDE.
+              if (X - FGestureStartPos.X) > SwipeDist then
+                TriggerPanel := True;
+            end;
+          ipdTop:
+            begin// Panel Top. Swipe Up (Y Decreases) to HIDE.
+              if (FGestureStartPos.Y - Y) > SwipeDist then
+                TriggerPanel := True;
+            end;
+          ipdBottom:
+            begin // Panel Bottom. Swipe Down (Y Increases) to HIDE.
+              if (Y - FGestureStartPos.Y) > SwipeDist then
+                TriggerPanel := True;
+            end;
+        end;
+      end;
+
+      // Handle Actions
+      if TriggerPanel then
+      begin
+        ShowInfoPanel(FSelectedImage); // Toggle (Hide)
+        if FEnableParticlesOnMouseClick then
+          uSkFlowEffects.SpawnParticles(FParticles, X, Y, 50, TAlphaColors.Red);
+
+        FGestureActive := False; // Stop tracking
+      end
+      else if TriggerZoom then
+      begin
+        // If Zoomed, Spawn particles
+        if FIsGestureZoomed and FEnableParticlesOnMouseClick then
+          uSkFlowEffects.SpawnParticles(FParticles, X, Y, 30, TAlphaColors.White);
+
+        FGestureActive := False; // Stop tracking
+      end;
     end;
-
-    // Check Swipes based on Direction
-    // Logic: We check to delta (Difference) from Start Point
-    case ActualDir of
-      ipdLeft:
-        begin  // Panel Left.  Swipe Right (X Increases) to open.
-          if (X - FGestureStartPos.X) > SwipeDist then
-            TriggerPanel := True;
-          // Check Secondary Axis (Vertical) for Zoom
-          // Swipe UP to Zoom In, Swipe DOWN to Zoom Out
-          if (FGestureStartPos.Y - Y) > SwipeDist then
-          begin
-            FIsGestureZoomed := not FIsGestureZoomed; // Toggle Zoom
-            TriggerZoom := True;
-          end;
-        end;
-      ipdRight:
-        begin // Panel Right. Swipe Left (X Decreases) to open.
-          if (FGestureStartPos.X - X) > SwipeDist then
-            TriggerPanel := True;
-
-          // Secondary Axis (Vertical) for Zoom
-          if (FGestureStartPos.Y - Y) > SwipeDist then
-          begin
-            FIsGestureZoomed := not FIsGestureZoomed;
-            TriggerZoom := True;
-          end;
-        end;
-      ipdTop:
-        begin// Panel Top.   Swipe Down (Y Increases) to open.
-          if (Y - FGestureStartPos.Y) > SwipeDist then
-            TriggerPanel := True;
-
-          // Secondary Axis (Horizontal) for Zoom
-          // Swipe RIGHT to Zoom In
-          if (X - FGestureStartPos.X) > SwipeDist then
-          begin
-            FIsGestureZoomed := not FIsGestureZoomed;
-            TriggerZoom := True;
-          end;
-        end;
-      ipdBottom:
-        begin // Panel Bottom. Swipe Up (Y Decreases) to open.
-          if (FGestureStartPos.Y - Y) > SwipeDist then
-            TriggerPanel := True;
-
-          // Secondary Axis (Horizontal) for Zoom
-          if (X - FGestureStartPos.X) > SwipeDist then
-          begin
-            FIsGestureZoomed := not FIsGestureZoomed;
-            TriggerZoom := True;
-          end;
-        end;
-    end;
-
-    // Handle Actions
-    if TriggerPanel then
-    begin
-      ShowInfoPanel(FSelectedImage);
-      if FEnableParticlesOnMouseClick then
-        uSkFlowEffects.SpawnParticles(FParticles, X, Y, 50, TAlphaColors.Red);
-
-      FGestureActive := False; // Stop tracking
-    end
-    else if TriggerZoom then
-    begin
-      // If Zoomed, Spawn particles (Optional, adds juice!)
-      if FIsGestureZoomed and FEnableParticlesOnMouseClick then
-        uSkFlowEffects.SpawnParticles(FParticles, X, Y, 30, TAlphaColors.White);
-
-      FGestureActive := False; // Stop tracking
-    end;
-  end;
 
   // --- 1. ROTATION (Active) ---
   if not FIsZoomedToFill then
@@ -7476,7 +7536,6 @@ begin
       if (FHotItem <> nil) and (NewHot <> FHotItem) and Assigned(FOnImageMouseLeave) then
         FOnImageMouseLeave(Self, FHotItem, FImages.IndexOf(FHotItem));
       FHotItem := NewHot;
-
       // ==========================================================
       // DISABLE HOTZOOM ON ZOOMING SELECTED IMAGE
       // ==========================================================
@@ -7514,7 +7573,6 @@ begin
         // Normal items shrink back to 1.0
         FHotItem.FHotZoomTarget := 1.0;
       end;
-
       FHotItem := nil;
       Hint := '';
       StartAnimationThread;
@@ -8740,6 +8798,15 @@ var
       Exit;
     end;
 
+    // 1.2. CHECK FOR ACTIVE WAVE ---
+    // If a wave is running, we MUST run math every frame to update the radius
+    // and calculate distances/zooms.
+    if FWaveActive then
+    begin
+      Result := True;
+      Exit;
+    end;
+
     // 1.5. Check for REPLICATOR LASER
     // If the entry style is Laser, we MUST run math to move the beam
     if FImageEntryStyle = iesReplicatorLaser then
@@ -8831,9 +8898,12 @@ begin
   // --- UPDATE WAVE RADIUS ---
   if FWaveActive then
   begin
+    // Do NOT update radius if we are in Single Item mode (Radius < 0)
+    // This keeps the "Single Item" flag alive without moving.
+    if FWaveRadius >= 0 then
     FWaveRadius := FWaveRadius + (FWaveSpeed * DeltaTime);
 
-    // Optional: Stop wave if it goes way off screen to save CPU
+    // Stop wave if it goes way off screen to save CPU
     if FWaveRadius > Max(Width, Height) * 1.5 then
       FWaveActive := False;
 
@@ -9334,12 +9404,11 @@ begin
           Continue;
         end;
         // ---------------------------------------------------------
-        // 1. WAVE PHYSICS (The "Mexican Wave")
+        // 1. WAVE PHYSICS (The "Mexican Wave" OR Single Item Pulse)
         // ---------------------------------------------------------
-        // Only affects visible items that are NOT currently hovered by mouse
-        // (Real mouse hover takes priority over the wave)
         var WaveHit: Boolean;
         WaveHit := False;
+
         if FWaveActive and (not FIsZoomedToFill) and (ImageItem <> FSelectedImage) and (ImageItem <> FHotItem) then
         begin
           var VisualRect: TRectF;
@@ -9350,36 +9419,58 @@ begin
           ItemCenter.Y := (VisualRect.Top + VisualRect.Bottom) / 2;
           // Distance from wave center (click point) to image center
           DistToWave := Hypot(ItemCenter.X - FWaveCenter.X, ItemCenter.Y - FWaveCenter.Y);
-          // --- SOFT WAVE GRADIENT MATH ---
-          var WaveIntensity: Single;
-          var DistFromRingCenter: Single; // Distance from perfect center line of wave
-          // Distance of this item from the wave's center-line (Radius)
-          DistFromRingCenter := Abs(DistToWave - FWaveRadius);
-          // Check if we are roughly within the wave's influence
-          if DistFromRingCenter <= (FWaveWidth / 2) then
+
+          // --- MODE SWITCH ---
+          // If Radius < 0, we are in "Single Item Pulse" mode
+          if (FWaveRadius < 0) then
           begin
-            // We are inside the wave!
-            // Calculate intensity: 0.0 (at edge) -> 1.0 (in middle)
-            WaveIntensity := 1.0 - (DistFromRingCenter / (FWaveWidth / 2));
-            // Clamp it
-            if WaveIntensity < 0.0 then WaveIntensity := 0.0;
-            if WaveIntensity > 1.0 then WaveIntensity := 1.0;
-            // --- APPLY WAVE ZOOM BASED ON INTENSITY ---
-            TargetZoom := 1.0 + ((FHotZoomMaxFactor - 1.0) * WaveIntensity);
-            // Mark as hit so logic below knows to use this target
-            WaveHit := True;
+            // Only affect the item exactly at the center
+            if (DistToWave < 10.0) then // 10px tolerance
+            begin
+              TargetZoom := FHotZoomMaxFactor;
+              WaveHit := True;
+
+              // --- STOP WAVE AFTER HIT ---
+              // We disable the wave immediately.
+              // This ensures it only happens ONCE.
+              // In the next frame, WaveHit will be false,
+              // and the logic below will return TargetZoom to 1.0.
+              FWaveActive := False;
+            end;
           end
+          // --- STANDARD WAVE MODE (Radius >= 0) ---
           else
           begin
-             // Outside wave, intensity is 0
-            WaveHit := False;
+            // --- SOFT WAVE GRADIENT MATH ---
+            var WaveIntensity: Single;
+            var DistFromRingCenter: Single;
+            // Distance of this item from the wave's center-line (Radius)
+            DistFromRingCenter := Abs(DistToWave - FWaveRadius);
+
+            // Check if we are roughly within the wave's influence
+            if DistFromRingCenter <= (FWaveWidth / 2) then
+            begin
+              // We are inside the wave!
+              // Calculate intensity: 0.0 (at edge) -> 1.0 (in middle)
+              WaveIntensity := 1.0 - (DistFromRingCenter / (FWaveWidth / 2));
+              // Clamp it
+              if WaveIntensity < 0.0 then WaveIntensity := 0.0;
+              if WaveIntensity > 1.0 then WaveIntensity := 1.0;
+              // --- APPLY WAVE ZOOM BASED ON INTENSITY ---
+              TargetZoom := 1.0 + ((FHotZoomMaxFactor - 1.0) * WaveIntensity);
+              // Mark as hit so logic below knows to use this target
+              WaveHit := True;
+            end
+            else
+            begin
+               // Outside wave, intensity is 0
+              WaveHit := False;
+            end;
           end;
         end;
         // ---------------------------------------------------------
-        // 2. DETERMINE BASE STATE (Is it static or interacting?)
+        // 2. DETERMINE BASE STATE
         // ---------------------------------------------------------
-        // If HotTrack is OFF globally, force target to 1.0 immediately
-        // (Unless Wave hit it)
         if (not FHotTrackZoom) and (ImageItem <> FSelectedImage) then
         begin
           if not WaveHit then
@@ -9428,7 +9519,6 @@ begin
           // C. SELECTED ITEM (Breathing Logic)
           else if (ImageItem = FSelectedImage) then
           begin
-
             if FBreathingEnabled then
             begin
               if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
@@ -10136,3 +10226,4 @@ begin
 end;
 
 end.
+
