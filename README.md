@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.56**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.57**    
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/LaMitaOne/skia-flowmotion)
          
@@ -20,8 +20,9 @@ Started as a simple port of my D7 VCL Flowmotion component...which was "let only
 **3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background,    tech brackets...).   
    
 No big deal to port old code when delphi & Skia4delphi is involved 😉     
+Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easier than u think to port d7 canvas to skie4delphi!    
           
-### Features at a glance (v0.56)   
+### Features at a glance (v0.57)   
    
 - **Pinterest-like masonry layout**     
 - **Animated appearance** (slide-in, “falling” effects, breathing)  
@@ -84,6 +85,15 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
+   
+**v 0.57**  
+- Fixed AliveHighlighter not wanted leave anymore when moodswings forbidden   
+  (understandable that he not likes it)   
+- Added TriggerHotZoomItem (Hotzooms up only one imageitem)   
+- Fixed Info Panel hide gesture direction   
+  (now correctly swipes opposite to panel position)   
+- Fixed TriggerHotZoomWave not working when nothing else was animating   
+  cause of our idle-skip optimization   
     
 **v 0.56**   
 - Added propertys: AliveHighlighterAllowMoodSwings, AliveHighlighterRageColor
