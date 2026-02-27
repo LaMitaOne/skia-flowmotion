@@ -20,7 +20,7 @@ Started as a simple port of my D7 VCL Flowmotion component...which was "let only
 **3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background,    tech brackets...).   
    
 No big deal to port old code when delphi & Skia4delphi is involved 😉     
-Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easier than u think to port d7 canvas to skie4delphi!    
+Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easier than u think to port d7 canvas to skia4delphi!    
           
 ### Features at a glance (v0.57)   
    
