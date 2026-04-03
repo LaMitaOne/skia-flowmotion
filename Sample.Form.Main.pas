@@ -25,10 +25,9 @@ uses
   System.IOUtils, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Ani,
   FMX.Objects, ShellAPI, FMX.Layouts, FMX.StdCtrls, System.Skia, FMX.Skia,
   FMX.ImgList, FMX.ListBox, FMX.Colors, FMX.EditBox, FMX.SpinBox, Windows,
-  Messages, System.ImageList, FMX.Edit,
-  FMX.Controls.Presentation,
+  Messages, System.ImageList, FMX.Edit, FMX.Controls.Presentation,
   { SkFlow Components }
-  uSkFlowmotion, uSkFlowEffects, uSkFlowButtons;
+  uSkFlowmotion, uSkFlowEffects, uSkFlowButtons, FMX.Menus;
 
 type
   { TfrmMain }
@@ -146,6 +145,9 @@ type
     Button24: TButton;
     CheckBox24: TCheckBox;
     Button25: TButton;
+    PopupMenu1: TPopupMenu;
+    MenuItem1: TMenuItem;
+    MenuItem2: TMenuItem;
     procedure FormDestroy(Sender: TObject);
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
@@ -210,6 +212,7 @@ type
     procedure FormResize(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure lytcontrolsResize(Sender: TObject);
+    procedure MenuItem1Click(Sender: TObject);
     procedure rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure Rectangle1DblClick(Sender: TObject);
     procedure SpinBox1Change(Sender: TObject);
@@ -747,7 +750,8 @@ end;
 procedure TfrmMain.MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean);
 begin
   inherited;
-  if not assigned(skfmFlowGallery) then Exit;
+  if not assigned(skfmFlowGallery) then
+    Exit;
 
   { Map Mouse Wheel to Image Selection }
   if WheelDelta > 0 then
@@ -810,7 +814,7 @@ end;
 
 procedure TfrmMain.Button21Click(Sender: TObject);
 begin
-  skfmFlowGallery.SendAliveHighlighterToImage(Random(skfmFlowGallery.ImageCount-1));
+  skfmFlowGallery.SendAliveHighlighterToImage(Random(skfmFlowGallery.ImageCount - 1));
 end;
 
 procedure TfrmMain.Button22Click(Sender: TObject);
@@ -1001,6 +1005,7 @@ begin
     skfmFlowGallery.Align := TAlignLayout.Client;
   end;
   { Apply Basic Styles }
+  skfmFlowGallery.PopupMenu := PopupMenu1;
   skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
   skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
   skfmFlowGallery.AnimationSpeed := 2;
@@ -1068,37 +1073,45 @@ var
   Line, FilePath, Caption, CoverPath: string;
   PosPipe: Integer;
 begin
+  Caption := 'Skia Flowmotion';
   { Loads a playlist from a text file (Format: FilePath|Caption) }
   if skfmFlowGallery = nil then
   begin
     skfmFlowGallery := TSkFlowmotion.Create(Self);
     skfmFlowGallery.Parent := lytContent;
     skfmFlowGallery.Align := TAlignLayout.Client;
-  end;
-  { Setup basic gallery style for playlist mode }
-  skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
-  skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
-  skfmFlowGallery.AnimationSpeed := 2;
-  skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
-  skfmFlowGallery.Spacing := 15;
-  skfmFlowGallery.PageSize := 80;
-  skfmFlowGallery.ShowCaptions := True;
-  skfmFlowGallery.KeepSpaceforZoomed := False;
-  skfmFlowGallery.ShowHint := true;
-  skfmFlowGallery.SmallPicVisible := False;
-  skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
-  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
-  skfmFlowGallery.SetBackgroundpicture(ExtractFilePath(ParamStr(0)) + 'back.jpg');
-  skfmFlowGallery.CaptionFont.Size := 14;
-  skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
-  skfmFlowGallery.HotTrackZoom := True;
-  skfmFlowGallery.Visible := True;
-  skfmFlowGallery.BringToFront;
+    skfmFlowGallery.SetBackgroundpicture(ExtractFilePath(ParamStr(0)) + 'back.jpg');
+    { Setup basic gallery style for playlist mode }
+    skfmFlowGallery.PopupMenu := PopupMenu1;
+    skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
+    skfmFlowGallery.FlowLayout := TFlowLayout.flSorted;
+    skfmFlowGallery.AnimationSpeed := 2;
+    skfmFlowGallery.OnSelectedImageDblClick := Flowmotion1SelectedImageDblClick;
+    skfmFlowGallery.Spacing := 15;
+    skfmFlowGallery.PageSize := 80;
+    skfmFlowGallery.ShowCaptions := True;
+    skfmFlowGallery.KeepSpaceforZoomed := False;
+    skfmFlowGallery.ShowHint := true;
+    skfmFlowGallery.SmallPicVisible := False;
+    skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
+    skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
+    skfmFlowGallery.CaptionFont.Size := 14;
+    skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
+    skfmFlowGallery.HotTrackZoom := True;
+    skfmFlowGallery.Visible := True;
+    skfmFlowGallery.BringToFront;
+  end
+  else if skfmFlowGallery.ImageCount > 0 then
+    skfmFlowGallery.ClearNonThreaded(true, true, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), iesFromBottom, false);
+
   Lines := TStringList.Create;
   try
     Lines.LoadFromFile(TxtFilePath);
     for i := 0 to Lines.Count - 1 do
     begin
+      if skfmFlowGallery.ImageCount > 79 then
+        break;
+
       Line := Trim(Lines[i]);
       if Line = '' then
         Continue;
@@ -1114,10 +1127,18 @@ begin
         FilePath := Line;
         Caption := ExtractFileName(FilePath);
       end;
+
       if not FileExists(FilePath) then
         Continue;
-      { Try to find a cover image if path is a folder }
-      CoverPath := GetFirstImageInFolder(ExtractFilePath(FilePath));
+
+        //direct picpath or...
+      if (Pos('.jpg', FilePath) <> 0) or (Pos('.jpeg', FilePath) <> 0) or (Pos('.bmp', FilePath) <> 0) or (Pos('.png', FilePath) <> 0) then
+        CoverPath := FilePath
+      else
+
+      { ...Try to find a cover image if path is no picture }
+        CoverPath := GetFirstImageInFolder(ExtractFilePath(FilePath));
+
       if CoverPath <> '' then
         skfmFlowGallery.AddImageAsync(CoverPath, Caption, FilePath, '');
     end;
@@ -1134,16 +1155,29 @@ var
   PlayerHandle: HWND;
   Data: AnsiString;
   CopyData: TCopyDataStruct;
+  Closeafter: Boolean;
 begin
   { Sends a message to 'MEDIA Revolution Master' app to play/open a file }
   PlayerHandle := FindWindow('TMRMaster', 'MEDIA Revolution Master');
   if PlayerHandle = 0 then
     Exit;
-  Data := AnsiString('MRXSKIAFLM' + FilePath);
+
+  if (Pos('FLM-', FilePath) <> 0) then
+  begin
+    Data := AnsiString('MRXSKIAMENU' + FilePath);
+    Closeafter := False;
+  end
+  else
+  begin
+    Data := AnsiString('MRXSKIAFLM' + FilePath);
+    Closeafter := True;
+  end;
   CopyData.dwData := 0;
   CopyData.cbData := Length(Data) + 1;
   CopyData.lpData := PAnsiChar(Data);
   SendMessage(PlayerHandle, WM_COPYDATA, 0, LPARAM(@CopyData));
+  skfmFlowGallery.ClearNonThreaded(true, true, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), iesFromBottom, false);
+  //if Closeafter then
   Close;
 end;
 
@@ -1157,7 +1191,7 @@ begin
   PlayerHandle := FindWindow('TMRMaster', 'MEDIA Revolution Master');
   if PlayerHandle = 0 then
     Exit;
-  Data := AnsiString('MRXSKIAFLMNXT' + FilePath);
+  Data := AnsiString('MRXSKIANXT' + FilePath);
   CopyData.dwData := 0;
   CopyData.cbData := Length(Data) + 1;
   CopyData.lpData := PAnsiChar(Data);
@@ -1203,6 +1237,13 @@ begin
   Files := TDirectory.GetFiles(Folder, '*.png', TSearchOption.soTopDirectoryOnly);
   if Length(Files) > 0 then
     Exit(Files[0]);
+end;
+
+procedure TfrmMain.MenuItem1Click(Sender: TObject);
+begin
+  if skfmFlowGallery.ImageCount > 0 then
+    skfmFlowGallery.ClearNonThreaded(true, true, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), iesFromBottom, false);
+  Close;
 end;
 
 procedure TfrmMain.Timer2Timer(Sender: TObject);
