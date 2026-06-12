@@ -6,7 +6,9 @@ uses
   FMX.Types,
   FMX.Skia,
   Sample.Form.Main in 'Sample.Form.Main.pas' {frmMain},
-  uSkFlowmotion in 'uSkFlowmotion.pas';
+  uSkFlowmotion in 'uSkFlowmotion.pas',
+  uSkFlowEffects in 'uSkFlowEffects.pas',
+  uSkiaAliveHighlighter in 'uSkiaAliveHighlighter.pas';
 
 {$R *.res}
 

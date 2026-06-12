@@ -3817,7 +3817,7 @@ begin
     CurrentWord := '';
     CharI := 1;
 
-    // --- WORD WRAP LOGIC (Optimized with Skia Measure) ---
+    // --- WORD WRAP LOGIC (with Skia Measure) ---
     while CharI <= Length(CleanInfoText) do
     begin
       if CleanInfoText[CharI] = #10 then
@@ -5405,7 +5405,7 @@ begin
     end;
 
     // =========================================================================
-    // 6. DRAW SELECTED IMAGE (Absolute Top) - OPTIMIZED
+    // 6. DRAW SELECTED IMAGE (Absolute Top)
     // =========================================================================
     if Assigned(FSelectedImage) and FSelectedImage.Visible then
     begin
@@ -7278,7 +7278,7 @@ var
   iZone: Integer;
   ZoneRect: TRectF;
   ZoneCenter: TPointF;
-  // --- OPTIMIZED LOCAL VARS ---
+  // --- LOCAL VARS ---
   DrawAngle: Single;
   HandleSize: Single;
   Margin: Integer;
@@ -7582,7 +7582,7 @@ begin
     end;
 
   // ==========================================================
-  // 5. CHECK ROTATION HANDLE, INFO PANEL & INDICATOR (OPTIMIZED)
+  // 5. CHECK ROTATION HANDLE, INFO PANEL & INDICATOR
   // ==========================================================
   // We calculate VisualRect and DrawAngle ONCE here.
   // These values are valid for the entire Selected Image block below.

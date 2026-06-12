@@ -27,7 +27,7 @@ uses
   FMX.ImgList, FMX.ListBox, FMX.Colors, FMX.EditBox, FMX.SpinBox, Windows,
   Messages, System.ImageList, FMX.Edit, FMX.Controls.Presentation,
   { SkFlow Components }
-  uSkFlowmotion, uSkFlowEffects, uSkFlowButtons, FMX.Menus;
+  uSkFlowmotion, uSkFlowEffects, FMX.Menus;
 
 type
   { TfrmMain }
@@ -86,7 +86,6 @@ type
     rbRotateAllBy: TRadioButton;
     rbparticle: TRadioButton;
     Rectangle2: TRectangle;
-    Button12: TButton;
     rbmaxinternal: TRadioButton;
     rbhotalpha: TRadioButton;
     rbalpha: TRadioButton;
@@ -123,7 +122,6 @@ type
     CheckBox19: TCheckBox;
     CheckBox18: TCheckBox;
     rbborder: TRadioButton;
-    Button19: TButton;
     CheckBox20: TCheckBox;
     CheckBox21: TCheckBox;
     Button20: TButton;
@@ -148,6 +146,7 @@ type
     PopupMenu1: TPopupMenu;
     MenuItem1: TMenuItem;
     MenuItem2: TMenuItem;
+    Button12: TButton;
     procedure FormDestroy(Sender: TObject);
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
@@ -225,13 +224,9 @@ type
     ParamsTxtFile: string;
     FStreamFiles: TStringList;
     FStreamindex: Integer;
-    { Components }
-    FTestPanel: TFlowButtonPanel;
     skfmFlowGallery: TSkFlowmotion;
     { Initialization & Setup }
     procedure InitGallery;
-    { TFlowButtonPanel Events }
-    procedure OnTestButtonClick(Sender: TObject; Button: TFlowButton);
     { TSkFlowmotion Events }
     procedure Flowmotion1SelectedImageDblClick(Sender: TObject; ImageItem: TImageItem; Index: Integer);
     procedure Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
@@ -346,27 +341,7 @@ end;
 
 procedure TfrmMain.Button19Click(Sender: TObject);
 begin
-  { Creates and displays a Radial Button Panel demonstration }
-  // 1. Create Panel
-  FTestPanel := TFlowButtonPanel.Create(Self);
-  FTestPanel.Parent := Self; // IMPORTANT: Must be parented to Form!
-  FTestPanel.SetBounds(0, 0, 400, 400);
-  FTestPanel.Visible := False;
-  // 2. Style Configuration
-  FTestPanel.Layout := plRadial;       // Circle Layout
-  FTestPanel.PanelStyle := psGlass;      // Glass background
-  FTestPanel.PanelRotation := 0;
-  FTestPanel.ButtonSize := 60;
-  FTestPanel.Gap := 10;
-  FTestPanel.Radius := 100;             // Distance from center
-  // 3. Hook up Event
-  FTestPanel.OnButtonClick := OnTestButtonClick;
-  // 4. Add Buttons (Note: Replace paths with actual images for full effect)
-  // For demonstration, we try to load 'btntest.png' from app directory
-  FTestPanel.AddButton('Play', 'Start Playing', 'CMD_PLAY', TSkImage.MakeFromEncodedFile(ExtractFilePath(ParamStr(0)) + 'btntest.png'));
-  FTestPanel.AddButton('Stop', 'Stop Playing', 'CMD_STOP', TSkImage.MakeFromEncodedFile(ExtractFilePath(ParamStr(0)) + 'btntest.png'));
-  FTestPanel.AddButton('Exit', 'Close App', 'CMD_EXIT', TSkImage.MakeFromEncodedFile(ExtractFilePath(ParamStr(0)) + 'btntest.png'));
-  FTestPanel.ShowAt(500, 500);
+
 end;
 { *******************************************************************************
   EVENT HANDLERS: UI CONTROLS (CHECKBOXES, COMBOBOXES, SPINBOX)
@@ -728,12 +703,7 @@ end;
   EVENT HANDLERS: CUSTOM CALLBACKS
   ******************************************************************************* }
 
-procedure TfrmMain.OnTestButtonClick(Sender: TObject; Button: TFlowButton);
-begin
-  { Demonstrates TFlowButtonPanel event firing }
-  ShowMessage('You clicked button with ID: ' + Button.TagString);
-  FTestPanel.PanelHide;
-end;
+
 
 procedure TfrmMain.Flowmotion1SelectedImageEnterZone(Sender: TObject; ImageItem: TImageItem; const ZoneName: string);
 begin
@@ -744,7 +714,8 @@ end;
 
 procedure TfrmMain.Onfullscreen(Sender: TObject; ImageItem: TImageItem; Index: Integer);
 begin
-  ShowMessage('Fullscreen arrived');
+  if Loadedwithparams then Close
+   else ShowMessage('Fullscreen arrived');
 end;
 
 procedure TfrmMain.MouseWheel(Shift: TShiftState; WheelDelta: Integer; var Handled: Boolean);
@@ -1090,6 +1061,7 @@ begin
     skfmFlowGallery.Spacing := 15;
     skfmFlowGallery.PageSize := 80;
     skfmFlowGallery.ShowCaptions := True;
+    skfmFlowGallery.HoverAlive := False;
     skfmFlowGallery.KeepSpaceforZoomed := False;
     skfmFlowGallery.ShowHint := true;
     skfmFlowGallery.SmallPicVisible := False;
