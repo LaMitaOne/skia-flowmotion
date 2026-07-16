@@ -1,5 +1,5 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.58**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.59**    
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/LaMitaOne/skia-flowmotion)
          
@@ -22,7 +22,7 @@ Started as a simple port of my D7 VCL Flowmotion component...which was "let only
 No big deal to port old code when delphi & Skia4delphi is involved 😉     
 Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easier than u think to port d7 canvas to skia4delphi!    
           
-### Features at a glance (v0.58)   
+### Features at a glance (v0.59)   
    
 - **Pinterest-like masonry layout**     
 - **Animated appearance** (slide-in, “falling” effects, breathing)  
@@ -85,6 +85,14 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
+    
+**v 0.59**    
+- Changed MaxZoomSize to percent, so automatically changes with formresize    
+  and fixed problem that it was too big when window smaller    
+- Changed breathing to inwards, less problems with max size calculations    
+- Added AliveHighlighter property CollisionEnabled     
+- Improved AliveHighlighter wayfinding and collision detection    
+  so he gets less distracted from your nice pics :D    
     
 **v 0.58**  
 - Some enhancements for ext control of sample exe   
