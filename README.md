@@ -91,6 +91,7 @@ If you want to tip me a coffee.. :)
 **v 0.59**    
 - Changed MaxZoomSize to percent, so automatically changes with formresize    
   and fixed problem that it was too big when window smaller    
+  (that beast ...took me few times few hours to finally fix it :P and no, ai wasnt able to, total fail)    
 - Changed breathing to inwards, less problems with max size calculations    
 - Added AliveHighlighter property CollisionEnabled     
 - Improved AliveHighlighter wayfinding and collision detection    
