@@ -10,7 +10,7 @@
   - Interactive features (Selection, Dragging, Rotation, Info Panels).
   - Background effects integration (Matrix, Holographic).
 *******************************************************************************}
-{ Skia-Flowmotion v0.58 alpha                                                  }
+{ Skia-Flowmotion v0.59 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -21,6 +21,13 @@
 
 {
  ----Latest Changes
+   v 0.59
+    - Changed MaxZoomSize to percent, so automatically changes with formresize
+      and fixed problem that it was too big when window smaller
+    - Changed breathing to inwards, less problems with max size calculations
+    - Added AliveHighlighter property CollisionEnabled
+    - Improved AliveHighlighter wayfinding and collision detection
+      so he gets less distracted from your nice pics :D
    v 0.58
     - Some enhancements for ext control of sample exe
     - Changed sample icon
@@ -104,7 +111,7 @@ const
   MIN_CELL_SIZE = 22;
   DEFAULT_GLOW_WIDTH = 2;
   DEFAULT_HOTTRACK_WIDTH = 1;
-  DEFAULT_MAX_ZOOM_SIZE = 700;
+  DEFAULT_MAX_ZOOM_SIZE = 60;
   { Hot Zoom Physics }
   HOT_ZOOM_IN_PER_SEC = 2.5;
   HOT_ZOOM_OUT_PER_SEC = 3.0;
@@ -3541,11 +3548,10 @@ begin
   // DYNAMIC SIZE LIMITING (80% Screen Rule)
   // ==========================================================
   if Assigned(ImageItem.SkImage) then
-    ImageSize := GetOptimalSize(ImageItem.SkImage.Width, ImageItem.SkImage.Height, DEFAULT_MAX_ZOOM_SIZE, DEFAULT_MAX_ZOOM_SIZE)
-  else
   begin
-    ImageSize.cx := ImageItem.CurrentRect.Right - ImageItem.CurrentRect.Left;
-    ImageSize.cy := ImageItem.CurrentRect.Bottom - ImageItem.CurrentRect.Top;
+    // FMaxZoomSize ist jetzt ein Prozentwert (z.B. 65 für 65% der Screen-Größe)
+    var DynMaxSize := Min(Width, Height) * (FMaxZoomSize / 100.0);
+    ImageSize := GetOptimalSize(ImageItem.SkImage.Width, ImageItem.SkImage.Height, DynMaxSize, DynMaxSize);
   end;
 
   // === ZOOM OUT LOGIC ===
@@ -9539,48 +9545,10 @@ begin
               end
               else
               begin
-                // 1. Calculate the absolute upper limit as a factor (e.g., 1.05)
-                var AllowedMaxFactor := FHotZoomMaxFactor;
-                if FMaxZoomSize > 0 then
-                begin
-                  var BaseSize := Max(ImageItem.FCurrentRect.Width, ImageItem.FCurrentRect.Height);
-                  if BaseSize > 0 then
-                    AllowedMaxFactor := FMaxZoomSize / BaseSize;
-                end;
-                if AllowedMaxFactor < 1.0 then
-                  AllowedMaxFactor := 1.0;
-
-                // 2. Calculate the raw wave direction (0.0 to 1.0)
-                // Sine goes from -1 to 1. +1 makes 0 to 2. * 0.5 makes 0 to 1.
-                var RawWave := (Sin(FBreathingPhase * 2 * Pi) + 1.0) * 0.5;
-
-                // ====================================================================
-                // 3. DETECT THE CLAMP MOMENT AND REVERSE IMMEDIATELY!
-                // ====================================================================
-                // How much "space" do we have left before hitting MaxZoomSize?
-                var MaxWaveSpace := AllowedMaxFactor - 1.0;
-
-                if RawWave > MaxWaveSpace then
-                begin
-                  // THE IMAGE WOULD EXCEED THE LIMIT NOW!
-                  // Set the target to exactly the limit...
-                  TargetZoom := AllowedMaxFactor;
-
-                  // ...AND FORCE THE SINE CURVE INTO THE DESCENDING BRANCH!
-                  // Shift the phase by exactly 0.5 (half a cycle).
-                  // This makes the sine wave point downwards in the very next frame!
-                  FBreathingPhase := Frac(FBreathingPhase + 0.5);
-                end
-                else
-                begin
-                  // We are still below the limit -> Breathe freely!
-                  TargetZoom := 1.0 + RawWave;
-                end;
-                // ====================================================================
-
-                // Force Breathing Wave to start at zero
-                if FBreathingPhase < PI then
-                  FBreathingPhase := 0;
+                // Breathing INWARD only!
+                // Sinus range -1 to 1 -> mapped to 1.0 down to (2.0 - BREATHING_AMPLITUDE)
+                // With BREATHING_AMPLITUDE = 1.1 this gives a smooth 1.0 -> 0.9 -> 1.0 pulse
+                TargetZoom := 2.0 - BREATHING_AMPLITUDE + (BREATHING_AMPLITUDE - 1.0) * Sin(FBreathingPhase * 2 * Pi);
               end;
             end
             else
@@ -9619,9 +9587,9 @@ begin
         // ---------------------------------------------------------
         // 5. CLAMPING
         // ---------------------------------------------------------
-        // Clamp to Min (1.0)
-        if ImageItem.FHotZoom < 1.0 then
-          ImageItem.FHotZoom := 1.0;
+        // Clamp to Min (allow inward breathing below 1.0, but never shrink to nothing)
+        if ImageItem.FHotZoom < 0.8 then
+          ImageItem.FHotZoom := 0.8;
 
         NeedRepaint := True;
       end;

@@ -86,6 +86,8 @@ type
     FSelfDestruct: Boolean;  // Flag indicating the entity should leave the screen
     FBounds: TRectF;          // Screen boundaries (Width/Height)
     FSavedNormalColor: TAlphaColor; // Stores the user's set color persistently
+    FCollisionEnabled: Boolean;
+    FStuckCounter: Integer; // Zählt, wie oft er am selben Hindernis klebt
 
     { Physics & AI Core }
     procedure UpdatePhysics(DeltaTime: Single);
@@ -133,6 +135,7 @@ type
     property Color: TAlphaColor read FSnake.SnakeColor write SetSnakeColor;
     property RageColor: TAlphaColor read FSnake.RageColor write FSnake.RageColor;
     property AllowMoodSwings: Boolean read FAllowMoodSwings write FAllowMoodSwings;
+    property CollisionEnabled: Boolean read FCollisionEnabled write FCollisionEnabled default True;
 
     // Shadow Configuration
     property ShadowColor: TAlphaColor read FSnake.ShadowColor write FSnake.ShadowColor;
@@ -159,6 +162,8 @@ begin
   FStyle := asSnake;
   FActiveCountdown := 0;
   FSavedNormalColor := TAlphaColors.Cyan; // Default persistent color
+  FCollisionEnabled := True;
+  FStuckCounter := 0;
 
   // Initialize Bounds (Defaults to 1080p, updated by Main Form)
   FBounds := TRectF.Create(0, 0, 1920, 1080);
@@ -186,6 +191,7 @@ begin
   FSnake.RageTimer := 0;
   FSnake.RageColor := TAlphaColors.Red; // <--- DEFAULT RAGE COLOR
   FSnake.AggroCooldown := 0.0;
+
 
   // Initialize Default Visual FX
   FSnake.GlowAmount := 5.0;
@@ -597,36 +603,57 @@ begin
     // Calculate the radius where we switch from Approaching to Orbiting
     var TargetRadius := Max(FSnake.TargetRect.Width, FSnake.TargetRect.Height) / 2 + 20;
 
-    // Only switch to Orbiting if Mood Swings are ALLOWED ---
+    // Switch to Orbiting when we reach the target area
     if (FState <> ssExiting) and (DistToTarget < TargetRadius) then
-    begin
       FState := ssOrbiting;
-    end;
-    // --------------------------------------------------------------
 
-    // Look-Ahead Logic: Check if we are about to hit something
-    var LookAheadDist := 60.0;
+    // Always head straight to the final target
+    FSnake.CurrentWayPoint := TargetCenter;
 
-    if (FSnake.Velocity.X = 0) and (FSnake.Velocity.Y = 0) then
-      LookAheadPos := TPointF.Create(FSnake.HeadPos.X + DirToTarget.X, FSnake.HeadPos.Y + DirToTarget.Y)
-    else
-      LookAheadPos := TPointF.Create(FSnake.HeadPos.X + FSnake.Velocity.X * 5, FSnake.HeadPos.Y + FSnake.Velocity.Y * 5);
-
-    // Check collision at the look-ahead point
-    ObstacleRect := CheckCollision(LookAheadPos, Obstacles);
-
-    if not ObstacleRect.IsEmpty then
+    // --- SOFT COLLISION AVOIDANCE (ONLY ON THE WAY THERE!) ---
+    // Once he is close to his target rect, he completely ignores other images.
+    if (FState = ssApproaching) and FCollisionEnabled then
     begin
-      // Collision detected: steer towards the center of the obstacle to go around it
-      var ObstacleCenter: TPointF;
-      ObstacleCenter.X := (ObstacleRect.Left + ObstacleRect.Right) / 2;
-      ObstacleCenter.Y := (ObstacleRect.Top + ObstacleRect.Bottom) / 2;
-      FSnake.CurrentWayPoint := ObstacleCenter;
-    end
-    else
-    begin
-      // Path clear: head to main target
-      FSnake.CurrentWayPoint := TargetCenter;
+      // DYNAMIC PROXIMITY CHECK:
+      // We expand the TargetRect by 70px. If we are outside this zone,
+      // we still care about obstacles. If we are inside, we ignore them.
+      var SafeZone := TRectF.Create(FSnake.TargetRect.Left - 70, FSnake.TargetRect.Top - 70, FSnake.TargetRect.Right + 70, FSnake.TargetRect.Bottom + 70);
+
+      if not SafeZone.Contains(FSnake.HeadPos) then
+      begin
+        // We are OUTSIDE the target area -> Check for obstacles
+        if (FSnake.Velocity.X = 0) and (FSnake.Velocity.Y = 0) then
+          LookAheadPos := TPointF.Create(FSnake.HeadPos.X + DirToTarget.X, FSnake.HeadPos.Y + DirToTarget.Y)
+        else
+          LookAheadPos := TPointF.Create(FSnake.HeadPos.X + FSnake.Velocity.X * 5, FSnake.HeadPos.Y + FSnake.Velocity.Y * 5);
+
+        var HitRect := CheckCollision(LookAheadPos, Obstacles);
+
+        if not HitRect.IsEmpty then
+        begin
+          var ObsCx := (HitRect.Left + HitRect.Right) / 2;
+          var ObsCy := (HitRect.Top + HitRect.Bottom) / 2;
+
+          var PushX := FSnake.HeadPos.X - ObsCx;
+          var PushY := FSnake.HeadPos.Y - ObsCy;
+          var PushDist := Hypot(PushX, PushY);
+
+          if PushDist > 0 then
+          begin
+            PushX := PushX / PushDist;
+            PushY := PushY / PushDist;
+          end
+          else
+          begin
+            PushX := Sin(FSnake.Phase);
+            PushY := Cos(FSnake.Phase);
+          end;
+
+          // Soft push away from obstacle
+          FSnake.Velocity.X := FSnake.Velocity.X + (PushX * 0.8);
+          FSnake.Velocity.Y := FSnake.Velocity.Y + (PushY * 0.8);
+        end;
+      end;
     end;
   end;
 
@@ -728,23 +755,47 @@ begin
     else
     begin
       // --- ORBIT / APPROACH MODE (Normal Movement) ---
-      if FSnake.TargetRect.Contains(FSnake.HeadPos) then
+      if FState = ssOrbiting then
       begin
-        // Inside target: Apply "braking" force to stay in bounds
-        FSnake.Velocity.X := FSnake.Velocity.X - (DirX * 1.0);
-        FSnake.Velocity.Y := FSnake.Velocity.Y - (DirY * 1.0);
+        // ORIGINAL ORBITING LOGIC: Works perfectly for circling
+        if FSnake.TargetRect.Contains(FSnake.HeadPos) then
+        begin
+          // Inside target: Apply "braking" force to stay in bounds
+          FSnake.Velocity.X := FSnake.Velocity.X - (DirX * 1.0);
+          FSnake.Velocity.Y := FSnake.Velocity.Y - (DirY * 1.0);
+        end;
+
+        // --- ORBIT FORCE (Tangential) ---
+        // Adds a perpendicular force to create a circular orbit
+        FSnake.Velocity.X := FSnake.Velocity.X - (DirY * 0.25);
+        FSnake.Velocity.Y := FSnake.Velocity.Y + (DirX * 0.25);
       end
-      else if Dist > 100 then
+      else if FState = ssApproaching then
       begin
-        // Far away: Accelerate towards target
-        FSnake.Velocity.X := FSnake.Velocity.X + (DirX * 0.2);
-        FSnake.Velocity.Y := FSnake.Velocity.Y + (DirY * 0.2);
+        // CLEAN APPROACH LOGIC: No tangential forces to distract him
+        if Dist > 100 then
+        begin
+          // Far away: Accelerate towards target
+          FSnake.Velocity.X := FSnake.Velocity.X + (DirX * 0.2);
+          FSnake.Velocity.Y := FSnake.Velocity.Y + (DirY * 0.2);
+        end
+        else if FSnake.TargetRect.Contains(FSnake.HeadPos) then
+        begin
+          // Inside target: Apply "braking" force
+          FSnake.Velocity.X := FSnake.Velocity.X - (DirX * 1.0);
+          FSnake.Velocity.Y := FSnake.Velocity.Y - (DirY * 1.0);
+        end;
       end;
 
-      // --- ORBIT FORCE (Tangential) ---
-      // Adds a perpendicular force to create a circular orbit
-      FSnake.Velocity.X := FSnake.Velocity.X - (DirY * 0.25);
-      FSnake.Velocity.Y := FSnake.Velocity.Y + (DirX * 0.25);
+      // --- ORBIT / BOUNDARY FORCE ---
+      // ONLY apply tangential orbit force if we are ACTUALLY close to the target (Orbiting).
+      // If we are still Approaching, this force just causes chaos with other images!
+      if (FState = ssOrbiting) and (Dist < 80.0) then
+      begin
+        // Gentle tangential force to create a circular orbit around the center
+        FSnake.Velocity.X := FSnake.Velocity.X - (DirY * 0.15);
+        FSnake.Velocity.Y := FSnake.Velocity.Y + (DirX * 0.15);
+      end;
     end;
   end;
 

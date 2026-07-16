@@ -208,9 +208,7 @@ type
     procedure fanFadeOutTransitionFinish(Sender: TObject);
     procedure saiAnimatedLogoAnimationFinished(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure FormResize(Sender: TObject);
     procedure FormShow(Sender: TObject);
-    procedure lytcontrolsResize(Sender: TObject);
     procedure MenuItem1Click(Sender: TObject);
     procedure rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
     procedure Rectangle1DblClick(Sender: TObject);
@@ -656,7 +654,6 @@ procedure TfrmMain.saiAnimatedLogoAnimationFinished(Sender: TObject);
 begin
   { Called when intro animation ends }
   saiAnimatedLogo.Visible := False;
-  ;
   lytcontrols.Visible := not Loadedwithparams;
   Layout1.Visible := not Loadedwithparams;
   lytContent.Visible := True;
@@ -678,13 +675,6 @@ begin
     LoadFromTxtFile(ParamsTxtFile)
   else
     InitGallery;
-end;
-
-procedure TfrmMain.lytcontrolsResize(Sender: TObject);
-begin
-  { Adjust Max Zoom Size when control panel resizes }
-  if visible and assigned(skfmFlowGallery) then
-    skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
 end;
 
 procedure TfrmMain.rbPagesizeMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
@@ -846,7 +836,7 @@ begin
   Captionlist := TStringList.create;
   Hintlist := TStringList.create;
   InfosList := TStringList.create;
-  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
+  skfmFlowGallery.MaxZoomSize := 60;
   try
     { Create two loops of demo data }
     for i := 14 downto 0 do
@@ -934,12 +924,6 @@ begin
   skfmFlowGallery.HighlighterAllowMoodSwings := CheckBox24.isChecked;
 end;
 
-procedure TfrmMain.FormResize(Sender: TObject);
-begin
-  if visible and assigned(skfmFlowGallery) then
-    skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
-end;
-
 procedure TfrmMain.skfmFlowGalleryMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Single);
 var
   Item: TImageItem;
@@ -990,7 +974,7 @@ begin
   skfmFlowGallery.ShowHint := true;
   skfmFlowGallery.SmallPicVisible := True;
   skfmFlowGallery.SmallPicImageList := Imagelist1;
-  skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
+  skfmFlowGallery.MaxZoomSize := 60;
   skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
   skfmFlowGallery.AddActivationZone('ActivationZone 1', Panel1.BoundsRect);
   skfmFlowGallery.OnFullscreenEnter := Onfullscreen;
@@ -1066,7 +1050,7 @@ begin
     skfmFlowGallery.ShowHint := true;
     skfmFlowGallery.SmallPicVisible := False;
     skfmFlowGallery.OnSelectedImageEnterZone := Flowmotion1SelectedImageEnterZone;
-    skfmFlowGallery.MaxZoomSize := trunc(ClientHeight / 3);
+    skfmFlowGallery.MaxZoomSize := 60;
     skfmFlowGallery.CaptionFont.Size := 14;
     skfmFlowGallery.CaptionFont.Family := 'Segoe UI';
     skfmFlowGallery.HotTrackZoom := True;
