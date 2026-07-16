@@ -56,11 +56,13 @@ Tip: You can play memory on it now. Enable infopanel on some, unselect, and try 
 ### Current Development Status & Platform   
    
 Alpha – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
-Lots bugs for sure crawling around everywhere, but hey its just few days old... but already impressive nice looking...     
+Lots bugs for sure crawling around everywhere... if you see one, splat it :D       
      
-Especially **all draggable** is still making problems with some things,  
-but normal is getting very stable now – even with SelectedDraggable and not zoom to center.   
-Physics are running almost perfectly fine already.   
+Especially **all draggable** is still making problems with some things,   
+(must make layout different, that i can only set psition for one and not all always...   
+something like that my head background agent thread working on)   
+but at all its getting very stable now – even with SelectedDraggable and not zoom to center, lots effects.   
+Physics are running almost perfectly fine now.   
    
 Right now everything is being built and tested **only on Windows** (Delphi 11/12, FMX + Skia4Delphi).    
 I have **no idea yet** how well (or if at all) it already runs on Android, iOS, macOS or Linux – simply because I haven't tried it there.   
