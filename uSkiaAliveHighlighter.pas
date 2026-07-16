@@ -1,6 +1,6 @@
 {*******************************************************************************
   SkiaAliveHighlighter
-  part of skFlowmotion
+  part of skFlowmotion & MRX-skia-surface
   written by: Lara Miriam Tamy Reschke
 
   Description:
