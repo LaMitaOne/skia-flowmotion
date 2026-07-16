@@ -3023,25 +3023,32 @@ function TSkFlowmotion.GetOptimalSize(const OriginalWidth, OriginalHeight: Integ
 var
   ScaleX, ScaleY, Scale: Double;
 begin
-  if FKeepAspectRatio then
+  if (OriginalWidth <= 0) or (OriginalHeight <= 0) or (MaxWidth <= 0) or (MaxHeight <= 0) then
   begin
-    if (OriginalWidth = 0) or (OriginalHeight = 0) then
-    begin
-      Result.cx := Round(MaxWidth);
-      Result.cy := Round(MaxHeight);
-      Exit;
-    end;
-    ScaleX := MaxWidth / OriginalWidth;
-    ScaleY := MaxHeight / OriginalHeight;
-    Scale := Min(ScaleX, ScaleY);
-    Result.cx := Round(OriginalWidth * Scale);
-    Result.cy := Round(OriginalHeight * Scale);
-  end
-  else
-  begin
-    Result.cx := Round(MaxWidth);
-    Result.cy := Round(MaxHeight);
+    Result.Width := OriginalWidth;
+    Result.Height := OriginalHeight;
+    Exit;
   end;
+
+  ScaleX := MaxWidth / OriginalWidth;
+  ScaleY := MaxHeight / OriginalHeight;
+
+  // Normale proportionale Skalierung
+  Scale := Min(ScaleX, ScaleY);
+
+  Result.Width := Round(OriginalWidth * Scale);
+  Result.Height := Round(OriginalHeight * Scale);
+
+  // ==================================================================
+  // HARD-LIMIT FÜR MAXZOOMSIZE
+  // Verhindert, dass das Bild in eine Richtung über das Limit ragt
+  // ==================================================================
+  if (Result.Width > MaxWidth) then
+    Result.Width := Round(MaxWidth);
+
+  if (Result.Height > MaxHeight) then
+    Result.Height := Round(MaxHeight);
+  // ==================================================================
 end;
 
 
@@ -9527,30 +9534,60 @@ begin
             if FBreathingEnabled then
             begin
               if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
-                TargetZoom := 1.0
+              begin
+                TargetZoom := 1.0;
+              end
               else
-                TargetZoom := 1.02 + BREATHING_AMPLITUDE * 0.5; // Amplitude reduced to 0.5 to be safe (Max is 1.2)
-                // FORCE BREATHING WAVE TO START AT ZERO
-              if FBreathingPhase < PI then
-                FBreathingPhase := 0;
-                // === FORCE TARGET TO EXACTLY 1.0 ===
-                // We use Min() because wave can jitter
+              begin
+                // 1. Calculate the absolute upper limit as a factor (e.g., 1.05)
+                var AllowedMaxFactor := FHotZoomMaxFactor;
+                if FMaxZoomSize > 0 then
+                begin
+                  var BaseSize := Max(ImageItem.FCurrentRect.Width, ImageItem.FCurrentRect.Height);
+                  if BaseSize > 0 then
+                    AllowedMaxFactor := FMaxZoomSize / BaseSize;
+                end;
+                if AllowedMaxFactor < 1.0 then
+                  AllowedMaxFactor := 1.0;
+
+                // 2. Calculate the raw wave direction (0.0 to 1.0)
+                // Sine goes from -1 to 1. +1 makes 0 to 2. * 0.5 makes 0 to 1.
+                var RawWave := (Sin(FBreathingPhase * 2 * Pi) + 1.0) * 0.5;
+
+                // ====================================================================
+                // 3. DETECT THE CLAMP MOMENT AND REVERSE IMMEDIATELY!
+                // ====================================================================
+                // How much "space" do we have left before hitting MaxZoomSize?
+                var MaxWaveSpace := AllowedMaxFactor - 1.0;
+
+                if RawWave > MaxWaveSpace then
+                begin
+                  // THE IMAGE WOULD EXCEED THE LIMIT NOW!
+                  // Set the target to exactly the limit...
+                  TargetZoom := AllowedMaxFactor;
+
+                  // ...AND FORCE THE SINE CURVE INTO THE DESCENDING BRANCH!
+                  // Shift the phase by exactly 0.5 (half a cycle).
+                  // This makes the sine wave point downwards in the very next frame!
+                  FBreathingPhase := Frac(FBreathingPhase + 0.5);
+                end
+                else
+                begin
+                  // We are still below the limit -> Breathe freely!
+                  TargetZoom := 1.0 + RawWave;
+                end;
+                // ====================================================================
+
+                // Force Breathing Wave to start at zero
+                if FBreathingPhase < PI then
+                  FBreathingPhase := 0;
+              end;
+            end
+            else
+            begin
               TargetZoom := 1.0;
             end;
-            // ==========================================================
-            // BREATHING DISABLED? => STATIC (Handled by else block)
-            // ==========================================================
-            if FBreathingEnabled and (not (FHotItem = FSelectedImage)) then
-            begin
-              if FDraggingSelected or (FDraggingImage and (ImageItem = FDraggedImage)) then
-                TargetZoom := 1.0
-              else
-                TargetZoom := 1.0;
-            end;
-            // ==========================================================
-            // Fallback: Static
-            TargetZoom := 1.0;
-            // ==========================================================
+
             // If HotTrack is OFF globally, force to 1.0
             if not FHotTrackZoom then
               TargetZoom := 1.0;
@@ -9569,19 +9606,23 @@ begin
           Speed := HOT_ZOOM_IN_PER_SEC
         else
           Speed := HOT_ZOOM_OUT_PER_SEC;
+
         // Interpolate
         ImageItem.FHotZoom := ImageItem.FHotZoom + (TargetZoom - ImageItem.FHotZoom) * Speed * DeltaTime;
+
         // Update the "Public" Target variable used by other checks
         if not FHotTrackZoom then
           ImageItem.FHotZoomTarget := 1.0
         else
           ImageItem.FHotZoomTarget := TargetZoom;
-        // Clamp to Max (don't let them grow infinitely if Wave lingers)
-        if (ImageItem <> FSelectedImage) and (ImageItem.FHotZoom > FHotZoomMaxFactor) then
-          ImageItem.FHotZoom := FHotZoomMaxFactor;
+
+        // ---------------------------------------------------------
+        // 5. CLAMPING
+        // ---------------------------------------------------------
         // Clamp to Min (1.0)
         if ImageItem.FHotZoom < 1.0 then
           ImageItem.FHotZoom := 1.0;
+
         NeedRepaint := True;
       end;
     end;
