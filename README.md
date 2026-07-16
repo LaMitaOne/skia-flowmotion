@@ -169,9 +169,7 @@ If you want to tip me a coffee.. :)
    
 - Some fine tuning and small bugfixes   
 - Improved thread stability in draw function   
-- Added adaptive frame skipping to prevent UI freezing under heavy load or on toy pcs.   
-- Added new unit -> uSkFlowButtons - creates panel of definable animated buttons,   
-  compiles but not working fully so far    
+- Added adaptive frame skipping to prevent UI freezing under heavy load or on toy pcs.      
 - Added property: ShowInfoIndicatoralways    
       
 **v 0.48 – Day 11**      
