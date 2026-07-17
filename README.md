@@ -95,7 +95,7 @@ If you want to tip me a coffee.. :)
 - Changed breathing to inwards, less problems with max size calculations    
 - Added AliveHighlighter property CollisionEnabled     
 - Improved AliveHighlighter wayfinding and collision detection    
-  so he gets less distracted from your nice pics :D    
+  so he gets less distracted by your nice pics :D    
     
 **v 0.58**  
 - Some enhancements for ext control of sample exe   
