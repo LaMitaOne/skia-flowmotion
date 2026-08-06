@@ -1,9 +1,9 @@
 # skia-flowmotion  
-**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component alpha v0.59**    
+**Delphi RAD Studio Skia Flowmotion - Animated Image gallery/grid component**    
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/LaMitaOne/skia-flowmotion)
          
-<img width="360" height="202" alt="skia-flowmotion" src="https://github.com/user-attachments/assets/6fc27816-7189-4d9d-b221-dca303df5e5a" />
+<img width="1360" height="768" alt="Unbenannt" src="https://github.com/user-attachments/assets/143a023d-34c9-42ef-8c3e-41ac0a488a21" />
         
 # Skia-FlowMotion   
    
@@ -22,7 +22,7 @@ Started as a simple port of my D7 VCL Flowmotion component...which was "let only
 No big deal to port old code when delphi & Skia4delphi is involved 😉     
 Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easier than u think to port d7 canvas to skia4delphi!    
           
-### Features at a glance (v0.59)   
+### Features at a glance (v0.60)   
    
 - **Pinterest-like masonry layout**     
 - **Animated appearance** (slide-in, “falling” effects, breathing)  
@@ -87,7 +87,14 @@ If you want to tip me a coffee.. :)
 </p>
     
 ### Latest Changes     
-    
+   
+**v 0.60**      
+- Added new Background effect -> beTransparent   
+- Makes form transparent and draws no background.    
+- Finally i got the last missing vcl-flm could do here now too. Let fly around covers all over the desktop :D     
+- Runs even on M3 cpu smooth with transparent background (only rotate he not likes so much)   
+- Added missing icon for sample & fixed output path    
+       
 **v 0.59**    
 - Changed MaxZoomSize to percent, so automatically changes with formresize    
   and fixed problem that it was too big when window smaller    
