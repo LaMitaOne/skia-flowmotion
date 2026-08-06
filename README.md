@@ -17,8 +17,7 @@ Started as a simple port of my D7 VCL Flowmotion component...which was "let only
 **From zero to this beast in ~3 months** (with pauses):     
 **0 → VCL → FMX/Skia4Delphi**      
    
-**3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background,    tech brackets...).   
-   
+**3 days later**: Fully ported to Skia/FMX + extreme improvements (rotation with handle, particles on click, perspective-correct shadows, holographic animated background,    tech brackets...).      
 No big deal to port old code when delphi & Skia4delphi is involved 😉     
 Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easier than u think to port d7 canvas to skia4delphi!    
           
@@ -48,21 +47,11 @@ Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easi
        
 ...and many more...    
     
-### Try it!   
-Grab the repo, run the sample, and watch the magic.     
-Feedback, stars or ideas very welcome – happy to discuss code or add features!   
-  
-Tip: You can play memory on it now. Enable infopanel on some, unselect, and try recognize which all it was :D   
-   
 ### Current Development Status & Platform   
    
 Alpha – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
 Lots bugs for sure crawling around everywhere... if you see one, splat it :D       
-     
-Especially **all draggable** is still making problems with some things,   
-(must make layout different, that i can only set psition for one and not all always...   
-something like that my head background agent thread working on)   
-but at all its getting very stable now – even with SelectedDraggable and not zoom to center, lots effects.   
+At all its getting very stable now – even with SelectedDraggable and not zoom to center, lots effects.   
 Physics are running almost perfectly fine now.   
    
 Right now everything is being built and tested **only on Windows** (Delphi 11/12, FMX + Skia4Delphi).    
@@ -74,8 +63,6 @@ This is my **first real longer project** in the newer Delphi versions (after yea
    
 If someone wants to try it on another OS right now and finds issues (or even gets it running) – feel free!  
 If you know **where** it breaks and **why**, or even send a PR/fix – that would be awesome and super helpful :)   
-   
-No pressure though – Windows is the main focus for now.     
     
 **Zipped sample exe** (small enough for upload)    
    
