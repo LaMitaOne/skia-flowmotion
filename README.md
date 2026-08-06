@@ -12,7 +12,7 @@
    
 **Sample video:**        
 https://youtu.be/lT7jjOUIQO0    
-https://www.youtube.com/watch?v=JWn37m4JwYM     
+https://youtu.be/JWn37m4JwYM       
      
 Started as a simple port of my D7 VCL Flowmotion component...which was "let only show a few pictures of search results somehow" at begin        
 **From zero to this beast in ~3 months** (with pauses):     
