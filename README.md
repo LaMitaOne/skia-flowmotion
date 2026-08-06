@@ -37,7 +37,8 @@ Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easi
 - **ZoomSelectedToFull**, RotateAllBy, PutAllToAngle and more functions  
 - **Holographic background** effect (triple layer sine-wave refraction)   
 - **RealMatrix background** effect (using live data of items)
-- **NeuralLink background** effect (connections between each with same infotxt)  
+- **NeuralLink background** effect (connections between each with same infotxt)     
+- **Transparent background** (free floating on desktop)     
 - **InfoPanel** with animated slide-in on selected pic from any direction with different styles    
 - **HoverAlive** – gentle micro-hovering (floating around center)  
 - **Wall Sliding** physics (respect screen edges)   
