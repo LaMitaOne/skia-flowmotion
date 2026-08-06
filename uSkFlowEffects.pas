@@ -23,8 +23,8 @@ const
 
 type
   { Enumeration of available background styles }
-  TBackgroundEffect = (beHolographic, beRealMatrix, beFade, beNeuralLinks);
-  { Forward declaration }
+  TBackgroundEffect = (beHolographic, beRealMatrix, beFade, beNeuralLinks, beTransparent);
+    { Forward declaration }
 
   TSkFlowControl = class(TComponent);
   { ==========================================

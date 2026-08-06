@@ -8,9 +8,9 @@
   - Asynchronous multi-threaded image loading with resizing.
   - Physics-based animations (Entry, Exit, Hover, Zoom, Breathing).
   - Interactive features (Selection, Dragging, Rotation, Info Panels).
-  - Background effects integration (Matrix, Holographic).
+  - Background effects integration (Matrix, Holographic, NeuralLinks, Transparent).
 *******************************************************************************}
-{ Skia-Flowmotion v0.59 alpha                                                  }
+{ Skia-Flowmotion v0.60 alpha                                                  }
 { based on vcl flowmotion https://github.com/LaMitaOne/Flowmotion              }
 { by Lara Miriam Tamy Reschke                                                  }
 {                                                                              }
@@ -21,6 +21,12 @@
 
 {
  ----Latest Changes
+   v 0.60
+    - Added new Background effect -> beTransparent
+    - Makes form transparent and draws no background. 
+    - Finally i got the last missing vcl-flm could do here now too :D
+    - Runs even on M3 cpu smooth with transparent background (only rotate he not likes so much)
+    - Added missing icon for sample & fixed output path
    v 0.59
     - Changed MaxZoomSize to percent, so automatically changes with formresize
       and fixed problem that it was too big when window smaller
@@ -5269,7 +5275,11 @@ begin
   // =========================================================================
 
   // 1. Always clear to solid base color first
-    ACanvas.Clear(FBackgroundColor);
+  // Except when we send to layered
+    if FBackgroundEffect = uSkFlowEffects.beTransparent then
+      ACanvas.Clear(TAlphaColors.Null)
+    else
+      ACanvas.Clear(FBackgroundColor);
 
   // 2. Draw Effects (Images/Animations/Matrix)
   // We pass the Paint object we just created to reuse it
@@ -5766,6 +5776,19 @@ begin
   end;
 
   DrawAndAnimateParticles(ACanvas);
+
+
+  // ========================================================================
+  // Transparent background
+  // ========================================================================
+  if FBackgroundEffect = uSkFlowEffects.beTransparent then
+  begin
+    if (Root <> nil) and (Root is TCommonCustomForm) then
+    begin
+      var LForm: TCommonCustomForm := Root as TCommonCustomForm;
+      LForm.Transparency := True;
+    end;
+  end;
 end;
 
 procedure TSkFlowmotion.DrawAndAnimateParticles(const ACanvas: ISkCanvas);

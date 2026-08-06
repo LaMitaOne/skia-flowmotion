@@ -150,7 +150,6 @@ type
     procedure FormDestroy(Sender: TObject);
     { --- Event Handlers --- }
     procedure Button10Click(Sender: TObject);
-    procedure Button11Click(Sender: TObject);
     procedure Button12Click(Sender: TObject);
     procedure Button13Click(Sender: TObject);
     procedure Button14Click(Sender: TObject);
@@ -263,16 +262,6 @@ begin
   skfmFlowGallery.Clear(true, true, Panel1.BoundsRect.Round, Panel1.BoundsRect.Round, iesFromPoint);
 end;
 
-procedure TfrmMain.Button11Click(Sender: TObject);
-begin
-  { Set window to transparent overlay mode }
-  skfmFlowGallery.SetBackgroundpicture('');
-  Transparency := true;
-  Borderstyle := TFmxFormBorderStyle.None;
-  Canvas.Clear($00000000);
-  skfmFlowGallery.BackgroundColor := TAlphaColors.Null;
-end;
-
 procedure TfrmMain.Button12Click(Sender: TObject);
 begin
   { Trigger Zoom animation for the currently selected image }
@@ -341,6 +330,8 @@ procedure TfrmMain.Button19Click(Sender: TObject);
 begin
 
 end;
+
+
 { *******************************************************************************
   EVENT HANDLERS: UI CONTROLS (CHECKBOXES, COMBOBOXES, SPINBOX)
   ******************************************************************************* }
@@ -522,13 +513,36 @@ begin
   { Change Background Effect }
   case Combobox6.ItemIndex of
     0:
+    begin
+       Transparency := False;
+       Borderstyle := TFmxFormBorderStyle.Sizeable;
       skfmFlowGallery.BackgroundEffect := beRealMatrix;
+    end;
     1:
+    begin
+       Transparency := False;
+       Borderstyle := TFmxFormBorderStyle.Sizeable;
       skfmFlowGallery.BackgroundEffect := beHolographic;
+    end;
     2:
+    begin
+       Transparency := False;
+       Borderstyle := TFmxFormBorderStyle.Sizeable;
       skfmFlowGallery.BackgroundEffect := beFade;
+    end;
     3:
+    begin
+       Transparency := False;
+       Borderstyle := TFmxFormBorderStyle.Sizeable;
       skfmFlowGallery.BackgroundEffect := beNeuralLinks;
+    end;
+    4:
+    begin
+       Transparency := True;
+       Fill.Color := TAlphaColors.Null;
+       Borderstyle := TFmxFormBorderStyle.None;
+       skfmFlowGallery.BackgroundEffect := beTransparent;
+    end;
   end;
 end;
 
@@ -628,11 +642,12 @@ begin
   { Check if started with parameters (Slave Mode) }
   if ParamCount >= 1 then
   begin
-    borderstyle := TFmxFormBorderStyle.None;
     ParamsTxtFile := ParamStr(1);
     LoadedWithParams := True;
     saiAnimatedLogo.Visible := False;
     lytContent.Visible := True;
+    Transparency := True;
+    Fill.Color := TAlphaColors.Null;
   end
   else
   begin
@@ -657,6 +672,7 @@ begin
   lytcontrols.Visible := not Loadedwithparams;
   Layout1.Visible := not Loadedwithparams;
   lytContent.Visible := True;
+  if not Loadedwithparams then
   Fill.Color := TAlphaColors.Black;
   fanFadeOutTransition.Enabled := True;
   Timer1.Enabled := True;
@@ -1032,10 +1048,16 @@ begin
   { Loads a playlist from a text file (Format: FilePath|Caption) }
   if skfmFlowGallery = nil then
   begin
+  //cant be normal pos/size cause else we get flickering and black background sometimes,
+  //only if maximized & transparent. but this way it works
+  Top := 1;
+  Left := 1;
+  Width := Trunc(Screen.Width-1);
+  Height := Trunc(Screen.Height-1);
     skfmFlowGallery := TSkFlowmotion.Create(Self);
     skfmFlowGallery.Parent := lytContent;
     skfmFlowGallery.Align := TAlignLayout.Client;
-    skfmFlowGallery.SetBackgroundpicture(ExtractFilePath(ParamStr(0)) + 'back.jpg');
+   // skfmFlowGallery.SetBackgroundpicture(ExtractFilePath(ParamStr(0)) + 'back.jpg');
     { Setup basic gallery style for playlist mode }
     skfmFlowGallery.PopupMenu := PopupMenu1;
     skfmFlowGallery.BackgroundColor := TAlphaColors.Black;
@@ -1056,6 +1078,9 @@ begin
     skfmFlowGallery.HotTrackZoom := True;
     skfmFlowGallery.Visible := True;
     skfmFlowGallery.BringToFront;
+    Transparency := True;
+    Fill.Color := TAlphaColors.Null;
+    skfmFlowGallery.BackgroundEffect := beTransparent;
   end
   else if skfmFlowGallery.ImageCount > 0 then
     skfmFlowGallery.ClearNonThreaded(true, true, Rect(0, 0, 0, 0), Rect(0, 0, 0, 0), iesFromBottom, false);
