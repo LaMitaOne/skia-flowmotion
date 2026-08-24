@@ -325,3 +325,23 @@ Skia4Delphi installed and enabled
    
    
 VCL Version: https://github.com/LaMitaOne/Flowmotion   
+
+      
+🎨 Skia4Delphi Components:    
+   Alive Progress/Loading circle https://github.com/LaMitaOne/SkiaAliveProgress   
+   Audio Visualizer https://github.com/LaMitaOne/SkiaAVisualizer        
+   CustomThreadedBase (this i use mostly) https://github.com/LaMitaOne/SkiaCustomThreadedBase    
+   Skia Alive Grid https://github.com/LaMitaOne/Skia-AliveGrid    
+   Skia-Slideshow https://github.com/LaMitaOne/Skia-Slideshow   
+   Skia-Circlepopup https://github.com/LaMitaOne/skia-circlepopup  
+   Skia-CubesPopup https://github.com/LaMitaOne/SkiaCubesPopup   
+   Skia-Button https://github.com/LaMitaOne/SkiaButton    
+   Skia Desktop Pet https://github.com/LaMitaOne/SkiaDesktopPetBase    
+         
+🧪 Skia4Delphi experimental Components:    
+   CustomMultithreadedBase  https://github.com/LaMitaOne/SkiaCustomMultiThreadedBase    
+   Page Control https://github.com/LaMitaOne/SkiaPageControl   
+   Surface Widget/modules rendering engine https://github.com/LaMitaOne/MRX-Skia-Surface   
+   LCARS fluid engine https://github.com/LaMitaOne/Skia-LCARS-Fluid-Engine   
+   Fluid Magma effect https://github.com/LaMitaOne/Fluid-Magma-Effect    
+      
