@@ -50,7 +50,7 @@ Should had tried it earlier, its so much fun with skia4delphi... TRY it, is easi
     
 ### Current Development Status & Platform   
    
-Alpha – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
+Beta – everything from the old VCL version is implemented now, still a lot to do, but getting usable slowly 😄     
 Lots bugs for sure crawling around everywhere... if you see one, splat it :D       
 At all its getting very stable now – even with SelectedDraggable and not zoom to center, lots effects.   
 Physics are running almost perfectly fine now.   
